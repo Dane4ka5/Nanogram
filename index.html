@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minegram — твой безопасный мессенджер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Шапка */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        /* Основной контент */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Левая колонка — пользователи онлайн */
+        .users-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .users-sidebar h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .online-list {
+            list-style: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .online-list li {
+            padding: 12px 15px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .online-list li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .online-list li.selected {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .user-status {
+            font-size: 0.8em;
+            color: #28a745;
+        }
+
+        .user-badge {
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        /* Правая колонка — чат */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        .chat-header h2 {
+            color: #212529;
+            font-size: 1.2em;
+        }
+
+        .chat-header p {
+            color: #28a745;
+            font-size: 0.9em;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 70%;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: #f1f3f5;
+            color: #212529;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        .message-input-area {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            background: #f8f9fa;
+        }
+
+        .message-input-area input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .message-input-area input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .message-input-area input:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        .message-input-area button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .message-input-area button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .message-input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #495057;
+            font-size: 1.2em;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .typing-indicator {
+            font-size: 0.8em;
+            color: #667eea;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Блок входа -->
+        <div id="loginBlock" style="display: block;">
+            <div class="header">
+                <h1>⛓️ Minegram</h1>
+                <p>Твой безопасный мессенджер</p>
+            </div>
+            <div style="padding: 40px; text-align: center;">
+                <h3 style="margin-bottom: 20px; color: #495057;">Введите ваше имя:</h3>
+                <input type="text" id="username" placeholder="Например: Антон" 
+                       style="padding: 15px; width: 300px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1em; margin-right: 10px;" />
+                <button onclick="register()" style="padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1em; cursor: pointer;">
+                    Войти в Minegram →
+                </button>
+            </div>
+        </div>
+
+        <!-- Блок чата (изначально скрыт) -->
+        <div id="chatBlock" style="display: none; height: 100%;">
+            <div class="header" style="position: relative;">
+                <h1>⛓️ Minegram</h1>
+                <p>Приватно и безопасно</p>
+                <button class="logout-btn" onclick="logout()">Выйти</button>
+            </div>
+            
+            <div class="main-content">
+                <!-- Левая панель с пользователями -->
+                <div class="users-sidebar">
+                    <h3>📱 Пользователи онлайн</h3>
+                    <ul class="online-list" id="userList">
+                        <li>Загрузка...</li>
+                    </ul>
+                </div>
+
+                <!-- Правая панель с чатом -->
+                <div class="chat-area">
+                    <div class="chat-header" id="chatHeader">
+                        <h2>👋 Добро пожаловать, <span id="displayName"></span>!</h2>
+                        <p>● Выберите пользователя из списка слева, чтобы начать общение</p>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="welcome-screen">
+                            <div>
+                                <h2>✨ Добро пожаловать в Minegram!</h2>
+                                <p style="margin-top: 10px;">Выберите собеседника из списка слева</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-input-area">
+                        <input type="text" id="messageInput" placeholder="Напишите сообщение..." disabled />
+                        <button id="sendButton" onclick="sendMessage()" disabled>Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentUser = null;
+        let selectedUser = null;
+        let messages = {}; // Храним сообщения для каждого пользователя
+
+        function register() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Введите имя!');
+                return;
+            }
+
+            currentUser = username;
+            
+            // Подключаемся к серверу (ПОРТ 3000!)
+            socket = new WebSocket('ws://localhost:3000');
+
+            socket.onopen = function() {
+                console.log('✅ Подключено к серверу');
+                socket.send(JSON.stringify({
+                    type: 'register',
+                    username: username
+                }));
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log('📩 Получено:', data);
+
+                if (data.type === 'registered') {
+                    document.getElementById('loginBlock').style.display = 'none';
+                    document.getElementById('chatBlock').style.display = 'block';
+                    document.getElementById('displayName').textContent = data.username;
+                }
+                
+                if (data.type === 'user_list') {
+                    updateUserList(data.users);
+                }
+
+                // Обработка входящего сообщения
+                if (data.type === 'message') {
+                    receiveMessage(data.from, data.text, data.time);
+                }
+            };
+
+            socket.onclose = function() {
+                console.log('❌ Отключено от сервера');
+                alert('Потеряно соединение с сервером');
+            };
+        }
+
+        function updateUserList(users) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            
+            users.forEach(user => {
+                const li = document.createElement('li');
+                if (user === currentUser) {
+                    li.innerHTML = `
+                        <div class="user-avatar">${user.charAt(0)}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user}</div>
+                            <div class="user-status">● Онлайн</div>
+                        </div>
+                        <span class="user-badge">Вы</span>
+                    `;
+                } else {
+                    li.innerHTML = `
+                        <div class="user-avatar">${user.charAt(0)}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user}</div>
+                            <div class="user-status">● Онлайн</div>
+                        </div>
+                    `;
+                    li.onclick = () => selectUser(user);
+                }
+                
+                if (selectedUser === user) {
+                    li.classList.add('selected');
+                }
+                
+                userList.appendChild(li);
+            });
+        }
+
+        function selectUser(user) {
+            selectedUser = user;
+            
+            // Подсвечиваем выбранного пользователя
+            document.querySelectorAll('.online-list li').forEach(li => {
+                li.classList.remove('selected');
+                if (li.textContent.includes(user) && !li.textContent.includes('Вы')) {
+                    li.classList.add('selected');
+                }
+            });
+
+            // Активируем поле ввода
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+            document.getElementById('messageInput').focus();
+
+            // Обновляем заголовок чата
+            document.querySelector('.chat-header h2').innerHTML = `💬 Чат с <span style="color: #667eea;">${user}</span>`;
+            document.querySelector('.chat-header p').innerHTML = '● Пишите сообщение...';
+
+            // Загружаем историю сообщений с этим пользователем
+            loadMessages(user);
+        }
+
+        function loadMessages(user) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            
+            if (!messages[user]) {
+                messages[user] = [];
+            }
+
+            if (messages[user].length === 0) {
+                container.innerHTML = `
+                    <div class="welcome-screen">
+                        <div>
+                            <h3>👋 Начните общение с ${user}</h3>
+                            <p style="margin-top: 10px;">Напишите первое сообщение!</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            messages[user].forEach(msg => {
+                displayMessage(msg.text, msg.sender === currentUser ? 'sent' : 'received', msg.time);
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !selectedUser) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            // Отправляем сообщение на сервер
+            socket.send(JSON.stringify({
+                type: 'message',
+                to: selectedUser,
+                from: currentUser,
+                text: text,
+                time: time
+            }));
+
+            // Сохраняем в локальную историю
+            if (!messages[selectedUser]) {
+                messages[selectedUser] = [];
+            }
+            messages[selectedUser].push({
+                sender: currentUser,
+                text: text,
+                time: time
+            });
+
+            // Отображаем сообщение
+            displayMessage(text, 'sent', time);
+            
+            // Очищаем поле ввода
+            input.value = '';
+        }
+
+        function receiveMessage(from, text, time) {
+            // Сохраняем в локальную историю
+            if (!messages[from]) {
+                messages[from] = [];
+            }
+            messages[from].push({
+                sender: from,
+                text: text,
+                time: time
+            });
+
+            // Если открыт чат с этим пользователем, показываем сообщение
+            if (selectedUser === from) {
+                displayMessage(text, 'received', time);
+            } else {
+                // Можно добавить уведомление о новом сообщении
+                console.log(`Новое сообщение от ${from}`);
+            }
+        }
+
+        function displayMessage(text, type, time) {
+            const container = document.getElementById('messagesContainer');
+            
+            // Убираем приветствие, если оно есть
+            if (container.children.length === 1 && container.children[0].classList.contains('welcome-screen')) {
+                container.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `
+                ${text}
+                <div class="message-time">${time}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function logout() {
+            if (socket) {
+                socket.close();
+            }
+            document.getElementById('loginBlock').style.display = 'block';
+            document.getElementById('chatBlock').style.display = 'none';
+            document.getElementById('username').value = '';
+            selectedUser = null;
+        }
+    </script>
+</body>
+</html>
