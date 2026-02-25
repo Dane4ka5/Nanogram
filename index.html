@@ -365,7 +365,7 @@
             currentUser = username;
             
             // Подключаемся к серверу (ПОРТ 3000!)
-            socket = new WebSocket('ws://localhost:3000');
+            socket = new WebSocket('wss://minegram.onrender.com');
 
             socket.onopen = function() {
                 console.log('✅ Подключено к серверу');
