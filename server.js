@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
@@ -28,34 +29,32 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 // ==============================================
-// ХРАНИЛИЩА ДАННЫХ
+// ХРАНИЛИЩА
 // ==============================================
-const users = new Map(); // socket -> {username, email}
-let messages = {}; // история сообщений
-let userDatabase = {}; // база пользователей
+const users = new Map(); // socket -> {username, settings}
+let messages = {};
+let userDatabase = {};
 
-// Канал NANOGRAM
+// Каналы (теперь могут создавать все)
 let channels = {
     'NANOGRAM': {
+        id: 'NANOGRAM',
         name: 'NANOGRAM',
         description: 'Официальный канал обновлений',
+        creator: 'Dane4ka5',
+        admins: ['Dane4ka5'],
         subscribers: [],
-        posts: [
-            {
-                id: 1,
-                text: '🎉 Nanogram запущен! Новая эра безопасности',
-                date: new Date().toISOString(),
-                views: 0
-            },
-            {
-                id: 2,
-                text: '📧 Техподдержка: support@nanogram.ru (пишите сюда)',
-                date: new Date().toISOString(),
-                views: 0
-            }
-        ]
+        posts: [],
+        createdAt: new Date().toISOString(),
+        avatar: '📢'
     }
 };
+
+// Приватные комнаты
+let privateRooms = {};
+
+// Настройки пользователей
+let userSettings = {};
 
 // Загружаем данные
 try {
@@ -64,6 +63,8 @@ try {
     messages = saved.messages || {};
     channels = saved.channels || channels;
     userDatabase = saved.users || {};
+    privateRooms = saved.privateRooms || {};
+    userSettings = saved.userSettings || {};
     console.log('📂 Данные загружены');
 } catch (e) {
     console.log('📂 Создаю новые файлы');
@@ -74,13 +75,25 @@ function saveData() {
     fs.writeFileSync('./data.json', JSON.stringify({
         messages,
         channels,
-        users: userDatabase
+        users: userDatabase,
+        privateRooms,
+        userSettings
     }, null, 2));
-    console.log('💾 Данные сохранены');
 }
 
 // ==============================================
-// ОБРАБОТКА ПОДКЛЮЧЕНИЙ
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ==============================================
+function generateId() {
+    return crypto.randomBytes(8).toString('hex');
+}
+
+function generateInviteLink() {
+    return crypto.randomBytes(16).toString('hex');
+}
+
+// ==============================================
+// WEB-SOCKET ОБРАБОТКА
 // ==============================================
 wss.on('connection', (ws) => {
     console.log('🔌 Новое подключение');
@@ -93,9 +106,7 @@ wss.on('connection', (ws) => {
             // ===== РЕГИСТРАЦИЯ =====
             if (data.type === 'register') {
                 const username = data.username;
-                const email = data.email;
                 
-                // Проверяем, есть ли уже такой пользователь
                 let existingUser = null;
                 for (let [key, value] of Object.entries(userDatabase)) {
                     if (value.username === username) {
@@ -105,88 +116,109 @@ wss.on('connection', (ws) => {
                 }
                 
                 if (existingUser) {
-                    // Вход существующего пользователя
-                    console.log(`👋 Вход: ${username} (${email})`);
+                    console.log(`👋 Вход: ${username}`);
                     ws.send(JSON.stringify({
                         type: 'login_success',
                         username: username,
-                        email: email,
-                        message: 'Добро пожаловать назад!'
+                        settings: userSettings[username] || {}
                     }));
                 } else {
-                    // Регистрация нового
-                    userDatabase[email] = {
+                    userDatabase[username] = {
                         username: username,
                         registered: new Date().toISOString(),
                         lastSeen: new Date().toISOString()
                     };
+                    userSettings[username] = {
+                        fontSize: 'medium',
+                        theme: 'dark',
+                        messageDensity: 'comfortable',
+                        background: 'default'
+                    };
                     saveData();
-                    console.log(`👤 Новый пользователь: ${username} (${email})`);
+                    console.log(`👤 Новый пользователь: ${username}`);
                     
                     ws.send(JSON.stringify({
                         type: 'register_success',
                         username: username,
-                        email: email,
-                        message: 'Регистрация успешна!'
+                        settings: userSettings[username]
                     }));
                 }
                 
-                users.set(ws, { username, email });
+                users.set(ws, { username });
                 
-                // Отправляем историю сообщений
-                const userMessages = {};
-                for (let [chatId, msgs] of Object.entries(messages)) {
-                    if (chatId.includes(username)) {
-                        userMessages[chatId] = msgs;
-                    }
-                }
-                
+                // Отправляем данные
                 ws.send(JSON.stringify({
                     type: 'history',
-                    history: userMessages
+                    history: messages
                 }));
                 
-                // Отправляем каналы
                 ws.send(JSON.stringify({
-                    type: 'channels',
-                    channels: channels
+                    type: 'channels_list',
+                    channels: Object.values(channels)
+                }));
+                
+                ws.send(JSON.stringify({
+                    type: 'rooms_list',
+                    rooms: Object.values(privateRooms).filter(r => r.members.includes(username))
                 }));
                 
                 broadcastUserList();
             }
 
-            // ===== ПОДПИСКА НА КАНАЛ =====
-            if (data.type === 'subscribe_channel') {
-                const channelId = data.channelId;
-                const username = users.get(ws)?.username;
+            // ===== СОЗДАНИЕ КАНАЛА =====
+            if (data.type === 'create_channel') {
+                const { name, description, creator } = data;
+                const channelId = name.toUpperCase().replace(/\s/g, '_');
                 
-                if (channels[channelId] && username) {
-                    if (!channels[channelId].subscribers.includes(username)) {
-                        channels[channelId].subscribers.push(username);
-                        saveData();
-                        console.log(`📢 ${username} подписался на канал ${channelId}`);
-                    }
+                if (channels[channelId]) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Канал с таким названием уже существует'
+                    }));
+                    return;
                 }
+                
+                channels[channelId] = {
+                    id: channelId,
+                    name: name,
+                    description: description || '',
+                    creator: creator,
+                    admins: [creator],
+                    subscribers: [creator],
+                    posts: [],
+                    createdAt: new Date().toISOString(),
+                    avatar: '📢'
+                };
+                
+                saveData();
+                
+                ws.send(JSON.stringify({
+                    type: 'channel_created',
+                    channel: channels[channelId]
+                }));
+                
+                broadcastToAll({
+                    type: 'new_channel',
+                    channel: channels[channelId]
+                });
             }
 
-            // ===== НОВЫЙ ПОСТ (ТОЛЬКО Dane4ka5) =====
+            // ===== ПОСТ В КАНАЛЕ =====
             if (data.type === 'new_post') {
-                const channelId = data.channelId;
-                const postText = data.text;
-                const username = users.get(ws)?.username;
+                const { channelId, text, author } = data;
                 
-                if (username === 'Dane4ka5' && channels[channelId]) {
+                if (channels[channelId] && channels[channelId].admins.includes(author)) {
                     const newPost = {
                         id: channels[channelId].posts.length + 1,
-                        text: postText,
+                        text: text,
+                        author: author,
                         date: new Date().toISOString(),
-                        views: 0
+                        views: 0,
+                        reactions: {}
                     };
                     
                     channels[channelId].posts.push(newPost);
                     saveData();
-                    
-                    console.log(`📢 Новый пост в канале ${channelId}: ${postText}`);
                     
                     broadcastToChannel(channelId, {
                         type: 'new_post',
@@ -196,12 +228,130 @@ wss.on('connection', (ws) => {
                 }
             }
 
-            // ===== ОТПРАВКА СООБЩЕНИЯ =====
+            // ===== ПОДПИСКА НА КАНАЛ =====
+            if (data.type === 'subscribe_channel') {
+                const { channelId, username } = data;
+                
+                if (channels[channelId] && !channels[channelId].subscribers.includes(username)) {
+                    channels[channelId].subscribers.push(username);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({
+                        type: 'subscribed',
+                        channelId: channelId
+                    }));
+                }
+            }
+
+            // ===== СОЗДАНИЕ ПРИВАТНОЙ КОМНАТЫ =====
+            if (data.type === 'create_private_room') {
+                const { name, creator } = data;
+                const roomId = generateId();
+                const inviteLink = generateInviteLink();
+                
+                privateRooms[roomId] = {
+                    id: roomId,
+                    name: name,
+                    creator: creator,
+                    admins: [creator],
+                    members: [creator],
+                    inviteLink: inviteLink,
+                    createdAt: new Date().toISOString(),
+                    messages: []
+                };
+                
+                saveData();
+                
+                ws.send(JSON.stringify({
+                    type: 'room_created',
+                    room: privateRooms[roomId]
+                }));
+            }
+
+            // ===== ПОЛУЧИТЬ ССЫЛКУ-ПРИГЛАШЕНИЕ =====
+            if (data.type === 'get_invite_link') {
+                const { roomId } = data;
+                
+                if (privateRooms[roomId]) {
+                    ws.send(JSON.stringify({
+                        type: 'invite_link',
+                        roomId: roomId,
+                        link: privateRooms[roomId].inviteLink
+                    }));
+                }
+            }
+
+            // ===== ПРИСОЕДИНИТЬСЯ ПО ССЫЛКЕ =====
+            if (data.type === 'join_by_link') {
+                const { link, username } = data;
+                
+                const room = Object.values(privateRooms).find(r => r.inviteLink === link);
+                
+                if (room && !room.members.includes(username)) {
+                    room.members.push(username);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({
+                        type: 'joined_room',
+                        room: room
+                    }));
+                    
+                    broadcastToRoom(room.id, {
+                        type: 'user_joined',
+                        roomId: room.id,
+                        username: username
+                    }, [ws]);
+                }
+            }
+
+            // ===== СООБЩЕНИЕ В КОМНАТЕ =====
+            if (data.type === 'room_message') {
+                const { roomId, from, text, time } = data;
+                
+                if (privateRooms[roomId] && privateRooms[roomId].members.includes(from)) {
+                    if (!privateRooms[roomId].messages) {
+                        privateRooms[roomId].messages = [];
+                    }
+                    
+                    privateRooms[roomId].messages.push({
+                        from: from,
+                        text: text,
+                        time: time,
+                        timestamp: Date.now()
+                    });
+                    
+                    saveData();
+                    
+                    broadcastToRoom(roomId, {
+                        type: 'room_message',
+                        roomId: roomId,
+                        from: from,
+                        text: text,
+                        time: time
+                    });
+                }
+            }
+
+            // ===== ОБНОВЛЕНИЕ НАСТРОЕК =====
+            if (data.type === 'update_settings') {
+                const { username, settings } = data;
+                
+                userSettings[username] = {
+                    ...userSettings[username],
+                    ...settings
+                };
+                
+                saveData();
+                
+                ws.send(JSON.stringify({
+                    type: 'settings_updated',
+                    settings: userSettings[username]
+                }));
+            }
+
+            // ===== ОБЫЧНОЕ СООБЩЕНИЕ =====
             if (data.type === 'message') {
-                const from = data.from;
-                const to = data.to;
-                const encryptedText = data.text;
-                const time = data.time;
+                const { from, to, text, time } = data;
                 
                 const chatKey = [from, to].sort().join('_');
                 
@@ -211,7 +361,7 @@ wss.on('connection', (ws) => {
                 
                 messages[chatKey].push({
                     from: from,
-                    text: encryptedText,
+                    text: text,
                     time: time,
                     timestamp: Date.now()
                 });
@@ -228,7 +378,7 @@ wss.on('connection', (ws) => {
                         client.send(JSON.stringify({
                             type: 'message',
                             from: from,
-                            text: encryptedText,
+                            text: text,
                             time: time
                         }));
                     }
@@ -242,7 +392,7 @@ wss.on('connection', (ws) => {
             }
             
         } catch (e) {
-            console.error('❌ Ошибка обработки:', e);
+            console.error('❌ Ошибка:', e);
         }
     });
 
@@ -257,18 +407,24 @@ wss.on('connection', (ws) => {
 });
 
 // ==============================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ФУНКЦИИ РАССЫЛКИ
 // ==============================================
 function broadcastUserList() {
     const userList = Array.from(users.values()).map(u => u.username);
-    const message = JSON.stringify({
-        type: 'user_list',
-        users: userList
-    });
-    
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            client.send(JSON.stringify({
+                type: 'user_list',
+                users: userList
+            }));
+        }
+    });
+}
+
+function broadcastToAll(message) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
         }
     });
 }
@@ -285,28 +441,41 @@ function broadcastToChannel(channelId, message) {
     });
 }
 
+function broadcastToRoom(roomId, message, exclude = []) {
+    const room = privateRooms[roomId];
+    if (!room) return;
+    
+    wss.clients.forEach(client => {
+        if (exclude.includes(client)) return;
+        const userData = users.get(client);
+        if (userData && room.members.includes(userData.username)) {
+            client.send(JSON.stringify(message));
+        }
+    });
+}
+
 // ==============================================
-// ЗАПУСК СЕРВЕРА
+// ЗАПУСК
 // ==============================================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(50));
+    console.log('\n' + '='.repeat(60));
     console.log('🚀 Nanogram запущен!');
-    console.log('='.repeat(50));
+    console.log('='.repeat(60));
     console.log(`📡 Порт: ${PORT}`);
-    console.log('\n' + '╔'.repeat(50));
-    console.log('║     🚀 НОВАЯ ЭРА БЕЗОПАСНОСТИ');
+    console.log('\n' + '╔'.repeat(60));
+    console.log('║     🚀 НОВАЯ ЭРА: КАНАЛЫ И КОМНАТЫ');
     console.log('║');
-    console.log('║  ✓ Регистрация и вход');
-    console.log('║  ✓ Шифрование AES-256');
-    console.log('║  ✓ Канал NANOGRAM');
-    console.log('║  ✓ 152-ФЗ Политика конфиденциальности');
+    console.log('║  ✓ Каналы для всех пользователей');
+    console.log('║  ✓ Приватные комнаты по ссылкам');
+    console.log('║  ✓ Настройки интерфейса');
+    console.log('║  ✓ Админка каналов');
+    console.log('║  ✓ Приглашения');
     console.log('║');
     console.log('║  "Безопасность должна быть');
     console.log('║   доступной для всех"');
     console.log('║         © Nanogram 2024');
-    console.log('╚' + '═'.repeat(49));
-    console.log('\n📧 Техподдержка: support@nanogram.ru');
-    console.log('📱 Локальный доступ: http://localhost:' + PORT);
+    console.log('╚' + '═'.repeat(59));
+    console.log('\n📱 Локальный доступ: http://localhost:' + PORT);
     console.log('🌍 Внешний доступ: https://minegram.onrender.com\n');
 });

@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram — безопасный мессенджер</title>
+    <title>Nanogram — каналы, комнаты, настройки</title>
     <!-- CryptoJS для шифрования -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -14,23 +16,70 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
+        /* ===== ТЕМЫ ===== */
+        body.dark-theme {
+            --bg-primary: #1a1b1e;
+            --bg-secondary: #25262b;
+            --bg-tertiary: #2c2d32;
+            --text-primary: #e4e6eb;
+            --text-secondary: #b0b3b8;
+            --accent: #5c6bc0;
+            --accent-hover: #6d7cd9;
+            --border: rgba(255,255,255,0.08);
+            --card-bg: rgba(32,33,36,0.8);
+        }
+
+        body.light-theme {
+            --bg-primary: #f0f2f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --text-primary: #1a1b1e;
+            --text-secondary: #65676b;
+            --accent: #5c6bc0;
+            --accent-hover: #4a5ab0;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.9);
+        }
+
         body {
-            background: #1a1b1e;
+            background: var(--bg-primary);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 0;
-            color: #e4e6eb;
+            color: var(--text-primary);
+            transition: background 0.3s ease;
+        }
+
+        /* Размеры шрифта */
+        body.font-small {
+            font-size: 14px;
+        }
+        body.font-medium {
+            font-size: 16px;
+        }
+        body.font-large {
+            font-size: 18px;
+        }
+
+        /* Плотность сообщений */
+        .density-comfortable .message {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+        }
+        .density-compact .message {
+            margin-bottom: 4px;
+            padding: 8px 12px;
         }
 
         /* Матовый контейнер */
-        .tg-container, .login-card, .privacy-modal {
-            background: rgba(32, 33, 36, 0.8);
+        .tg-container, .modal-content, .settings-panel {
+            background: var(--card-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
         .tg-container {
@@ -40,12 +89,11 @@
             overflow: hidden;
         }
 
-        /* Левая панель */
+        /* ===== ЛЕВАЯ ПАНЕЛЬ ===== */
         .chats-sidebar {
             width: 320px;
-            background: rgba(25, 26, 29, 0.7);
-            backdrop-filter: blur(12px);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -54,15 +102,15 @@
 
         .sidebar-header {
             padding: 16px 20px;
-            background: rgba(20, 21, 24, 0.6);
+            background: var(--bg-tertiary);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--border);
         }
 
         .sidebar-header h2 {
-            color: #e4e6eb;
+            color: var(--text-primary);
             font-size: 24px;
             font-weight: 600;
             display: flex;
@@ -70,33 +118,29 @@
             gap: 8px;
         }
 
-        .sidebar-header h2 span {
-            background: rgba(98, 102, 114, 0.3);
-            color: #b0b3b8;
-            font-size: 14px;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-weight: normal;
+        .header-buttons {
+            display: flex;
+            gap: 10px;
         }
 
-        .logout-btn {
-            background: rgba(255, 255, 255, 0.08);
+        .settings-btn, .create-btn {
+            background: var(--accent);
             border: none;
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            color: #e4e6eb;
+            color: white;
         }
 
-        .logout-btn:hover {
+        .settings-btn:hover, .create-btn:hover {
             transform: scale(1.1) rotate(5deg);
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--accent-hover);
         }
 
         .current-user {
@@ -104,17 +148,17 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-tertiary);
             margin: 8px 12px;
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
         }
 
         .user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #5c6bc0, #3949ab);
+            background: var(--accent);
             color: white;
             display: flex;
             align-items: center;
@@ -122,6 +166,13 @@
             font-size: 18px;
             font-weight: 600;
             transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .user-avatar:hover {
@@ -141,9 +192,9 @@
         .search-box {
             padding: 8px 16px;
             margin: 0 12px 12px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-tertiary);
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
         }
 
         .search-box input {
@@ -151,99 +202,155 @@
             background: transparent;
             border: none;
             outline: none;
-            color: #e4e6eb;
+            color: var(--text-primary);
             font-size: 15px;
         }
 
         .search-box input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--text-secondary);
         }
 
-        .users-list {
+        /* Табы */
+        .chat-tabs {
+            display: flex;
+            padding: 0 12px;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .chats-list {
             flex: 1;
             overflow-y: auto;
             padding: 0 8px;
         }
 
-        .user-item {
+        .chat-item {
             display: flex;
             align-items: center;
             padding: 10px 12px;
             margin: 4px 0;
             cursor: pointer;
             border-radius: 25px;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
         }
 
-        .user-item:hover {
+        .chat-item:hover {
             transform: scale(1.02) translateX(5px);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            background: var(--accent);
+            color: white;
         }
 
-        .user-item.selected {
-            background: rgba(90, 110, 200, 0.2);
-            border-color: rgba(90, 110, 200, 0.3);
+        .chat-item.selected {
+            background: var(--accent);
+            color: white;
         }
 
-        .user-info {
-            margin-left: 12px;
+        .chat-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+
+        .chat-info {
             flex: 1;
         }
 
-        .user-name {
-            color: #e4e6eb;
+        .chat-name {
             font-weight: 600;
             font-size: 16px;
         }
 
-        .user-preview {
-            color: rgba(255, 255, 255, 0.5);
+        .chat-preview {
             font-size: 13px;
+            opacity: 0.7;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* Правая панель чата */
+        .chat-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: var(--accent);
+            color: white;
+            margin-left: 8px;
+        }
+
+        /* ===== ПРАВАЯ ПАНЕЛЬ ===== */
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: rgba(20, 21, 24, 0.5);
-            backdrop-filter: blur(8px);
+            background: var(--bg-secondary);
         }
 
         .chat-header {
             padding: 16px 24px;
-            background: rgba(25, 26, 29, 0.6);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .chat-header-info h3 {
-            color: #e4e6eb;
+            color: var(--text-primary);
             font-size: 18px;
             font-weight: 600;
         }
 
         .chat-header-info p {
-            color: #b0b3b8;
+            color: var(--text-secondary);
             font-size: 14px;
             margin-top: 4px;
         }
 
-        .channel-badge {
-            background: rgba(90, 110, 200, 0.3);
-            color: #a5b6ff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            border: 1px solid rgba(90, 110, 200, 0.3);
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .action-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
         }
 
         .messages-container {
@@ -262,14 +369,12 @@
             position: relative;
             animation: fadeIn 0.2s ease;
             word-wrap: break-word;
-            font-size: 15px;
             transition: all 0.2s ease;
-            backdrop-filter: blur(4px);
         }
 
         .message:hover {
             transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         @keyframes fadeIn {
@@ -279,102 +384,211 @@
 
         .message.sent {
             align-self: flex-end;
-            background: rgba(90, 110, 200, 0.3);
-            color: #e4e6eb;
+            background: var(--accent);
+            color: white;
             border-bottom-right-radius: 4px;
-            border: 1px solid rgba(90, 110, 200, 0.3);
         }
 
         .message.received {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.08);
-            color: #e4e6eb;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .message-time {
             font-size: 11px;
             margin-top: 4px;
-            opacity: 0.5;
+            opacity: 0.7;
             text-align: right;
-            color: inherit;
         }
 
         .message-input-area {
             padding: 16px 24px;
-            background: rgba(25, 26, 29, 0.6);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border);
             display: flex;
-            gap: 12px;
+            gap: 10px;
+            align-items: center;
         }
 
         .message-input-area input {
             flex: 1;
             padding: 14px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 30px;
             outline: none;
             font-size: 15px;
-            color: #e4e6eb;
+            color: var(--text-primary);
             transition: all 0.3s ease;
         }
 
         .message-input-area input:focus {
-            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
             transform: scale(1.02);
-            border-color: rgba(90, 110, 200, 0.5);
         }
 
         .message-input-area input:disabled {
-            opacity: 0.3;
+            opacity: 0.5;
         }
 
-        .message-input-area button {
-            padding: 14px 28px;
-            background: rgba(90, 110, 200, 0.5);
-            border: 1px solid rgba(90, 110, 200, 0.3);
-            border-radius: 30px;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            font-size: 18px;
             cursor: pointer;
             transition: all 0.3s ease;
+            color: white;
         }
 
-        .message-input-area button:hover:not(:disabled) {
-            transform: scale(1.05) translateY(-2px);
-            background: rgba(110, 130, 230, 0.7);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.1) rotate(5deg);
         }
 
-        .message-input-area button:disabled {
+        .send-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
         }
 
-        .welcome-screen {
-            flex: 1;
+        /* ===== МОДАЛЬНЫЕ ОКНА ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            border-radius: 30px;
+            z-index: 1001;
+            display: none;
+            color: var(--text-primary);
+        }
+
+        .modal-content.active {
+            display: block;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-content input,
+        .modal-content textarea,
+        .modal-content select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .modal-content input:focus,
+        .modal-content textarea:focus,
+        .modal-content select:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-content button {
+            padding: 12px 24px;
+            background: var(--accent);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .modal-content button:hover {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        .modal-content .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        /* Настройки */
+        .settings-group {
+            margin-bottom: 25px;
+        }
+
+        .settings-group h3 {
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        .setting-item {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            color: #b0b3b8;
-            gap: 16px;
-            text-align: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .welcome-screen h2 {
-            font-size: 24px;
-            font-weight: normal;
-            color: #e4e6eb;
+        .setting-item select {
+            width: 150px;
+            margin-bottom: 0;
         }
 
-        .welcome-screen p {
-            color: rgba(255, 255, 255, 0.5);
+        /* Приглашения */
+        .invite-link {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
         }
 
+        .invite-link input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .copy-btn {
+            padding: 8px 16px !important;
+            font-size: 14px;
+        }
+
+        /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
             width: 100%;
             height: 100vh;
@@ -386,55 +600,54 @@
         .login-card {
             padding: 40px;
             border-radius: 40px;
-            width: 450px;
+            width: 400px;
             text-align: center;
+            background: var(--card-bg);
         }
 
         .login-card h1 {
-            color: #e4e6eb;
+            color: var(--text-primary);
             font-size: 42px;
             margin-bottom: 8px;
         }
 
         .login-card p {
-            color: #b0b3b8;
+            color: var(--text-secondary);
             margin-bottom: 24px;
         }
 
         .login-input {
             width: 100%;
             padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 40px;
-            color: #e4e6eb;
+            color: var(--text-primary);
             font-size: 16px;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
             outline: none;
-            transition: all 0.3s ease;
         }
 
         .login-input:focus {
-            border-color: rgba(90, 110, 200, 0.5);
-            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
         }
 
         .login-button {
             width: 100%;
             padding: 16px;
-            background: rgba(90, 110, 200, 0.5);
-            border: 1px solid rgba(90, 110, 200, 0.3);
+            background: var(--accent);
+            border: none;
             border-radius: 40px;
             color: white;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
         }
 
         .login-button:hover {
-            background: rgba(110, 130, 230, 0.7);
+            background: var(--accent-hover);
             transform: scale(1.02);
         }
 
@@ -453,107 +666,43 @@
             font-weight: bold;
         }
 
-        .support-link a:hover {
-            text-decoration: underline;
-        }
-
-        .privacy-link {
-            color: #b0b3b8;
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: 20px;
-        }
-
-        .privacy-link:hover {
-            color: #e4e6eb;
-        }
-
-        .privacy-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 800px;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 40px;
-            border-radius: 30px;
-            z-index: 1000;
-            display: none;
-            color: #e4e6eb;
-            line-height: 1.6;
-        }
-
-        .privacy-modal.active {
-            display: block;
-        }
-
-        .privacy-modal h2 {
-            color: #e4e6eb;
-            margin: 25px 0 10px;
-            font-size: 20px;
-        }
-
-        .privacy-modal p {
-            color: #b0b3b8;
-            margin-bottom: 8px;
-        }
-
-        .privacy-modal .close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.9);
-            z-index: 999;
-            display: none;
-        }
-
-        .modal-overlay.active {
-            display: block;
-        }
-
-        .timer {
-            color: #ffd700;
-            font-size: 14px;
-            margin: 10px 0;
-        }
-
+        /* ===== АДАПТАЦИЯ ===== */
         @media screen and (max-width: 768px) {
             .chats-sidebar {
                 width: 90px !important;
                 min-width: 90px;
             }
             
-            .chats-sidebar .user-info,
+            .chats-sidebar .chat-info,
             .chats-sidebar .search-box,
             .chats-sidebar .sidebar-header h2 span,
             .chats-sidebar .current-user span:last-child,
-            .chats-sidebar .user-preview,
-            .chats-sidebar .logout-btn {
+            .chats-sidebar .chat-preview,
+            .chats-sidebar .chat-badge,
+            .chats-sidebar .tab-btn span {
                 display: none;
             }
             
             .chats-sidebar .sidebar-header h2 {
                 justify-content: center;
                 font-size: 24px;
+            }
+            
+            .chats-sidebar .current-user {
+                justify-content: center;
+                padding: 10px;
+            }
+            
+            .chats-sidebar .chat-item {
+                justify-content: center;
+                padding: 12px 0;
+            }
+            
+            .chats-sidebar .chat-avatar {
+                margin-right: 0;
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
             }
             
             .chat-area {
@@ -564,73 +713,128 @@
                 width: 90%;
                 padding: 30px 20px;
             }
+            
+            .message {
+                max-width: 85%;
+            }
         }
     </style>
 </head>
-<body>
-    <!-- Модальное окно политики -->
-    <div class="modal-overlay" id="modalOverlay" onclick="closePrivacy()"></div>
-    <div class="privacy-modal" id="privacyModal">
-        <button class="close-btn" onclick="closePrivacy()">✕</button>
-        <h1>📜 Политика конфиденциальности Nanogram</h1>
-        <p><strong>Соответствует 152-ФЗ "О персональных данных"</strong></p>
+<body class="dark-theme font-medium density-comfortable">
+    <!-- Модальное окно создания -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
+    
+    <!-- Создать канал -->
+    <div class="modal-content" id="createChannelModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-bullhorn"></i> Создать канал</h2>
+        <input type="text" id="channelName" placeholder="Название канала">
+        <textarea id="channelDesc" placeholder="Описание канала" rows="3"></textarea>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="createChannel()">Создать</button>
+            <button onclick="closeAllModals()" style="background: var(--bg-tertiary); color: var(--text-primary);">Отмена</button>
+        </div>
+    </div>
+    
+    <!-- Создать комнату -->
+    <div class="modal-content" id="createRoomModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-lock"></i> Создать приватную комнату</h2>
+        <input type="text" id="roomName" placeholder="Название комнаты">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="createPrivateRoom()">Создать</button>
+            <button onclick="closeAllModals()" style="background: var(--bg-tertiary); color: var(--text-primary);">Отмена</button>
+        </div>
+    </div>
+    
+    <!-- Настройки -->
+    <div class="modal-content" id="settingsModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-cog"></i> Настройки</h2>
         
-        <h2>1. Какие данные мы собираем</h2>
-        <p>• Имя пользователя</p>
-        <p>• Email</p>
-        <p>• Сообщения (в зашифрованном виде AES-256)</p>
+        <div class="settings-group">
+            <h3>Оформление</h3>
+            <div class="setting-item">
+                <span>Тема</span>
+                <select id="themeSelect" onchange="updateTheme()">
+                    <option value="dark">Тёмная</option>
+                    <option value="light">Светлая</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>Размер шрифта</span>
+                <select id="fontSizeSelect" onchange="updateFontSize()">
+                    <option value="small">Маленький</option>
+                    <option value="medium">Средний</option>
+                    <option value="large">Большой</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>Плотность сообщений</span>
+                <select id="densitySelect" onchange="updateDensity()">
+                    <option value="comfortable">Комфортная</option>
+                    <option value="compact">Компактная</option>
+                </select>
+            </div>
+        </div>
         
-        <h2>2. Как мы защищаем данные</h2>
-        <p>• Все сообщения шифруются</p>
-        <p>• Ключи уникальны для каждого чата</p>
-        <p>• Администрация не имеет доступа к переписке</p>
-        
-        <h2>3. Ваши права</h2>
-        <p>• Можете удалить аккаунт в любой момент</p>
-        <p>• Данные не передаются третьим лицам</p>
-        
-        <h2>4. Канал NANOGRAM</h2>
-        <p>• Официальный канал обновлений</p>
-        <p>• Администратор: Dane4ka5</p>
-        <p>• Подписка добровольна</p>
-        
-        <p style="margin-top: 30px; color: #ffd700;">Последнее обновление: 2024</p>
+        <div style="margin-top: 20px;">
+            <button onclick="saveSettings()">Сохранить</button>
+            <button onclick="closeAllModals()" style="background: var(--bg-tertiary); color: var(--text-primary);">Закрыть</button>
+        </div>
+    </div>
+    
+    <!-- Приглашение в комнату -->
+    <div class="modal-content" id="inviteModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-link"></i> Ссылка-приглашение</h2>
+        <div class="invite-link">
+            <input type="text" id="inviteLinkInput" readonly>
+            <button class="copy-btn" onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 14px;">Отправьте эту ссылку друзьям. Только они смогут войти в комнату.</p>
+        <button onclick="closeAllModals()" style="margin-top: 15px;">Закрыть</button>
+    </div>
+    
+    <!-- Присоединиться по ссылке -->
+    <div class="modal-content" id="joinModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-sign-in-alt"></i> Присоединиться по ссылке</h2>
+        <input type="text" id="joinLinkInput" placeholder="Вставьте ссылку-приглашение">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="joinByLink()">Присоединиться</button>
+            <button onclick="closeAllModals()" style="background: var(--bg-tertiary); color: var(--text-primary);">Отмена</button>
+        </div>
     </div>
 
+    <!-- Основной интерфейс -->
     <div id="loginBlock" class="login-container" style="display: flex;">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>Новая эра безопасности</p>
+            <p>Каналы, комнаты, настройки</p>
             
-            <input type="text" id="username" class="login-input" placeholder="Имя пользователя" autofocus>
-            <input type="email" id="email" class="login-input" placeholder="Email">
+            <input type="text" id="username" class="login-input" placeholder="Ваше имя" autofocus>
             
             <div style="display: flex; align-items: center; gap: 8px; margin: 15px 0; justify-content: center;">
                 <input type="checkbox" id="privacyAgree" style="width: 18px; height: 18px;">
-                <label for="privacyAgree" style="color: #b0b3b8; font-size: 14px;">
+                <label for="privacyAgree" style="color: var(--text-secondary); font-size: 14px;">
                     Я принимаю 
-                    <span onclick="openPrivacy()" style="color: #a5b6ff; cursor: pointer; text-decoration: underline;">
+                    <span style="color: var(--accent); cursor: pointer; text-decoration: underline;">
                         Политику конфиденциальности
                     </span>
                 </label>
             </div>
             
-            <button class="login-button" onclick="register()">🚀 Войти / Зарегистрироваться</button>
+            <button class="login-button" onclick="register()">🚀 Войти</button>
             
             <div class="support-link">
-                📧 <strong>Техподдержка:</strong> <a href="mailto:support@nanogram.ru">support@nanogram.ru</a>
-                <p style="color: #b0b3b8; font-size: 12px; margin-top: 5px;">Пишите сюда, если возникли вопросы</p>
-            </div>
-            
-            <div class="privacy-link" onclick="openPrivacy()">
-                Политика конфиденциальности
+                📧 <strong>Техподдержка:</strong> <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a>
             </div>
 
-            <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #5c6bc0, #3949ab); border-radius: 20px; text-align: center;">
-                <p style="color: #ffd700; font-size: 18px; font-weight: bold; margin-bottom: 5px;">🚀 НОВАЯ ЭРА БЕЗОПАСНОСТИ</p>
-                <p style="color: white; font-size: 14px;">✓ Регистрация и вход ✓ Шифрование AES-256</p>
-                <p style="color: #e4e6eb; font-size: 12px; margin-top: 8px;">"Безопасность должна быть доступной для всех"</p>
-                <p style="color: #a5b6ff; font-size: 11px;">© Nanogram 2024</p>
+            <div style="margin-top: 20px; padding: 15px; background: var(--accent); border-radius: 20px; text-align: center;">
+                <p style="color: #ffd700; font-size: 18px; font-weight: bold; margin-bottom: 5px;">🚀 НОВАЯ ЭРА</p>
+                <p style="color: white; font-size: 14px;">✓ Каналы ✓ Комнаты ✓ Настройки</p>
+                <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">"Безопасность для всех"</p>
             </div>
         </div>
     </div>
@@ -640,7 +844,10 @@
         <div class="chats-sidebar">
             <div class="sidebar-header">
                 <h2>🧪 <span>Nanogram</span></h2>
-                <button class="logout-btn" onclick="logout()">🚪</button>
+                <div class="header-buttons">
+                    <button class="settings-btn" onclick="openSettings()"><i class="fas fa-cog"></i></button>
+                    <button class="create-btn" onclick="showCreateMenu()"><i class="fas fa-plus"></i></button>
+                </div>
             </div>
             
             <div class="current-user" id="currentUserDisplay">
@@ -650,18 +857,23 @@
             </div>
             
             <div class="search-box">
-                <input type="text" placeholder="🔍 Поиск">
+                <input type="text" placeholder="🔍 Поиск" id="searchInput">
             </div>
 
-            <div class="users-list" id="userList">
-                <div class="user-item" id="channelItem" style="background: rgba(90, 110, 200, 0.15);">
-                    <div class="user-avatar">📢</div>
-                    <div class="user-info">
-                        <div class="user-name">NANOGRAM</div>
-                        <div class="user-preview">Официальный канал</div>
-                    </div>
-                </div>
-                <div style="margin: 10px 0; color: rgba(255,255,255,0.3); text-align: center;">────────</div>
+            <div class="chat-tabs">
+                <button class="tab-btn active" onclick="switchTab('chats')"><i class="fas fa-user"></i> <span>Чаты</span></button>
+                <button class="tab-btn" onclick="switchTab('channels')"><i class="fas fa-bullhorn"></i> <span>Каналы</span></button>
+                <button class="tab-btn" onclick="switchTab('rooms')"><i class="fas fa-lock"></i> <span>Комнаты</span></button>
+            </div>
+
+            <div class="chats-list" id="chatsList">
+                <!-- Динамически заполняется -->
+            </div>
+            
+            <div style="padding: 10px;">
+                <button class="tab-btn" onclick="openJoinModal()" style="width: 100%;">
+                    <i class="fas fa-link"></i> Присоединиться по ссылке
+                </button>
             </div>
         </div>
 
@@ -669,75 +881,264 @@
         <div class="chat-area">
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <h3 id="selectedUserName">NANOGRAM</h3>
-                    <p id="selectedUserStatus">Официальный канал обновлений</p>
+                    <h3 id="selectedChatName">Выберите чат</h3>
+                    <p id="selectedChatInfo"></p>
                 </div>
-                <div class="channel-badge" id="adminControls" style="display: none;">
-                    👑 Админка
+                <div class="chat-actions" id="chatActions">
+                    <!-- Динамически заполняется -->
                 </div>
             </div>
 
             <div class="messages-container" id="messagesContainer">
-                <div class="welcome-screen" id="channelWelcome">
-                    <div class="user-avatar" style="width: 80px; height: 80px; font-size: 40px;">📢</div>
-                    <h2>Добро пожаловать в NANOGRAM</h2>
-                    <p>Официальный канал обновлений от @Dane4ka5</p>
-                    <p style="font-size: 14px; margin-top: 20px;">🔐 Все сообщения зашифрованы</p>
+                <div class="welcome-screen" style="text-align: center; margin-top: 100px;">
+                    <h2>👋 Добро пожаловать в Nanogram</h2>
+                    <p>Выберите чат или создайте новый</p>
                 </div>
             </div>
 
             <div class="message-input-area">
                 <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
-                <button id="sendButton" onclick="sendMessage()" disabled>📤</button>
-            </div>
-            
-            <div id="adminPanel" style="display: none; padding: 12px 24px; background: rgba(90, 110, 200, 0.1); border-top: 1px solid rgba(255,255,255,0.08);">
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="postInput" placeholder="Напишите пост в канал..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; color: white;">
-                    <button onclick="createPost()" style="padding: 12px 24px; background: rgba(90, 110, 200, 0.5); border: none; border-radius: 20px; color: white; cursor: pointer;">📢</button>
-                </div>
+                <button class="send-btn" id="sendButton" onclick="sendMessage()" disabled><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </div>
 
     <script>
         const ADMIN_USERNAME = 'Dane4ka5';
-        const CHANNEL_ID = 'NANOGRAM';
         const ENCRYPTION_KEY = 'nanogram-secret-2024';
         
         let socket = null;
         let currentUser = null;
-        let currentEmail = null;
-        let selectedUser = CHANNEL_ID;
+        let currentChat = null;
+        let currentChatType = 'channel'; // 'user', 'channel', 'room'
         let messages = {};
-        let channelPosts = [];
+        let channels = [];
+        let rooms = [];
+        let users = [];
+        let userSettings = {};
 
-        function getEncryptionKey(partner) {
-            return CryptoJS.SHA256(currentUser + partner + ENCRYPTION_KEY).toString();
-        }
-
-        function encryptMessage(text, partner) {
-            const key = getEncryptionKey(partner);
-            return CryptoJS.AES.encrypt(text, key).toString();
-        }
-
-        function decryptMessage(encryptedText, partner) {
-            try {
-                const key = getEncryptionKey(partner);
-                const bytes = CryptoJS.AES.decrypt(encryptedText, key);
-                return bytes.toString(CryptoJS.enc.Utf8);
-            } catch (e) {
-                console.error('Ошибка дешифровки:', e);
-                return '[Зашифрованное сообщение]';
+        // ===== НАСТРОЙКИ =====
+        function updateTheme() {
+            const theme = document.getElementById('themeSelect').value;
+            document.body.className = document.body.className.replace(/dark-theme|light-theme/g, '');
+            document.body.classList.add(theme + '-theme');
+            
+            if (socket && currentUser) {
+                socket.send(JSON.stringify({
+                    type: 'update_settings',
+                    username: currentUser,
+                    settings: { theme: theme }
+                }));
             }
         }
 
+        function updateFontSize() {
+            const size = document.getElementById('fontSizeSelect').value;
+            document.body.className = document.body.className.replace(/font-small|font-medium|font-large/g, '');
+            document.body.classList.add('font-' + size);
+            
+            if (socket && currentUser) {
+                socket.send(JSON.stringify({
+                    type: 'update_settings',
+                    username: currentUser,
+                    settings: { fontSize: size }
+                }));
+            }
+        }
+
+        function updateDensity() {
+            const density = document.getElementById('densitySelect').value;
+            document.body.className = document.body.className.replace(/density-comfortable|density-compact/g, '');
+            document.body.classList.add('density-' + density);
+            
+            if (socket && currentUser) {
+                socket.send(JSON.stringify({
+                    type: 'update_settings',
+                    username: currentUser,
+                    settings: { messageDensity: density }
+                }));
+            }
+        }
+
+        function saveSettings() {
+            closeAllModals();
+            // Настройки уже применились через onchange
+        }
+
+        // ===== МОДАЛЬНЫЕ ОКНА =====
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function showCreateMenu() {
+            // Простое меню - можно сделать выбор
+            if (confirm('Создать канал? (OK - канал, Отмена - комнату)')) {
+                document.getElementById('createChannelModal').classList.add('active');
+            } else {
+                document.getElementById('createRoomModal').classList.add('active');
+            }
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function openJoinModal() {
+            document.getElementById('joinModal').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal-content').forEach(m => m.classList.remove('active'));
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // ===== СОЗДАНИЕ КАНАЛА =====
+        function createChannel() {
+            const name = document.getElementById('channelName').value.trim();
+            const desc = document.getElementById('channelDesc').value.trim();
+            
+            if (!name) {
+                alert('Введите название канала');
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'create_channel',
+                name: name,
+                description: desc,
+                creator: currentUser
+            }));
+            
+            closeAllModals();
+            document.getElementById('channelName').value = '';
+            document.getElementById('channelDesc').value = '';
+        }
+
+        // ===== СОЗДАНИЕ КОМНАТЫ =====
+        function createPrivateRoom() {
+            const name = document.getElementById('roomName').value.trim();
+            
+            if (!name) {
+                alert('Введите название комнаты');
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'create_private_room',
+                name: name,
+                creator: currentUser
+            }));
+            
+            closeAllModals();
+            document.getElementById('roomName').value = '';
+        }
+
+        // ===== ПРИГЛАШЕНИЯ =====
+        function showInviteLink(roomId, link) {
+            document.getElementById('inviteLinkInput').value = link;
+            document.getElementById('inviteModal').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function copyInviteLink() {
+            const input = document.getElementById('inviteLinkInput');
+            input.select();
+            document.execCommand('copy');
+            alert('Ссылка скопирована!');
+        }
+
+        function joinByLink() {
+            const link = document.getElementById('joinLinkInput').value.trim();
+            
+            if (!link) {
+                alert('Введите ссылку');
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'join_by_link',
+                link: link,
+                username: currentUser
+            }));
+            
+            closeAllModals();
+            document.getElementById('joinLinkInput').value = '';
+        }
+
+        // ===== ПЕРЕКЛЮЧЕНИЕ ТАБОВ =====
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.tab-btn').classList.add('active');
+            
+            updateChatsList(tab);
+        }
+
+        function updateChatsList(tab) {
+            const list = document.getElementById('chatsList');
+            list.innerHTML = '';
+            
+            if (tab === 'chats') {
+                // Пользователи
+                users.filter(u => u !== currentUser).forEach(user => {
+                    list.appendChild(createChatItem('user', user, '👤'));
+                });
+            } else if (tab === 'channels') {
+                // Каналы
+                channels.forEach(channel => {
+                    list.appendChild(createChatItem('channel', channel.name, '📢', channel));
+                });
+            } else if (tab === 'rooms') {
+                // Комнаты
+                rooms.forEach(room => {
+                    list.appendChild(createChatItem('room', room.name, '🔒', room));
+                });
+            }
+        }
+
+        function createChatItem(type, name, icon, data = null) {
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            div.onclick = () => selectChat(type, name, data);
+            
+            div.innerHTML = `
+                <div class="chat-avatar">${icon}</div>
+                <div class="chat-info">
+                    <div class="chat-name">${name}</div>
+                    <div class="chat-preview">${type === 'channel' ? 'Канал' : type === 'room' ? 'Приватная комната' : ''}</div>
+                </div>
+                ${type === 'channel' ? '<span class="chat-badge">📢</span>' : ''}
+                ${type === 'room' ? '<span class="chat-badge">🔒</span>' : ''}
+            `;
+            
+            return div;
+        }
+
+        function selectChat(type, name, data = null) {
+            currentChat = name;
+            currentChatType = type;
+            
+            document.getElementById('selectedChatName').textContent = name;
+            
+            if (type === 'channel') {
+                document.getElementById('selectedChatInfo').textContent = 'Канал • ' + (data?.subscribers?.length || 0) + ' подписчиков';
+            } else if (type === 'room') {
+                document.getElementById('selectedChatInfo').textContent = 'Приватная комната • ' + (data?.members?.length || 0) + ' участников';
+            } else {
+                document.getElementById('selectedChatInfo').textContent = '● онлайн';
+            }
+            
+            document.getElementById('messageInput').disabled = type === 'channel';
+            document.getElementById('sendButton').disabled = type === 'channel';
+            
+            // Очищаем сообщения
+            document.getElementById('messagesContainer').innerHTML = '<div class="welcome-screen"><h2>Выберите чат</h2></div>';
+        }
+
+        // ===== РЕГИСТРАЦИЯ =====
         function register() {
             const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
             
-            if (!username || !email) {
-                alert('Заполните все поля');
+            if (!username) {
+                alert('Введите имя');
                 return;
             }
             
@@ -747,320 +1148,142 @@
             }
 
             currentUser = username;
-            currentEmail = email;
+            localStorage.setItem('nanogram_user', username);
             
+            connectWebSocket();
+        }
+
+        function connectWebSocket() {
             socket = new WebSocket('wss://minegram.onrender.com');
             
             socket.onopen = function() {
-                console.log('✅ Подключено к Nanogram');
+                console.log('✅ Подключено');
                 socket.send(JSON.stringify({
                     type: 'register',
-                    username: username,
-                    email: email
+                    username: currentUser
                 }));
             };
             
             socket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                console.log('📩 Получено:', data.type);
+                console.log('📩', data.type);
                 
-                if (data.type === 'register_success') {
+                if (data.type === 'register_success' || data.type === 'login_success') {
                     document.getElementById('loginBlock').style.display = 'none';
                     document.getElementById('chatBlock').style.display = 'flex';
-                    document.getElementById('currentUserAvatar').textContent = username.charAt(0).toUpperCase();
-                    document.getElementById('currentUserName').textContent = username;
+                    document.getElementById('currentUserAvatar').textContent = currentUser.charAt(0).toUpperCase();
+                    document.getElementById('currentUserName').textContent = currentUser;
                     
-                    if (username === ADMIN_USERNAME) {
+                    if (currentUser === ADMIN_USERNAME) {
                         document.getElementById('adminBadge').style.display = 'inline-block';
-                        document.getElementById('adminPanel').style.display = 'block';
-                        document.getElementById('adminControls').style.display = 'block';
                     }
                     
-                    selectChannel();
-                }
-                
-                if (data.type === 'login_success') {
-                    document.getElementById('loginBlock').style.display = 'none';
-                    document.getElementById('chatBlock').style.display = 'flex';
-                    document.getElementById('currentUserAvatar').textContent = username.charAt(0).toUpperCase();
-                    document.getElementById('currentUserName').textContent = username;
-                    
-                    if (username === ADMIN_USERNAME) {
-                        document.getElementById('adminBadge').style.display = 'inline-block';
-                        document.getElementById('adminPanel').style.display = 'block';
-                        document.getElementById('adminControls').style.display = 'block';
+                    // Применяем настройки
+                    if (data.settings) {
+                        applySettings(data.settings);
                     }
-                    
-                    selectChannel();
                 }
                 
-                if (data.type === 'history') {
-                    messages = data.history || {};
+                if (data.type === 'channels_list') {
+                    channels = data.channels;
+                    updateChatsList('channels');
                 }
                 
-                if (data.type === 'channels') {
-                    if (data.channels && data.channels[CHANNEL_ID]) {
-                        channelPosts = data.channels[CHANNEL_ID].posts || [];
-                        loadChannelPosts();
-                    }
+                if (data.type === 'rooms_list') {
+                    rooms = data.rooms;
+                    updateChatsList('rooms');
                 }
                 
                 if (data.type === 'user_list') {
-                    updateUserList(data.users);
+                    users = data.users;
+                    updateChatsList('chats');
                 }
                 
-                if (data.type === 'message') {
-                    const decryptedText = decryptMessage(data.text, data.from);
-                    receiveMessage(data.from, decryptedText, data.time);
+                if (data.type === 'new_channel') {
+                    channels.push(data.channel);
+                    updateChatsList('channels');
                 }
                 
-                if (data.type === 'new_post') {
-                    if (data.channelId === CHANNEL_ID) {
-                        channelPosts.push(data.post);
-                        if (selectedUser === CHANNEL_ID) {
-                            displayChannelPost(data.post);
-                        }
-                    }
+                if (data.type === 'room_created') {
+                    rooms.push(data.room);
+                    updateChatsList('rooms');
+                    
+                    // Показываем ссылку-приглашение
+                    showInviteLink(data.room.id, data.room.inviteLink);
+                }
+                
+                if (data.type === 'joined_room') {
+                    rooms.push(data.room);
+                    updateChatsList('rooms');
+                    selectChat('room', data.room.name, data.room);
+                }
+                
+                if (data.type === 'invite_link') {
+                    showInviteLink(data.roomId, data.link);
                 }
             };
         }
 
-        function selectChannel() {
-            selectedUser = CHANNEL_ID;
-            document.getElementById('selectedUserName').textContent = 'NANOGRAM';
-            document.getElementById('selectedUserStatus').textContent = 'Официальный канал обновлений';
-            document.getElementById('messageInput').disabled = true;
-            document.getElementById('sendButton').disabled = true;
-            
-            loadChannelPosts();
-            
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'subscribe_channel',
-                    channelId: CHANNEL_ID
-                }));
+        function applySettings(settings) {
+            if (settings.theme) {
+                document.getElementById('themeSelect').value = settings.theme;
+                document.body.classList.add(settings.theme + '-theme');
             }
-        }
-
-        function loadChannelPosts() {
-            const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-            
-            if (channelPosts.length === 0) {
-                document.getElementById('channelWelcome').style.display = 'flex';
-                return;
+            if (settings.fontSize) {
+                document.getElementById('fontSizeSelect').value = settings.fontSize;
+                document.body.classList.add('font-' + settings.fontSize);
             }
-            
-            document.getElementById('channelWelcome').style.display = 'none';
-            
-            channelPosts.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(post => {
-                displayChannelPost(post);
-            });
-        }
-
-        function displayChannelPost(post) {
-            const container = document.getElementById('messagesContainer');
-            
-            const div = document.createElement('div');
-            div.className = 'message received';
-            div.style.maxWidth = '80%';
-            div.style.background = 'rgba(90, 110, 200, 0.15)';
-            div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span class="user-avatar" style="width: 24px; height: 24px; font-size: 12px;">📢</span>
-                    <span style="font-weight: bold;">NANOGRAM</span>
-                    <span style="font-size: 11px; opacity: 0.5;">${new Date(post.date).toLocaleDateString()}</span>
-                </div>
-                <div>${post.text}</div>
-                <div style="font-size: 11px; margin-top: 8px; opacity: 0.5;">👁️ ${post.views || 0} просмотров</div>
-            `;
-            container.appendChild(div);
-        }
-
-        function createPost() {
-            if (currentUser !== ADMIN_USERNAME) return;
-            
-            const postText = document.getElementById('postInput').value.trim();
-            if (!postText) return;
-            
-            socket.send(JSON.stringify({
-                type: 'new_post',
-                channelId: CHANNEL_ID,
-                text: postText
-            }));
-            
-            document.getElementById('postInput').value = '';
-        }
-
-        function updateUserList(users) {
-            const list = document.getElementById('userList');
-            const channelItem = list.children[0];
-            list.innerHTML = '';
-            list.appendChild(channelItem);
-            
-            users.filter(u => u !== currentUser).forEach(user => {
-                const div = document.createElement('div');
-                div.className = `user-item`;
-                div.onclick = () => selectUser(user);
-                
-                const lastMsg = getLastMessage(user);
-                
-                div.innerHTML = `
-                    <div class="user-avatar">${user.charAt(0).toUpperCase()}</div>
-                    <div class="user-info">
-                        <div class="user-name">${user}</div>
-                        <div class="user-preview">${lastMsg}</div>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-            
-            document.getElementById('channelItem').onclick = selectChannel;
-        }
-
-        function getLastMessage(user) {
-            const chatKey = [currentUser, user].sort().join('_');
-            if (messages[chatKey] && messages[chatKey].length > 0) {
-                const last = messages[chatKey][messages[chatKey].length - 1];
-                try {
-                    const decrypted = decryptMessage(last.text, last.from === currentUser ? user : last.from);
-                    return last.from === currentUser ? 'Вы: ' + decrypted : decrypted;
-                } catch {
-                    return 'Сообщение';
-                }
+            if (settings.messageDensity) {
+                document.getElementById('densitySelect').value = settings.messageDensity;
+                document.body.classList.add('density-' + settings.messageDensity);
             }
-            return 'Нет сообщений';
-        }
-
-        function selectUser(user) {
-            selectedUser = user;
-            
-            document.getElementById('selectedUserName').textContent = user;
-            document.getElementById('selectedUserStatus').textContent = '● онлайн';
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendButton').disabled = false;
-            
-            loadMessages(user);
-        }
-
-        function loadMessages(user) {
-            const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-            
-            const chatKey = [currentUser, user].sort().join('_');
-            const chatMessages = messages[chatKey] || [];
-            
-            if (chatMessages.length === 0) {
-                container.innerHTML = `
-                    <div class="welcome-screen">
-                        <h3>Начните общение с ${user}</h3>
-                        <p>🔐 Сообщения шифруются AES-256</p>
-                    </div>
-                `;
-                return;
-            }
-
-            chatMessages.forEach(msg => {
-                try {
-                    const decryptedText = decryptMessage(msg.text, msg.from === currentUser ? user : msg.from);
-                    displayMessage(decryptedText, msg.from === currentUser ? 'sent' : 'received', msg.time);
-                } catch {
-                    displayMessage('[Ошибка дешифровки]', msg.from === currentUser ? 'sent' : 'received', msg.time);
-                }
-            });
-            
-            container.scrollTop = container.scrollHeight;
         }
 
         function sendMessage() {
+            // Стандартная отправка сообщений
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text || !selectedUser || selectedUser === CHANNEL_ID) return;
-
+            if (!text || !currentChat || currentChatType === 'channel') return;
+            
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
-            const encryptedText = encryptMessage(text, selectedUser);
-
-            socket.send(JSON.stringify({
-                type: 'message',
-                to: selectedUser,
-                from: currentUser,
-                text: encryptedText,
-                time: time
-            }));
-
-            const chatKey = [currentUser, selectedUser].sort().join('_');
-            if (!messages[chatKey]) {
-                messages[chatKey] = [];
+            if (currentChatType === 'room') {
+                socket.send(JSON.stringify({
+                    type: 'room_message',
+                    roomId: currentChat,
+                    from: currentUser,
+                    text: text,
+                    time: time
+                }));
+            } else {
+                socket.send(JSON.stringify({
+                    type: 'message',
+                    to: currentChat,
+                    from: currentUser,
+                    text: text,
+                    time: time
+                }));
             }
-            messages[chatKey].push({
-                from: currentUser,
-                text: encryptedText,
-                time: time
-            });
-
-            displayMessage(text, 'sent', time);
+            
             input.value = '';
-            
-            updateUserList(Array.from(document.querySelectorAll('.user-name')).map(el => el.textContent));
-        }
-
-        function receiveMessage(from, text, time) {
-            const chatKey = [currentUser, from].sort().join('_');
-            if (!messages[chatKey]) {
-                messages[chatKey] = [];
-            }
-            messages[chatKey].push({
-                from: from,
-                text: text,
-                time: time
-            });
-
-            if (selectedUser === from) {
-                displayMessage(text, 'received', time);
-            }
-            
-            updateUserList(Array.from(document.querySelectorAll('.user-name')).map(el => el.textContent));
-        }
-
-        function displayMessage(text, type, time) {
-            const container = document.getElementById('messagesContainer');
-            
-            document.getElementById('channelWelcome').style.display = 'none';
-            
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            div.innerHTML = `
-                ${text}
-                <div class="message-time">${time}</div>
-            `;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
         }
 
         function logout() {
             if (socket) socket.close();
+            localStorage.removeItem('nanogram_user');
             document.getElementById('loginBlock').style.display = 'flex';
             document.getElementById('chatBlock').style.display = 'none';
             document.getElementById('username').value = '';
-            document.getElementById('email').value = '';
-            selectedUser = CHANNEL_ID;
-            currentUser = null;
         }
 
-        function openPrivacy() {
-            document.getElementById('privacyModal').classList.add('active');
-            document.getElementById('modalOverlay').classList.add('active');
-        }
-
-        function closePrivacy() {
-            document.getElementById('privacyModal').classList.remove('active');
-            document.getElementById('modalOverlay').classList.remove('active');
-        }
-
+        // Автовход
         window.onload = function() {
-            // Проверка автозаполнения
+            const savedUser = localStorage.getItem('nanogram_user');
+            if (savedUser) {
+                document.getElementById('username').value = savedUser;
+                register();
+            }
         };
     </script>
 </body>
