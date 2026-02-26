@@ -2,7 +2,6 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
 
 const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
@@ -29,33 +28,9 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 // ==============================================
-// НАСТРОЙКА ЯНДЕКС ПОЧТЫ (НОВЫЙ ПАРОЛЬ)
-// ==============================================
-const transporter = nodemailer.createTransport({
-    host: 'smtp.yandex.ru',
-    port: 465,
-    secure: true,
-    auth: {
-        user: 'nanogram.ru@yandex.ru',
-        pass: 'zehmojegqmyvvrqc' // Новый пароль приложения
-    }
-});
-
-// Проверка подключения к почте
-transporter.verify(function(error, success) {
-    if (error) {
-        console.log('❌ Ошибка подключения к Яндекс Почте:');
-        console.log(error);
-    } else {
-        console.log('✅ Подключение к Яндекс Почте успешно!');
-    }
-});
-
-// ==============================================
 // ХРАНИЛИЩА ДАННЫХ
 // ==============================================
 const users = new Map(); // socket -> {username, email}
-const emailCodes = new Map(); // email -> {code, timestamp}
 let messages = {}; // история сообщений
 let userDatabase = {}; // база пользователей
 
@@ -74,7 +49,7 @@ let channels = {
             },
             {
                 id: 2,
-                text: '📧 Вход через Яндекс Почту работает!',
+                text: '📧 Техподдержка: support@nanogram.ru (пишите сюда)',
                 date: new Date().toISOString(),
                 views: 0
             }
@@ -82,7 +57,7 @@ let channels = {
     }
 };
 
-// Загрузка сохранённых данных
+// Загружаем данные
 try {
     const data = fs.readFileSync('./data.json', 'utf8');
     const saved = JSON.parse(data);
@@ -91,7 +66,7 @@ try {
     userDatabase = saved.users || {};
     console.log('📂 Данные загружены');
 } catch (e) {
-    console.log('📂 Создаю новые файлы данных');
+    console.log('📂 Создаю новые файлы');
     saveData();
 }
 
@@ -105,136 +80,7 @@ function saveData() {
 }
 
 // ==============================================
-// ФУНКЦИЯ ОТПРАВКИ КОДА НА ПОЧТУ
-// ==============================================
-async function sendEmailCode(email, code) {
-    console.log(`📧 Попытка отправки кода ${code} на ${email}`);
-    
-    const mailOptions = {
-        from: 'nanogram.ru@yandex.ru',
-        to: email,
-        subject: '🔐 Код входа в Nanogram',
-        html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        background: #1a1b1e;
-                        margin: 0;
-                        padding: 20px;
-                    }
-                    .container {
-                        max-width: 600px;
-                        margin: 0 auto;
-                        background: rgba(32, 33, 36, 0.95);
-                        border-radius: 20px;
-                        padding: 30px;
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                    }
-                    .header {
-                        text-align: center;
-                        margin-bottom: 30px;
-                    }
-                    .header h1 {
-                        color: #a5b6ff;
-                        font-size: 32px;
-                        margin: 0;
-                    }
-                    .code-box {
-                        background: rgba(90, 110, 200, 0.2);
-                        border-radius: 15px;
-                        padding: 30px;
-                        text-align: center;
-                        margin: 20px 0;
-                        border: 2px solid #5c6bc0;
-                    }
-                    .code {
-                        font-size: 48px;
-                        font-weight: bold;
-                        color: #ffd700;
-                        letter-spacing: 5px;
-                        font-family: monospace;
-                    }
-                    .info {
-                        color: #b0b3b8;
-                        font-size: 14px;
-                        line-height: 1.6;
-                        margin: 20px 0;
-                    }
-                    .footer {
-                        text-align: center;
-                        margin-top: 30px;
-                        padding-top: 20px;
-                        border-top: 1px solid rgba(255,255,255,0.1);
-                        color: #7a6b9a;
-                        font-size: 12px;
-                    }
-                    .warning {
-                        background: rgba(255, 215, 0, 0.1);
-                        border-left: 4px solid #ffd700;
-                        padding: 10px 15px;
-                        margin: 20px 0;
-                        color: #ffd700;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>🧪 Nanogram</h1>
-                    </div>
-                    
-                    <div class="warning">
-                        ⚡ Никому не сообщайте этот код!
-                    </div>
-                    
-                    <div class="code-box">
-                        <div style="color: #e4e6eb; margin-bottom: 10px;">Ваш код для входа:</div>
-                        <div class="code">${code}</div>
-                    </div>
-                    
-                    <div class="info">
-                        <p>🔐 Код действителен в течение 5 минут.</p>
-                        <p>📱 Если вы не запрашивали код, просто проигнорируйте это письмо.</p>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>🚀 НОВАЯ ЭРА БЕЗОПАСНОСТИ</p>
-                        <p>✓ Шифрование AES-256 ✓ Защита персональных данных</p>
-                        <p>© Nanogram 2024</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `
-    };
-
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Код успешно отправлен на ${email}`);
-        console.log(`📨 ID письма: ${info.messageId}`);
-        
-        // Дублируем код в консоль для теста
-        console.log('╔════════════════════════════════════════╗');
-        console.log('║     🔐 КОД ДЛЯ ВХОДА (ТЕСТ)          ║');
-        console.log('╠════════════════════════════════════════╣');
-        console.log(`║  Email: ${email.padEnd(28)} ║`);
-        console.log(`║  Код:   ${code.padEnd(28)} ║`);
-        console.log('╚════════════════════════════════════════╝');
-        
-        return true;
-    } catch (error) {
-        console.log('❌ Ошибка отправки:');
-        console.log(error);
-        return false;
-    }
-}
-
-// ==============================================
-// WEB-SOCKET ОБРАБОТЧИКИ
+// ОБРАБОТКА ПОДКЛЮЧЕНИЙ
 // ==============================================
 wss.on('connection', (ws) => {
     console.log('🔌 Новое подключение');
@@ -244,101 +90,48 @@ wss.on('connection', (ws) => {
             const data = JSON.parse(message);
             console.log('📩 Получено:', data.type);
 
-            // ===== ЗАПРОС КОДА =====
-            if (data.type === 'request_code') {
-                const email = data.email;
-                
-                // Генерация 6-значного кода
-                const code = Math.floor(100000 + Math.random() * 900000).toString();
-                
-                // Сохраняем код с временной меткой
-                emailCodes.set(email, {
-                    code: code,
-                    timestamp: Date.now()
-                });
-                
-                console.log(`🔐 Сгенерирован код ${code} для ${email}`);
-                
-                // Отправляем код на почту
-                const sent = await sendEmailCode(email, code);
-                
-                ws.send(JSON.stringify({
-                    type: 'code_sent',
-                    email: email,
-                    success: sent,
-                    message: sent ? 'Код отправлен на почту' : 'Ошибка отправки'
-                }));
-            }
-
-            // ===== ПРОВЕРКА КОДА =====
-            if (data.type === 'verify_code') {
-                const email = data.email;
-                const inputCode = data.code;
-                const username = data.username;
-                const stored = emailCodes.get(email);
-                
-                if (!stored) {
-                    ws.send(JSON.stringify({
-                        type: 'verify_result',
-                        success: false,
-                        error: 'Код не найден. Запросите новый код.'
-                    }));
-                    return;
-                }
-                
-                if (Date.now() - stored.timestamp > 5 * 60 * 1000) {
-                    emailCodes.delete(email);
-                    ws.send(JSON.stringify({
-                        type: 'verify_result',
-                        success: false,
-                        error: 'Код истёк. Запросите новый код.'
-                    }));
-                    return;
-                }
-                
-                if (stored.code === inputCode) {
-                    emailCodes.delete(email);
-                    
-                    if (!userDatabase[email]) {
-                        userDatabase[email] = {
-                            username: username,
-                            registered: new Date().toISOString(),
-                            lastSeen: new Date().toISOString()
-                        };
-                        saveData();
-                        console.log(`👤 Новый пользователь: ${username} (${email})`);
-                    } else {
-                        userDatabase[email].lastSeen = new Date().toISOString();
-                        saveData();
-                        console.log(`👋 Возвращается: ${username} (${email})`);
-                    }
-                    
-                    ws.send(JSON.stringify({
-                        type: 'verify_result',
-                        success: true,
-                        email: email,
-                        username: userDatabase[email].username
-                    }));
-                } else {
-                    ws.send(JSON.stringify({
-                        type: 'verify_result',
-                        success: false,
-                        error: 'Неверный код. Попробуйте снова.'
-                    }));
-                }
-            }
-
-            // ===== РЕГИСТРАЦИЯ/ВХОД =====
+            // ===== РЕГИСТРАЦИЯ =====
             if (data.type === 'register') {
                 const username = data.username;
                 const email = data.email;
                 
-                users.set(ws, { username, email });
+                // Проверяем, есть ли уже такой пользователь
+                let existingUser = null;
+                for (let [key, value] of Object.entries(userDatabase)) {
+                    if (value.username === username) {
+                        existingUser = value;
+                        break;
+                    }
+                }
                 
-                ws.send(JSON.stringify({
-                    type: 'registered',
-                    username: username
-                }));
+                if (existingUser) {
+                    // Вход существующего пользователя
+                    console.log(`👋 Вход: ${username} (${email})`);
+                    ws.send(JSON.stringify({
+                        type: 'login_success',
+                        username: username,
+                        email: email,
+                        message: 'Добро пожаловать назад!'
+                    }));
+                } else {
+                    // Регистрация нового
+                    userDatabase[email] = {
+                        username: username,
+                        registered: new Date().toISOString(),
+                        lastSeen: new Date().toISOString()
+                    };
+                    saveData();
+                    console.log(`👤 Новый пользователь: ${username} (${email})`);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'register_success',
+                        username: username,
+                        email: email,
+                        message: 'Регистрация успешна!'
+                    }));
+                }
+                
+                users.set(ws, { username, email });
                 
                 // Отправляем историю сообщений
                 const userMessages = {};
@@ -501,12 +294,10 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Nanogram запущен!');
     console.log('='.repeat(50));
     console.log(`📡 Порт: ${PORT}`);
-    console.log(`📧 Почта: nanogram.ru@yandex.ru`);
-    console.log(`🔐 Статус почты: ${transporter.isIdle ? 'Активна' : 'Проверка...'}`);
     console.log('\n' + '╔'.repeat(50));
     console.log('║     🚀 НОВАЯ ЭРА БЕЗОПАСНОСТИ');
     console.log('║');
-    console.log('║  ✓ Вход через Яндекс Почту');
+    console.log('║  ✓ Регистрация и вход');
     console.log('║  ✓ Шифрование AES-256');
     console.log('║  ✓ Канал NANOGRAM');
     console.log('║  ✓ 152-ФЗ Политика конфиденциальности');
@@ -515,6 +306,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('║   доступной для всех"');
     console.log('║         © Nanogram 2024');
     console.log('╚' + '═'.repeat(49));
-    console.log('\n📱 Локальный доступ: http://localhost:' + PORT);
+    console.log('\n📧 Техподдержка: support@nanogram.ru');
+    console.log('📱 Локальный доступ: http://localhost:' + PORT);
     console.log('🌍 Внешний доступ: https://minegram.onrender.com\n');
 });

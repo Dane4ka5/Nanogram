@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram — вход по почте</title>
+    <title>Nanogram — безопасный мессенджер</title>
     <!-- CryptoJS для шифрования -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -24,6 +24,7 @@
             color: #e4e6eb;
         }
 
+        /* Матовый контейнер */
         .tg-container, .login-card, .privacy-modal {
             background: rgba(32, 33, 36, 0.8);
             backdrop-filter: blur(16px);
@@ -39,6 +40,7 @@
             overflow: hidden;
         }
 
+        /* Левая панель */
         .chats-sidebar {
             width: 320px;
             background: rgba(25, 26, 29, 0.7);
@@ -205,6 +207,7 @@
             text-overflow: ellipsis;
         }
 
+        /* Правая панель чата */
         .chat-area {
             flex: 1;
             display: flex;
@@ -416,10 +419,10 @@
             background: rgba(255, 255, 255, 0.08);
         }
 
-        .email-button {
+        .login-button {
             width: 100%;
             padding: 16px;
-            background: rgba(90, 110, 200, 0.3);
+            background: rgba(90, 110, 200, 0.5);
             border: 1px solid rgba(90, 110, 200, 0.3);
             border-radius: 40px;
             color: white;
@@ -430,9 +433,28 @@
             margin-bottom: 12px;
         }
 
-        .email-button:hover {
-            background: rgba(110, 130, 230, 0.5);
+        .login-button:hover {
+            background: rgba(110, 130, 230, 0.7);
             transform: scale(1.02);
+        }
+
+        .support-link {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 20px;
+            border-left: 4px solid #ffd700;
+            text-align: left;
+        }
+
+        .support-link a {
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .support-link a:hover {
+            text-decoration: underline;
         }
 
         .privacy-link {
@@ -554,8 +576,8 @@
         <p><strong>Соответствует 152-ФЗ "О персональных данных"</strong></p>
         
         <h2>1. Какие данные мы собираем</h2>
-        <p>• Адрес электронной почты (только для входа)</p>
         <p>• Имя пользователя</p>
+        <p>• Email</p>
         <p>• Сообщения (в зашифрованном виде AES-256)</p>
         
         <h2>2. Как мы защищаем данные</h2>
@@ -578,32 +600,38 @@
     <div id="loginBlock" class="login-container" style="display: flex;">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>Вход через Яндекс Почту</p>
+            <p>Новая эра безопасности</p>
             
-            <div id="emailStep">
-                <input type="email" id="emailInput" class="login-input" placeholder="Ваша почта" autofocus>
-                <button class="email-button" onclick="requestCode()">📧 Получить код</button>
+            <input type="text" id="username" class="login-input" placeholder="Имя пользователя" autofocus>
+            <input type="email" id="email" class="login-input" placeholder="Email">
+            
+            <div style="display: flex; align-items: center; gap: 8px; margin: 15px 0; justify-content: center;">
+                <input type="checkbox" id="privacyAgree" style="width: 18px; height: 18px;">
+                <label for="privacyAgree" style="color: #b0b3b8; font-size: 14px;">
+                    Я принимаю 
+                    <span onclick="openPrivacy()" style="color: #a5b6ff; cursor: pointer; text-decoration: underline;">
+                        Политику конфиденциальности
+                    </span>
+                </label>
             </div>
             
-            <div id="codeStep" style="display: none;">
-                <input type="text" id="codeInput" class="login-input" placeholder="Код из письма">
-                <div class="timer" id="timer">05:00</div>
-                <input type="text" id="usernameInput" class="login-input" placeholder="Ваше имя">
-                
-                <div style="display: flex; align-items: center; gap: 8px; margin: 15px 0; justify-content: center;">
-                    <input type="checkbox" id="privacyAgree" style="width: 18px; height: 18px;">
-                    <label for="privacyAgree" style="color: #b0b3b8; font-size: 14px;">
-                        Я принимаю 
-                        <span onclick="openPrivacy()" style="color: #a5b6ff; cursor: pointer; text-decoration: underline;">
-                            Политику конфиденциальности
-                        </span>
-                    </label>
-                </div>
-                
-                <button class="email-button" onclick="verifyCode()">🔐 Подтвердить</button>
+            <button class="login-button" onclick="register()">🚀 Войти / Зарегистрироваться</button>
+            
+            <div class="support-link">
+                📧 <strong>Техподдержка:</strong> <a href="mailto:support@nanogram.ru">support@nanogram.ru</a>
+                <p style="color: #b0b3b8; font-size: 12px; margin-top: 5px;">Пишите сюда, если возникли вопросы</p>
             </div>
             
-            <div class="privacy-link" onclick="openPrivacy()">Политика конфиденциальности</div>
+            <div class="privacy-link" onclick="openPrivacy()">
+                Политика конфиденциальности
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #5c6bc0, #3949ab); border-radius: 20px; text-align: center;">
+                <p style="color: #ffd700; font-size: 18px; font-weight: bold; margin-bottom: 5px;">🚀 НОВАЯ ЭРА БЕЗОПАСНОСТИ</p>
+                <p style="color: white; font-size: 14px;">✓ Регистрация и вход ✓ Шифрование AES-256</p>
+                <p style="color: #e4e6eb; font-size: 12px; margin-top: 8px;">"Безопасность должна быть доступной для всех"</p>
+                <p style="color: #a5b6ff; font-size: 11px;">© Nanogram 2024</p>
+            </div>
         </div>
     </div>
 
@@ -683,7 +711,6 @@
         let selectedUser = CHANNEL_ID;
         let messages = {};
         let channelPosts = [];
-        let timerInterval = null;
 
         function getEncryptionKey(partner) {
             return CryptoJS.SHA256(currentUser + partner + ENCRYPTION_KEY).toString();
@@ -705,113 +732,60 @@
             }
         }
 
-        function requestCode() {
-            const email = document.getElementById('emailInput').value.trim();
-            if (!email || !email.includes('@')) {
-                alert('Введите корректный email');
+        function register() {
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!username || !email) {
+                alert('Заполните все поля');
                 return;
             }
             
+            if (!document.getElementById('privacyAgree').checked) {
+                alert('Примите Политику конфиденциальности');
+                return;
+            }
+
+            currentUser = username;
             currentEmail = email;
             
             socket = new WebSocket('wss://minegram.onrender.com');
             
             socket.onopen = function() {
+                console.log('✅ Подключено к Nanogram');
                 socket.send(JSON.stringify({
-                    type: 'request_code',
+                    type: 'register',
+                    username: username,
                     email: email
                 }));
             };
             
             socket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
+                console.log('📩 Получено:', data.type);
                 
-                if (data.type === 'code_sent') {
-                    if (data.success) {
-                        alert('📧 Код отправлен на вашу почту! Проверьте Яндекс.Почту');
-                        document.getElementById('emailStep').style.display = 'none';
-                        document.getElementById('codeStep').style.display = 'block';
-                        startTimer(300);
-                    } else {
-                        alert('❌ Ошибка отправки');
-                    }
-                }
-            };
-        }
-
-        function startTimer(seconds) {
-            const timerDisplay = document.getElementById('timer');
-            let timeLeft = seconds;
-            
-            if (timerInterval) clearInterval(timerInterval);
-            
-            timerInterval = setInterval(() => {
-                const minutes = Math.floor(timeLeft / 60);
-                const secs = timeLeft % 60;
-                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    timerDisplay.textContent = 'Время истекло';
-                }
-                timeLeft--;
-            }, 1000);
-        }
-
-        function verifyCode() {
-            const code = document.getElementById('codeInput').value.trim();
-            const username = document.getElementById('usernameInput').value.trim();
-            
-            if (!code || !username) {
-                alert('Введите код и имя');
-                return;
-            }
-            
-            if (!document.getElementById('privacyAgree').checked) {
-                alert('Необходимо принять Политику конфиденциальности');
-                return;
-            }
-            
-            socket.send(JSON.stringify({
-                type: 'verify_code',
-                email: currentEmail,
-                code: code,
-                username: username
-            }));
-            
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'verify_result') {
-                    if (data.success) {
-                        currentUser = data.username;
-                        localStorage.setItem('nanogram_user', currentUser);
-                        localStorage.setItem('nanogram_email', currentEmail);
-                        completeRegistration();
-                    } else {
-                        alert('❌ ' + data.error);
-                    }
-                }
-            };
-        }
-
-        function completeRegistration() {
-            socket.send(JSON.stringify({
-                type: 'register',
-                username: currentUser,
-                email: currentEmail
-            }));
-            
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'registered') {
+                if (data.type === 'register_success') {
                     document.getElementById('loginBlock').style.display = 'none';
                     document.getElementById('chatBlock').style.display = 'flex';
-                    document.getElementById('currentUserAvatar').textContent = currentUser.charAt(0).toUpperCase();
-                    document.getElementById('currentUserName').textContent = currentUser;
+                    document.getElementById('currentUserAvatar').textContent = username.charAt(0).toUpperCase();
+                    document.getElementById('currentUserName').textContent = username;
                     
-                    if (currentUser === ADMIN_USERNAME) {
+                    if (username === ADMIN_USERNAME) {
+                        document.getElementById('adminBadge').style.display = 'inline-block';
+                        document.getElementById('adminPanel').style.display = 'block';
+                        document.getElementById('adminControls').style.display = 'block';
+                    }
+                    
+                    selectChannel();
+                }
+                
+                if (data.type === 'login_success') {
+                    document.getElementById('loginBlock').style.display = 'none';
+                    document.getElementById('chatBlock').style.display = 'flex';
+                    document.getElementById('currentUserAvatar').textContent = username.charAt(0).toUpperCase();
+                    document.getElementById('currentUserName').textContent = username;
+                    
+                    if (username === ADMIN_USERNAME) {
                         document.getElementById('adminBadge').style.display = 'inline-block';
                         document.getElementById('adminPanel').style.display = 'block';
                         document.getElementById('adminControls').style.display = 'block';
@@ -860,10 +834,12 @@
             
             loadChannelPosts();
             
-            socket.send(JSON.stringify({
-                type: 'subscribe_channel',
-                channelId: CHANNEL_ID
-            }));
+            if (socket) {
+                socket.send(JSON.stringify({
+                    type: 'subscribe_channel',
+                    channelId: CHANNEL_ID
+                }));
+            }
         }
 
         function loadChannelPosts() {
@@ -1065,16 +1041,10 @@
 
         function logout() {
             if (socket) socket.close();
-            if (timerInterval) clearInterval(timerInterval);
-            localStorage.removeItem('nanogram_user');
-            localStorage.removeItem('nanogram_email');
             document.getElementById('loginBlock').style.display = 'flex';
             document.getElementById('chatBlock').style.display = 'none';
-            document.getElementById('emailStep').style.display = 'block';
-            document.getElementById('codeStep').style.display = 'none';
-            document.getElementById('emailInput').value = '';
-            document.getElementById('codeInput').value = '';
-            document.getElementById('usernameInput').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('email').value = '';
             selectedUser = CHANNEL_ID;
             currentUser = null;
         }
@@ -1090,20 +1060,7 @@
         }
 
         window.onload = function() {
-            const savedUser = localStorage.getItem('nanogram_user');
-            const savedEmail = localStorage.getItem('nanogram_email');
-            if (savedUser && savedEmail) {
-                currentUser = savedUser;
-                currentEmail = savedEmail;
-                socket = new WebSocket('wss://minegram.onrender.com');
-                socket.onopen = function() {
-                    socket.send(JSON.stringify({
-                        type: 'register',
-                        username: currentUser,
-                        email: currentEmail
-                    }));
-                };
-            }
+            // Проверка автозаполнения
         };
     </script>
 </body>
