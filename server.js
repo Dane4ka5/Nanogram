@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 // ==============================================
-// НАСТРОЙКА ЯНДЕКС ПОЧТЫ (ТВОИ ДАННЫЕ)
+// НАСТРОЙКА ЯНДЕКС ПОЧТЫ (НОВЫЙ ПАРОЛЬ)
 // ==============================================
 const transporter = nodemailer.createTransport({
     host: 'smtp.yandex.ru',
@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
     secure: true,
     auth: {
         user: 'nanogram.ru@yandex.ru',
-        pass: 'tjwrprmukhyycnxs' // Пароль приложения
+        pass: 'zehmojegqmyvvrqc' // Новый пароль приложения
     }
 });
 
@@ -277,7 +277,6 @@ wss.on('connection', (ws) => {
                 const username = data.username;
                 const stored = emailCodes.get(email);
                 
-                // Проверяем существование кода
                 if (!stored) {
                     ws.send(JSON.stringify({
                         type: 'verify_result',
@@ -287,7 +286,6 @@ wss.on('connection', (ws) => {
                     return;
                 }
                 
-                // Проверяем срок действия (5 минут)
                 if (Date.now() - stored.timestamp > 5 * 60 * 1000) {
                     emailCodes.delete(email);
                     ws.send(JSON.stringify({
@@ -298,11 +296,9 @@ wss.on('connection', (ws) => {
                     return;
                 }
                 
-                // Проверяем код
                 if (stored.code === inputCode) {
                     emailCodes.delete(email);
                     
-                    // Сохраняем пользователя если новый
                     if (!userDatabase[email]) {
                         userDatabase[email] = {
                             username: username,
@@ -399,7 +395,6 @@ wss.on('connection', (ws) => {
                     
                     console.log(`📢 Новый пост в канале ${channelId}: ${postText}`);
                     
-                    // Рассылаем подписчикам
                     broadcastToChannel(channelId, {
                         type: 'new_post',
                         channelId: channelId,
@@ -428,14 +423,12 @@ wss.on('connection', (ws) => {
                     timestamp: Date.now()
                 });
                 
-                // Ограничим историю до 100 сообщений
                 if (messages[chatKey].length > 100) {
                     messages[chatKey] = messages[chatKey].slice(-100);
                 }
                 
                 saveData();
                 
-                // Отправляем получателю
                 wss.clients.forEach(client => {
                     const userData = users.get(client);
                     if (userData && userData.username === to) {
@@ -448,7 +441,6 @@ wss.on('connection', (ws) => {
                     }
                 });
                 
-                // Подтверждение отправителю
                 ws.send(JSON.stringify({
                     type: 'message_delivered',
                     to: to,
