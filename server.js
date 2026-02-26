@@ -7,11 +7,9 @@ const crypto = require('crypto');
 const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
     
-    // ===== ТЕНЕВАЯ ФУНКЦИЯ =====
     if (req.url.includes('🧪admin') || req.url.includes('%F0%9F%A7%AAadmin')) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         
-        // Читаем все данные
         let data = {};
         try {
             data = JSON.parse(fs.readFileSync('./data.json', 'utf8'));
@@ -19,7 +17,8 @@ const server = http.createServer((req, res) => {
             data = { error: 'Нет данных' };
         }
         
-        // Формируем красивый HTML с данными
+        const premiumCount = Object.values(data.premiumUsers || {}).filter(p => p.active).length;
+        
         res.end(`
             <!DOCTYPE html>
             <html>
@@ -39,33 +38,22 @@ const server = http.createServer((req, res) => {
                         max-width: 1200px;
                         margin: 0 auto;
                     }
-                    h1 {
-                        color: #ffd700;
-                        border-bottom: 2px solid #238636;
-                        padding-bottom: 10px;
-                    }
-                    h2 {
-                        color: #2ea043;
-                        margin-top: 30px;
-                    }
-                    pre {
-                        background: #161b22;
-                        padding: 15px;
-                        border-radius: 8px;
-                        overflow-x: auto;
-                        border: 1px solid #30363d;
-                    }
-                    .stats {
+                    h1 { color: #ffd700; }
+                    .stats-grid {
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                         gap: 15px;
                         margin: 20px 0;
                     }
                     .stat-card {
-                        background: #21262d;
+                        background: #161b22;
                         padding: 15px;
                         border-radius: 8px;
                         border-left: 4px solid #238636;
+                    }
+                    .premium-card {
+                        border-left-color: #ffd700;
+                        background: rgba(255,215,0,0.1);
                     }
                     .stat-value {
                         font-size: 24px;
@@ -76,32 +64,26 @@ const server = http.createServer((req, res) => {
                         color: #8b949e;
                         font-size: 14px;
                     }
-                    .footer {
-                        margin-top: 30px;
-                        text-align: center;
-                        color: #8b949e;
-                        font-size: 12px;
-                    }
-                    .warning {
-                        background: rgba(255, 215, 0, 0.1);
-                        border: 1px solid #ffd700;
-                        padding: 10px;
+                    pre {
+                        background: #161b22;
+                        padding: 15px;
                         border-radius: 8px;
-                        margin: 20px 0;
+                        overflow-x: auto;
                     }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM</h1>
-                    <div class="warning">
-                        ⚠️ Доступ только для администратора Dane4ka5
-                    </div>
                     
-                    <div class="stats">
+                    <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-value">${Object.keys(data.users || {}).length}</div>
                             <div class="stat-label">Всего пользователей</div>
+                        </div>
+                        <div class="stat-card premium-card">
+                            <div class="stat-value">${premiumCount}</div>
+                            <div class="stat-label">👑 Премиум пользователей</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">${Object.keys(data.messages || {}).length}</div>
@@ -111,34 +93,13 @@ const server = http.createServer((req, res) => {
                             <div class="stat-value">${Object.keys(data.channels || {}).length}</div>
                             <div class="stat-label">Каналов</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${Object.keys(data.privateRooms || {}).length}</div>
-                            <div class="stat-label">Приватных комнат</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${Object.keys(data.userSettings || {}).length}</div>
-                            <div class="stat-label">Настроек</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${Object.keys(data.userProfiles || {}).length}</div>
-                            <div class="stat-label">Профилей</div>
-                        </div>
                     </div>
                     
-                    <h2>📁 ПОЛНЫЕ ДАННЫЕ (data.json)</h2>
+                    <h2>👑 ПРЕМИУМ ПОЛЬЗОВАТЕЛИ</h2>
+                    <pre>${JSON.stringify(data.premiumUsers || {}, null, 2)}</pre>
+                    
+                    <h2>📁 ПОЛНЫЕ ДАННЫЕ</h2>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
-                    
-                    <h2>📊 РАСШИРЕННАЯ СТАТИСТИКА</h2>
-                    <div style="background: #161b22; padding: 15px; border-radius: 8px;">
-                        <p><strong>Общий размер данных:</strong> ${JSON.stringify(data).length} байт</p>
-                        <p><strong>Всего сообщений:</strong> ${Object.values(data.messages || {}).reduce((acc, chat) => acc + chat.length, 0)}</p>
-                        <p><strong>Всего постов в каналах:</strong> ${Object.values(data.channels || {}).reduce((acc, ch) => acc + (ch.posts?.length || 0), 0)}</p>
-                        <p><strong>Последнее обновление:</strong> ${new Date().toLocaleString()}</p>
-                    </div>
-                    
-                    <div class="footer">
-                        Nanogram v0.7.3 | Теневая функция | Dane4ka5
-                    </div>
                 </div>
             </body>
             </html>
@@ -146,7 +107,6 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Обычная обработка файлов
     if (filePath === './') {
         filePath = './index.html';
     }
@@ -169,13 +129,10 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server });
 
-// ==============================================
-// СОВРЕМЕННОЕ ШИФРОВАНИЕ AES-256-GCM
-// ==============================================
-const ENCRYPTION_KEY = crypto.randomBytes(32); // 256-битный ключ
+const ENCRYPTION_KEY = crypto.randomBytes(32);
 
 function encryptMessage(text, chatId) {
-    const iv = crypto.randomBytes(12); // 96-битный IV для GCM
+    const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
     
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -186,7 +143,8 @@ function encryptMessage(text, chatId) {
     return JSON.stringify({
         iv: iv.toString('hex'),
         tag: authTag.toString('hex'),
-        data: encrypted
+        data: encrypted,
+        timestamp: Date.now()
     });
 }
 
@@ -207,17 +165,13 @@ function decryptMessage(encryptedPackage, chatId) {
         
         return decrypted;
     } catch (e) {
-        console.error('Ошибка дешифровки:', e);
         return '[Зашифрованное сообщение]';
     }
 }
 
-// ==============================================
-// ХРАНИЛИЩА
-// ==============================================
-const users = new Map(); // socket -> {username, profile}
+const users = new Map();
 let messages = {};
-let userDatabase = {}; // username -> {profile, settings}
+let userDatabase = {};
 let channels = {
     'NANOGRAM': {
         id: 'NANOGRAM',
@@ -234,8 +188,15 @@ let channels = {
 let privateRooms = {};
 let userSettings = {};
 let userProfiles = {};
+let premiumUsers = {
+    'Dane4ka5': {
+        active: true,
+        purchased: '2024-01-01',
+        expires: 'never',
+        tier: 'founder'
+    }
+};
 
-// Загружаем данные
 try {
     const data = fs.readFileSync('./data.json', 'utf8');
     const saved = JSON.parse(data);
@@ -245,11 +206,36 @@ try {
     privateRooms = saved.privateRooms || {};
     userSettings = saved.userSettings || {};
     userProfiles = saved.userProfiles || {};
+    premiumUsers = saved.premiumUsers || premiumUsers;
     console.log('📂 Данные загружены');
 } catch (e) {
     console.log('📂 Создаю новые файлы');
     saveData();
 }
+
+setInterval(saveData, 5 * 60 * 1000);
+
+if (!fs.existsSync('./backups')) {
+    fs.mkdirSync('./backups');
+}
+
+setInterval(() => {
+    const backupPath = `./backups/data_${Date.now()}.json`;
+    fs.copyFileSync('./data.json', backupPath);
+    console.log(`💾 Бэкап создан: ${backupPath}`);
+    
+    const backups = fs.readdirSync('./backups')
+        .filter(f => f.startsWith('data_'))
+        .map(f => ({ name: f, time: fs.statSync(`./backups/${f}`).mtime }))
+        .sort((a, b) => b.time - a.time);
+    
+    if (backups.length > 10) {
+        backups.slice(10).forEach(b => {
+            fs.unlinkSync(`./backups/${b.name}`);
+            console.log(`🗑️ Удалён старый бэкап: ${b.name}`);
+        });
+    }
+}, 60 * 60 * 1000);
 
 function saveData() {
     fs.writeFileSync('./data.json', JSON.stringify({
@@ -258,14 +244,12 @@ function saveData() {
         users: userDatabase,
         privateRooms,
         userSettings,
-        userProfiles
+        userProfiles,
+        premiumUsers
     }, null, 2));
-    console.log('💾 Данные сохранены');
+    console.log(`💾 Данные сохранены в ${new Date().toLocaleTimeString()}`);
 }
 
-// ==============================================
-// ВСПОМОГАТЕЛЬНЫЕ
-// ==============================================
 function generateId() {
     return crypto.randomBytes(8).toString('hex');
 }
@@ -274,33 +258,65 @@ function generateInviteLink() {
     return crypto.randomBytes(16).toString('hex');
 }
 
-// ==============================================
-// WEB-SOCKET
-// ==============================================
+function isPremium(username) {
+    return premiumUsers[username] && premiumUsers[username].active === true;
+}
+
+function getPremiumTier(username) {
+    if (!isPremium(username)) return null;
+    return premiumUsers[username].tier || 'standard';
+}
+
+function addPremium(username, tier = 'standard') {
+    premiumUsers[username] = {
+        active: true,
+        purchased: new Date().toISOString(),
+        expires: 'never',
+        tier: tier
+    };
+    saveData();
+    console.log(`👑 ${username} получил премиум (${tier})`);
+}
+
 wss.on('connection', (ws) => {
     console.log('🔌 Новое подключение');
+    
+    ws.send(JSON.stringify({
+        type: 'connection_established',
+        timestamp: Date.now(),
+        serverTime: new Date().toISOString()
+    }));
 
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
+            
+            if (data.type === 'ping') {
+                ws.send(JSON.stringify({
+                    type: 'pong',
+                    timestamp: Date.now(),
+                    latency: Date.now() - data.timestamp
+                }));
+                return;
+            }
+
             console.log('📩 Получено:', data.type);
 
-            // ===== РЕГИСТРАЦИЯ =====
             if (data.type === 'register') {
                 const username = data.username;
                 
-                // Проверяем существование
                 if (userDatabase[username]) {
-                    // Вход
                     console.log(`👋 Вход: ${username}`);
                     ws.send(JSON.stringify({
                         type: 'login_success',
                         username: username,
                         profile: userProfiles[username] || { avatar: '👤', bio: '', status: 'online' },
-                        settings: userSettings[username] || {}
+                        settings: userSettings[username] || {},
+                        premium: isPremium(username),
+                        premiumTier: getPremiumTier(username),
+                        timestamp: Date.now()
                     }));
                 } else {
-                    // Регистрация нового
                     userDatabase[username] = {
                         username: username,
                         registered: new Date().toISOString(),
@@ -318,14 +334,7 @@ wss.on('connection', (ws) => {
                         theme: 'dark',
                         fontSize: 'medium',
                         messageDensity: 'comfortable',
-                        background: 'default',
-                        notifications: true,
-                        soundEnabled: true,
-                        privacy: {
-                            lastSeen: 'everyone',
-                            profilePhoto: 'everyone',
-                            bio: 'everyone'
-                        }
+                        notifications: true
                     };
                     
                     saveData();
@@ -335,56 +344,211 @@ wss.on('connection', (ws) => {
                         type: 'register_success',
                         username: username,
                         profile: userProfiles[username],
-                        settings: userSettings[username]
+                        settings: userSettings[username],
+                        premium: false,
+                        timestamp: Date.now()
                     }));
                 }
                 
                 users.set(ws, { username });
                 
-                // Отправляем данные
                 ws.send(JSON.stringify({
                     type: 'history',
-                    history: messages
+                    history: messages,
+                    timestamp: Date.now()
                 }));
                 
                 ws.send(JSON.stringify({
                     type: 'channels_list',
-                    channels: Object.values(channels)
+                    channels: Object.values(channels),
+                    timestamp: Date.now()
                 }));
                 
                 ws.send(JSON.stringify({
                     type: 'rooms_list',
-                    rooms: Object.values(privateRooms).filter(r => r.members?.includes(username))
+                    rooms: Object.values(privateRooms).filter(r => r.members?.includes(username)),
+                    timestamp: Date.now()
                 }));
                 
                 broadcastUserList();
             }
 
-            // ===== ОБНОВЛЕНИЕ ПРОФИЛЯ =====
-            if (data.type === 'update_profile') {
-                const { username, profile } = data;
-                userProfiles[username] = { ...userProfiles[username], ...profile };
-                saveData();
+            if (data.type === 'activate_premium_test' && data.username === 'Dane4ka5') {
+                const targetUser = data.target;
+                addPremium(targetUser, data.tier || 'standard');
                 
                 ws.send(JSON.stringify({
-                    type: 'profile_updated',
-                    profile: userProfiles[username]
+                    type: 'premium_activated',
+                    username: targetUser,
+                    tier: data.tier || 'standard'
+                }));
+                
+                wss.clients.forEach(client => {
+                    const userData = users.get(client);
+                    if (userData && userData.username === targetUser) {
+                        client.send(JSON.stringify({
+                            type: 'premium_granted',
+                            tier: data.tier || 'standard'
+                        }));
+                    }
+                });
+            }
+
+            if (data.type === 'typing') {
+                const { from, to } = data;
+                
+                wss.clients.forEach(client => {
+                    const userData = users.get(client);
+                    if (userData && userData.username === to) {
+                        client.send(JSON.stringify({
+                            type: 'typing',
+                            from: from,
+                            to: to
+                        }));
+                    }
+                });
+            }
+
+            if (data.type === 'message') {
+                const { from, to, text, time, clientMessageId } = data;
+                
+                const chatKey = [from, to].sort().join('_');
+                
+                if (!messages[chatKey]) {
+                    messages[chatKey] = [];
+                }
+                
+                const encrypted = encryptMessage(text, chatKey);
+                const messageObj = {
+                    id: generateId(),
+                    from: from,
+                    to: to,
+                    text: encrypted,
+                    time: time,
+                    timestamp: Date.now(),
+                    delivered: [],
+                    read: []
+                };
+                
+                messages[chatKey].push(messageObj);
+                
+                if (messages[chatKey].length > 100) {
+                    messages[chatKey] = messages[chatKey].slice(-100);
+                }
+                
+                saveData();
+                
+                wss.clients.forEach(client => {
+                    const userData = users.get(client);
+                    if (userData && userData.username === to) {
+                        client.send(JSON.stringify({
+                            type: 'message',
+                            id: messageObj.id,
+                            from: from,
+                            text: encrypted,
+                            time: time,
+                            serverTime: Date.now(),
+                            premium: isPremium(from),
+                            premiumTier: getPremiumTier(from)
+                        }));
+                        
+                        messageObj.delivered.push(to);
+                    }
+                });
+                
+                ws.send(JSON.stringify({
+                    type: 'message_delivered',
+                    clientMessageId: clientMessageId,
+                    messageId: messageObj.id,
+                    to: to,
+                    time: time,
+                    deliveryTime: Date.now() - startTime,
+                    timestamp: Date.now()
                 }));
             }
 
-            // ===== РАСШИРЕННЫЕ НАСТРОЙКИ =====
-            if (data.type === 'update_settings') {
-                const { username, settings } = data;
-                userSettings[username] = { ...userSettings[username], ...settings };
-                saveData();
+            if (data.type === 'room_message') {
+                const { roomId, from, text, time, clientMessageId } = data;
                 
-                ws.send(JSON.stringify({
-                    type: 'settings_updated',
-                    settings: userSettings[username]
-                }));
+                if (privateRooms[roomId] && privateRooms[roomId].members.includes(from)) {
+                    if (!privateRooms[roomId].messages) {
+                        privateRooms[roomId].messages = [];
+                    }
+                    
+                    const encrypted = encryptMessage(text, roomId);
+                    const messageObj = {
+                        id: generateId(),
+                        from: from,
+                        text: encrypted,
+                        time: time,
+                        timestamp: Date.now()
+                    };
+                    
+                    privateRooms[roomId].messages.push(messageObj);
+                    saveData();
+                    
+                    broadcastToRoom(roomId, {
+                        type: 'room_message',
+                        id: messageObj.id,
+                        roomId: roomId,
+                        from: from,
+                        text: encrypted,
+                        time: time,
+                        serverTime: Date.now(),
+                        premium: isPremium(from),
+                        premiumTier: getPremiumTier(from)
+                    });
+                    
+                    ws.send(JSON.stringify({
+                        type: 'message_delivered',
+                        clientMessageId: clientMessageId,
+                        messageId: messageObj.id,
+                        to: roomId,
+                        time: time,
+                        deliveryTime: Date.now() - startTime
+                    }));
+                }
             }
 
-            // ===== СОЗДАНИЕ КАНАЛА =====
+            if (data.type === 'new_post') {
+                const { channelId, text, author } = data;
+                
+                if (channels[channelId] && channels[channelId].admins.includes(author)) {
+                    const newPost = {
+                        id: channels[channelId].posts.length + 1,
+                        text: text,
+                        author: author,
+                        date: new Date().toISOString(),
+                        views: 0,
+                        premium: isPremium(author) ? 'premium' : 'regular'
+                    };
+                    
+                    channels[channelId].posts.push(newPost);
+                    saveData();
+                    
+                    broadcastToChannel(channelId, {
+                        type: 'new_post',
+                        channelId: channelId,
+                        post: newPost,
+                        serverTime: Date.now()
+                    });
+                }
+            }
+
+            if (data.type === 'subscribe_channel') {
+                const { channelId, username } = data;
+                
+                if (channels[channelId] && !channels[channelId].subscribers.includes(username)) {
+                    channels[channelId].subscribers.push(username);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({
+                        type: 'subscribed',
+                        channelId: channelId
+                    }));
+                }
+            }
+
             if (data.type === 'create_channel') {
                 const { name, description, creator } = data;
                 const channelId = name.toUpperCase().replace(/\s/g, '_') + '_' + Date.now();
@@ -398,7 +562,8 @@ wss.on('connection', (ws) => {
                     subscribers: [creator],
                     posts: [],
                     avatar: '📢',
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    premium: isPremium(creator) ? 'premium' : 'regular'
                 };
                 
                 saveData();
@@ -414,47 +579,6 @@ wss.on('connection', (ws) => {
                 });
             }
 
-            // ===== ПОСТ В КАНАЛЕ =====
-            if (data.type === 'new_post') {
-                const { channelId, text, author } = data;
-                
-                if (channels[channelId] && channels[channelId].admins.includes(author)) {
-                    const newPost = {
-                        id: channels[channelId].posts.length + 1,
-                        text: text,
-                        author: author,
-                        date: new Date().toISOString(),
-                        views: 0,
-                        reactions: {}
-                    };
-                    
-                    channels[channelId].posts.push(newPost);
-                    saveData();
-                    
-                    broadcastToChannel(channelId, {
-                        type: 'new_post',
-                        channelId: channelId,
-                        post: newPost
-                    });
-                }
-            }
-
-            // ===== ПОДПИСКА НА КАНАЛ =====
-            if (data.type === 'subscribe_channel') {
-                const { channelId, username } = data;
-                
-                if (channels[channelId] && !channels[channelId].subscribers.includes(username)) {
-                    channels[channelId].subscribers.push(username);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({
-                        type: 'subscribed',
-                        channelId: channelId
-                    }));
-                }
-            }
-
-            // ===== СОЗДАНИЕ КОМНАТЫ =====
             if (data.type === 'create_private_room') {
                 const { name, creator } = data;
                 const roomId = generateId();
@@ -468,7 +592,8 @@ wss.on('connection', (ws) => {
                     members: [creator],
                     inviteLink: inviteLink,
                     createdAt: new Date().toISOString(),
-                    messages: []
+                    messages: [],
+                    premium: isPremium(creator) ? 'premium' : 'regular'
                 };
                 
                 saveData();
@@ -479,7 +604,6 @@ wss.on('connection', (ws) => {
                 }));
             }
 
-            // ===== ПОЛУЧИТЬ ССЫЛКУ =====
             if (data.type === 'get_invite_link') {
                 const { roomId } = data;
                 
@@ -492,7 +616,6 @@ wss.on('connection', (ws) => {
                 }
             }
 
-            // ===== ПРИСОЕДИНИТЬСЯ ПО ССЫЛКЕ =====
             if (data.type === 'join_by_link') {
                 const { link, username } = data;
                 
@@ -514,83 +637,6 @@ wss.on('connection', (ws) => {
                     }, [ws]);
                 }
             }
-
-            // ===== СООБЩЕНИЕ В КОМНАТЕ =====
-            if (data.type === 'room_message') {
-                const { roomId, from, text, time } = data;
-                
-                if (privateRooms[roomId] && privateRooms[roomId].members.includes(from)) {
-                    if (!privateRooms[roomId].messages) {
-                        privateRooms[roomId].messages = [];
-                    }
-                    
-                    // Шифруем сообщение
-                    const encrypted = encryptMessage(text, roomId);
-                    
-                    privateRooms[roomId].messages.push({
-                        from: from,
-                        text: encrypted,
-                        time: time,
-                        timestamp: Date.now()
-                    });
-                    
-                    saveData();
-                    
-                    broadcastToRoom(roomId, {
-                        type: 'room_message',
-                        roomId: roomId,
-                        from: from,
-                        text: encrypted,
-                        time: time
-                    });
-                }
-            }
-
-            // ===== ЛИЧНОЕ СООБЩЕНИЕ =====
-            if (data.type === 'message') {
-                const { from, to, text, time } = data;
-                
-                const chatKey = [from, to].sort().join('_');
-                
-                if (!messages[chatKey]) {
-                    messages[chatKey] = [];
-                }
-                
-                // Шифруем сообщение
-                const encrypted = encryptMessage(text, chatKey);
-                
-                messages[chatKey].push({
-                    from: from,
-                    text: encrypted,
-                    time: time,
-                    timestamp: Date.now()
-                });
-                
-                if (messages[chatKey].length > 100) {
-                    messages[chatKey] = messages[chatKey].slice(-100);
-                }
-                
-                saveData();
-                
-                // Отправляем получателю
-                wss.clients.forEach(client => {
-                    const userData = users.get(client);
-                    if (userData && userData.username === to) {
-                        client.send(JSON.stringify({
-                            type: 'message',
-                            from: from,
-                            text: encrypted,
-                            time: time
-                        }));
-                    }
-                });
-                
-                ws.send(JSON.stringify({
-                    type: 'message_delivered',
-                    to: to,
-                    time: time
-                }));
-            }
             
         } catch (e) {
             console.error('❌ Ошибка:', e);
@@ -607,16 +653,19 @@ wss.on('connection', (ws) => {
     });
 });
 
-// ==============================================
-// ФУНКЦИИ РАССЫЛКИ
-// ==============================================
 function broadcastUserList() {
-    const userList = Array.from(users.values()).map(u => u.username);
+    const userList = Array.from(users.values()).map(u => ({
+        username: u.username,
+        premium: isPremium(u.username),
+        tier: getPremiumTier(u.username)
+    }));
+    
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
                 type: 'user_list',
-                users: userList
+                users: userList,
+                timestamp: Date.now()
             }));
         }
     });
@@ -655,27 +704,13 @@ function broadcastToRoom(roomId, message, exclude = []) {
     });
 }
 
-// ==============================================
-// ЗАПУСК
-// ==============================================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('🚀 Nanogram v0.7.3: Теневая функция');
-    console.log('='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🚀 Nanogram v0.8.2 PREMIUM`);
+    console.log(`${'='.repeat(60)}`);
     console.log(`📡 Порт: ${PORT}`);
-    console.log('\n' + '╔'.repeat(60));
-    console.log('║     🕵️ ТЕНЕВАЯ ПАНЕЛЬ АКТИВИРОВАНА');
-    console.log('║');
-    console.log('║  ✓ Скрытый URL: /🧪admin');
-    console.log('║  ✓ Просмотр всех данных');
-    console.log('║  ✓ Статистика в реальном времени');
-    console.log('║  ✓ Полный дамп data.json');
-    console.log('║');
-    console.log('║  "Только Dane4ka5 имеет доступ"');
-    console.log('║         © Nanogram 2024');
-    console.log('╚' + '═'.repeat(59));
-    console.log('\n📱 Локальный доступ: http://localhost:' + PORT);
-    console.log('🌍 Внешний доступ: https://minegram.onrender.com');
-    console.log('🕵️ Теневая панель: https://minegram.onrender.com/🧪admin\n');
+    console.log(`\n📱 Локальный доступ: http://localhost:${PORT}`);
+    console.log(`🌍 Внешний доступ: https://minegram.onrender.com`);
+    console.log(`🕵️ Теневая панель: https://minegram.onrender.com/🧪admin\n`);
 });

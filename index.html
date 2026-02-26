@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v3.1 — современное шифрование</title>
-    <!-- Font Awesome для иконок -->
+    <title>Nanogram v0.7.4 — мгновенная синхронизация</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* ===== ТЕМЫ ===== */
         body.dark-theme {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
@@ -24,8 +22,9 @@
             --accent: #238636;
             --accent-hover: #2ea043;
             --border: #30363d;
-            --card-bg: rgba(22,27,34,0.95);
             --hover: #2d333b;
+            --message-sent: #238636;
+            --message-received: #2d333b;
         }
 
         body.light-theme {
@@ -37,8 +36,9 @@
             --accent: #0969da;
             --accent-hover: #0a7ae0;
             --border: #d0d7de;
-            --card-bg: rgba(255,255,255,0.95);
             --hover: #eaeef2;
+            --message-sent: #0969da;
+            --message-received: #eaeef2;
         }
 
         body {
@@ -48,16 +48,13 @@
             font-size: 16px;
         }
 
-        /* Размеры шрифта */
         body.font-small { font-size: 14px; }
         body.font-medium { font-size: 16px; }
         body.font-large { font-size: 18px; }
 
-        /* Плотность сообщений */
         body.density-comfortable .message { margin-bottom: 12px; padding: 12px 16px; }
         body.density-compact .message { margin-bottom: 4px; padding: 8px 12px; }
 
-        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
         .app-container {
             width: 100%;
             height: 100vh;
@@ -65,7 +62,6 @@
             overflow: hidden;
         }
 
-        /* ===== ЛЕВАЯ ПАНЕЛЬ ===== */
         .sidebar {
             width: 320px;
             background: var(--bg-secondary);
@@ -73,7 +69,6 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            transition: width 0.3s ease;
         }
 
         .sidebar-header {
@@ -106,10 +101,10 @@
             border: 1px solid var(--border);
             color: var(--text-primary);
             cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
         }
 
         .icon-btn:hover {
@@ -118,7 +113,35 @@
             transform: scale(1.1);
         }
 
-        /* Профиль */
+        .connection-status {
+            padding: 4px 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #238636;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #da3633;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .profile-section {
             padding: 16px;
             background: var(--bg-tertiary);
@@ -150,6 +173,7 @@
             font-size: 24px;
             color: white;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .avatar img {
@@ -160,11 +184,15 @@
 
         .profile-info {
             flex: 1;
+            min-width: 0;
         }
 
         .profile-name {
             font-weight: 600;
             font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .profile-status {
@@ -180,9 +208,9 @@
             border-radius: 10px;
             margin-left: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
 
-        /* Поиск */
         .search-box {
             padding: 8px 16px;
             margin: 0 12px 12px;
@@ -201,13 +229,13 @@
             outline: none;
             color: var(--text-primary);
             font-size: 14px;
+            min-width: 0;
         }
 
         .search-box input::placeholder {
             color: var(--text-secondary);
         }
 
-        /* Табы */
         .tabs {
             display: flex;
             padding: 0 12px;
@@ -225,6 +253,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
+            white-space: nowrap;
         }
 
         .tab.active {
@@ -233,7 +262,6 @@
             border-color: var(--accent);
         }
 
-        /* Список чатов */
         .chats-list {
             flex: 1;
             overflow-y: auto;
@@ -273,16 +301,21 @@
             font-size: 20px;
             color: white;
             margin-right: 12px;
+            flex-shrink: 0;
         }
 
         .chat-info {
             flex: 1;
+            min-width: 0;
         }
 
         .chat-name {
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .chat-preview {
@@ -293,6 +326,10 @@
             text-overflow: ellipsis;
         }
 
+        .chat-item.selected .chat-preview {
+            color: rgba(255,255,255,0.8);
+        }
+
         .chat-badge {
             font-size: 11px;
             padding: 2px 8px;
@@ -300,9 +337,9 @@
             background: var(--accent);
             color: white;
             margin-left: 8px;
+            white-space: nowrap;
         }
 
-        /* ===== ПРАВАЯ ПАНЕЛЬ ===== */
         .main-content {
             flex: 1;
             display: flex;
@@ -319,10 +356,18 @@
             align-items: center;
         }
 
+        .chat-header-info {
+            flex: 1;
+            min-width: 0;
+        }
+
         .chat-header-info h3 {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .chat-header-info p {
@@ -330,25 +375,17 @@
             color: var(--text-secondary);
         }
 
-        .chat-actions {
-            display: flex;
-            gap: 8px;
+        .typing-indicator {
+            font-size: 13px;
+            color: var(--accent);
+            font-style: italic;
+            animation: blink 1.5s infinite;
         }
 
-        .action-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-            background: var(--accent);
-            color: white;
+        @keyframes blink {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
 
         .messages-container {
@@ -365,35 +402,45 @@
             padding: 12px 16px;
             border-radius: 18px;
             position: relative;
-            animation: fadeIn 0.2s ease;
+            animation: slideIn 0.2s ease;
             word-wrap: break-word;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .message.sent {
             align-self: flex-end;
-            background: var(--accent);
+            background: var(--message-sent);
             color: white;
             border-bottom-right-radius: 4px;
         }
 
         .message.received {
             align-self: flex-start;
-            background: var(--bg-tertiary);
+            background: var(--message-received);
             color: var(--text-primary);
             border-bottom-left-radius: 4px;
         }
 
-        .message-time {
-            font-size: 11px;
+        .message-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
             margin-top: 4px;
+            font-size: 11px;
             opacity: 0.7;
-            text-align: right;
         }
+
+        .status-icon {
+            font-size: 12px;
+        }
+
+        .status-icon.delivered { color: #ffd700; }
+        .status-icon.read { color: #2ea043; }
 
         .message-input-area {
             padding: 16px 24px;
@@ -413,6 +460,7 @@
             outline: none;
             color: var(--text-primary);
             font-size: 15px;
+            min-width: 0;
         }
 
         .message-input-area input:focus {
@@ -421,6 +469,7 @@
 
         .message-input-area input:disabled {
             opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .send-btn {
@@ -432,6 +481,10 @@
             color: white;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
         .send-btn:hover:not(:disabled) {
@@ -443,7 +496,6 @@
             cursor: not-allowed;
         }
 
-        /* ===== МОДАЛЬНЫЕ ОКНА ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -512,8 +564,8 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
             margin-right: 10px;
+            transition: all 0.3s ease;
         }
 
         .modal button:hover {
@@ -525,24 +577,18 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: var(--bg-tertiary);
-            border: none;
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            cursor: pointer;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
             color: var(--text-primary);
-        }
-
-        /* Настройки */
-        .settings-group {
-            margin-bottom: 25px;
-        }
-
-        .settings-group h3 {
-            margin-bottom: 15px;
-            color: var(--accent);
-            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
         }
 
         .setting-item {
@@ -558,7 +604,6 @@
             margin-bottom: 0;
         }
 
-        /* Инвайты */
         .invite-box {
             background: var(--bg-tertiary);
             padding: 15px;
@@ -572,9 +617,9 @@
         .invite-box input {
             flex: 1;
             margin-bottom: 0;
+            background: var(--bg-secondary);
         }
 
-        /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
             width: 100%;
             height: 100vh;
@@ -612,7 +657,7 @@
             border-radius: 30px;
             color: var(--text-primary);
             font-size: 16px;
-            margin-bottom: 20px;
+            margin: 20px 0;
             outline: none;
         }
 
@@ -639,7 +684,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 20px;
         }
 
         .login-btn:hover {
@@ -647,38 +691,21 @@
             transform: scale(1.02);
         }
 
-        .support-link {
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 215, 0, 0.1);
-            border-radius: 12px;
-            border-left: 4px solid #ffd700;
-            text-align: left;
-        }
-
-        .support-link a {
-            color: #ffd700;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .support-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Адаптация */
         @media screen and (max-width: 768px) {
             .sidebar {
                 width: 90px;
             }
             
             .sidebar .chat-info,
-            .sidebar .search-box,
             .sidebar .profile-info,
             .sidebar .tab span,
             .sidebar .chat-preview,
-            .sidebar .chat-badge {
+            .sidebar .admin-badge {
                 display: none;
+            }
+            
+            .sidebar .profile-section {
+                padding: 10px;
             }
             
             .sidebar .chat-item {
@@ -693,152 +720,89 @@
             .main-content {
                 width: calc(100% - 90px);
             }
+            
+            .message {
+                max-width: 85%;
+            }
         }
     </style>
 </head>
 <body class="dark-theme font-medium density-comfortable">
-    <!-- Модальные окна -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
     
-    <!-- Настройки -->
     <div class="modal" id="settingsModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-cog"></i> Расширенные настройки</h2>
+        <h2><i class="fas fa-cog"></i> Настройки</h2>
         
-        <div class="settings-group">
-            <h3>Оформление</h3>
-            <div class="setting-item">
-                <span>Тема</span>
-                <select id="themeSelect" onchange="updateSetting('theme', this.value)">
-                    <option value="dark">Тёмная</option>
-                    <option value="light">Светлая</option>
-                </select>
-            </div>
-            <div class="setting-item">
-                <span>Размер шрифта</span>
-                <select id="fontSizeSelect" onchange="updateSetting('fontSize', this.value)">
-                    <option value="small">Маленький</option>
-                    <option value="medium">Средний</option>
-                    <option value="large">Большой</option>
-                </select>
-            </div>
-            <div class="setting-item">
-                <span>Плотность</span>
-                <select id="densitySelect" onchange="updateSetting('density', this.value)">
-                    <option value="comfortable">Комфортная</option>
-                    <option value="compact">Компактная</option>
-                </select>
-            </div>
+        <div class="setting-item">
+            <span>Тема</span>
+            <select id="themeSelect" onchange="updateSetting('theme', this.value)">
+                <option value="dark">Тёмная</option>
+                <option value="light">Светлая</option>
+            </select>
         </div>
-
-        <div class="settings-group">
-            <h3>Уведомления</h3>
-            <div class="setting-item">
-                <span>Звук</span>
-                <input type="checkbox" id="soundCheck" onchange="updateSetting('sound', this.checked)">
-            </div>
-            <div class="setting-item">
-                <span>Уведомления</span>
-                <input type="checkbox" id="notifyCheck" onchange="updateSetting('notifications', this.checked)">
-            </div>
+        
+        <div class="setting-item">
+            <span>Размер шрифта</span>
+            <select id="fontSizeSelect" onchange="updateSetting('fontSize', this.value)">
+                <option value="small">Маленький</option>
+                <option value="medium">Средний</option>
+                <option value="large">Большой</option>
+            </select>
         </div>
-
-        <div class="settings-group">
-            <h3>Конфиденциальность</h3>
-            <div class="setting-item">
-                <span>Кто видит онлайн</span>
-                <select id="lastSeenSelect" onchange="updateSetting('lastSeen', this.value)">
-                    <option value="everyone">Все</option>
-                    <option value="contacts">Контакты</option>
-                    <option value="nobody">Никто</option>
-                </select>
-            </div>
+        
+        <div class="setting-item">
+            <span>Плотность</span>
+            <select id="densitySelect" onchange="updateSetting('density', this.value)">
+                <option value="comfortable">Комфортная</option>
+                <option value="compact">Компактная</option>
+            </select>
         </div>
+        
+        <button onclick="closeAllModals()">Закрыть</button>
     </div>
-
-    <!-- Профиль -->
-    <div class="modal" id="profileModal">
-        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-user"></i> Профиль</h2>
-        
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div class="avatar" style="width: 100px; height: 100px; font-size: 40px; margin: 0 auto;" id="profileAvatarModal">👤</div>
-            <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-            <button onclick="document.getElementById('avatarInput').click()" style="margin-top: 10px;">Изменить фото</button>
-        </div>
-        
-        <input type="text" id="profileName" placeholder="Имя" value="">
-        <textarea id="profileBio" placeholder="О себе" rows="3"></textarea>
-        <select id="profileStatus">
-            <option value="online">🟢 Онлайн</option>
-            <option value="offline">⚫ Офлайн</option>
-            <option value="busy">🔴 Занят</option>
-            <option value="away">🟡 Отошёл</option>
-        </select>
-        
-        <button onclick="saveProfile()">Сохранить</button>
-    </div>
-
-    <!-- Создать канал -->
+    
     <div class="modal" id="createChannelModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-bullhorn"></i> Создать канал</h2>
         <input type="text" id="channelName" placeholder="Название канала">
         <textarea id="channelDesc" placeholder="Описание" rows="3"></textarea>
         <button onclick="createChannel()">Создать</button>
+        <button onclick="closeAllModals()">Отмена</button>
     </div>
-
-    <!-- Создать комнату -->
+    
     <div class="modal" id="createRoomModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-lock"></i> Создать приватную комнату</h2>
+        <h2><i class="fas fa-lock"></i> Создать комнату</h2>
         <input type="text" id="roomName" placeholder="Название комнаты">
-        <button onclick="createPrivateRoom()">Создать</button>
+        <button onclick="createRoom()">Создать</button>
+        <button onclick="closeAllModals()">Отмена</button>
     </div>
-
-    <!-- Приглашение -->
+    
     <div class="modal" id="inviteModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-link"></i> Ссылка-приглашение</h2>
+        <h2><i class="fas fa-link"></i> Приглашение</h2>
         <div class="invite-box">
             <input type="text" id="inviteLink" readonly>
             <button onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
         </div>
-        <p style="color: var(--text-secondary);">Отправьте эту ссылку друзьям</p>
+        <button onclick="closeAllModals()">Закрыть</button>
     </div>
-
-    <!-- Присоединиться -->
-    <div class="modal" id="joinModal">
-        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-sign-in-alt"></i> Присоединиться по ссылке</h2>
-        <input type="text" id="joinLink" placeholder="Вставьте ссылку">
-        <button onclick="joinByLink()">Присоединиться</button>
-    </div>
-
-    <!-- СТРАНИЦА ВХОДА -->
+    
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v3.1 — Современное шифрование</p>
-            
+            <p>v0.7.4 — мгновенная синхронизация</p>
             <input type="text" id="loginUsername" class="login-input" placeholder="Ваше имя" autofocus>
-            
             <div class="checkbox">
                 <input type="checkbox" id="privacyAgree">
-                <label for="privacyAgree">Я принимаю Политику конфиденциальности</label>
+                <label for="privacyAgree">Принимаю политику конфиденциальности</label>
             </div>
-            
             <button class="login-btn" onclick="register()">🚀 Войти</button>
-            
-            <div class="support-link">
-                📧 <strong>Техподдержка:</strong> <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a>
-            </div>
         </div>
     </div>
-
-    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+    
     <div id="appPage" class="app-container" style="display: none;">
-        <!-- Левая панель -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <h2>🧪 <span>Nanogram</span></h2>
@@ -848,8 +812,13 @@
                 </div>
             </div>
             
-            <!-- Профиль -->
-            <div class="profile-section" onclick="openModal('profileModal')">
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Подключение...</span>
+                <span id="latency" style="margin-left: auto;">0ms</span>
+            </div>
+            
+            <div class="profile-section" onclick="openProfileModal()">
                 <div class="profile-header">
                     <div class="avatar" id="headerAvatar">👤</div>
                     <div class="profile-info">
@@ -860,46 +829,34 @@
                 </div>
             </div>
             
-            <!-- Поиск -->
             <div class="search-box">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Поиск...">
             </div>
             
-            <!-- Табы -->
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('chats')"><i class="fas fa-user"></i> <span>Чаты</span></button>
                 <button class="tab" onclick="switchTab('channels')"><i class="fas fa-bullhorn"></i> <span>Каналы</span></button>
                 <button class="tab" onclick="switchTab('rooms')"><i class="fas fa-lock"></i> <span>Комнаты</span></button>
             </div>
             
-            <!-- Список -->
-            <div class="chats-list" id="chatsList">
-                <!-- Заполняется динамически -->
-            </div>
+            <div class="chats-list" id="chatsList"></div>
             
-            <button class="tab" onclick="openModal('joinModal')" style="margin: 12px; width: calc(100% - 24px);">
+            <button class="tab" onclick="openJoinModal()" style="margin: 12px; width: calc(100% - 24px);">
                 <i class="fas fa-link"></i> Присоединиться
             </button>
         </div>
         
-        <!-- Правая панель -->
         <div class="main-content">
             <div class="chat-header">
                 <div class="chat-header-info">
                     <h3 id="currentChatName">Выберите чат</h3>
                     <p id="currentChatInfo"></p>
+                    <div id="typingIndicator" class="typing-indicator" style="display: none;"></div>
                 </div>
-                <div class="chat-actions" id="chatActions"></div>
             </div>
             
-            <div class="messages-container" id="messagesContainer">
-                <div style="text-align: center; margin-top: 100px; color: var(--text-secondary);">
-                    <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 20px;"></i>
-                    <h2>Добро пожаловать в Nanogram</h2>
-                    <p>Выберите чат или создайте новый</p>
-                </div>
-            </div>
+            <div class="messages-container" id="messagesContainer"></div>
             
             <div class="message-input-area">
                 <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
@@ -923,144 +880,244 @@
         let channels = [];
         let rooms = [];
         let messages = {};
-        let userProfile = {};
         let userSettings = {};
+        let pingInterval = null;
+        let reconnectAttempts = 0;
+        let typingTimeout = null;
+        let pendingMessages = new Map();
+
+        // ===== СОЕДИНЕНИЕ =====
+        function connectWebSocket() {
+            socket = new WebSocket('wss://minegram.onrender.com');
+            
+            socket.onopen = function() {
+                console.log('✅ Подключено');
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusText').textContent = 'Онлайн';
+                reconnectAttempts = 0;
+                
+                if (currentUser) {
+                    socket.send(JSON.stringify({
+                        type: 'register',
+                        username: currentUser
+                    }));
+                }
+                
+                if (pingInterval) clearInterval(pingInterval);
+                pingInterval = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'ping',
+                            timestamp: Date.now()
+                        }));
+                    }
+                }, 5000);
+            };
+            
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'pong') {
+                    const latency = Date.now() - data.timestamp;
+                    document.getElementById('latency').textContent = latency + 'ms';
+                    return;
+                }
+                
+                if (data.type === 'connection_established') {
+                    console.log('🔌 Соединение установлено');
+                    return;
+                }
+                
+                if (data.type === 'register_success' || data.type === 'login_success') {
+                    document.getElementById('loginPage').style.display = 'none';
+                    document.getElementById('appPage').style.display = 'flex';
+                    document.getElementById('headerName').textContent = currentUser;
+                    
+                    if (currentUser === ADMIN_USERNAME) {
+                        document.getElementById('adminBadge').style.display = 'inline-block';
+                    }
+                    
+                    if (data.settings) {
+                        applySettings(data.settings);
+                    }
+                    return;
+                }
+                
+                if (data.type === 'user_list') {
+                    users = data.users || [];
+                    if (document.querySelector('.tab.active').innerText.includes('Чаты')) {
+                        updateChatsList('chats');
+                    }
+                    return;
+                }
+                
+                if (data.type === 'channels_list') {
+                    channels = data.channels || [];
+                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) {
+                        updateChatsList('channels');
+                    }
+                    return;
+                }
+                
+                if (data.type === 'rooms_list') {
+                    rooms = data.rooms || [];
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
+                        updateChatsList('rooms');
+                    }
+                    return;
+                }
+                
+                if (data.type === 'new_channel') {
+                    channels.push(data.channel);
+                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) {
+                        updateChatsList('channels');
+                    }
+                    return;
+                }
+                
+                if (data.type === 'room_created') {
+                    rooms.push(data.room);
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
+                        updateChatsList('rooms');
+                    }
+                    if (data.room.inviteLink) {
+                        showInviteModal(data.room.inviteLink);
+                    }
+                    return;
+                }
+                
+                if (data.type === 'joined_room') {
+                    rooms.push(data.room);
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
+                        updateChatsList('rooms');
+                    }
+                    selectChat('room', data.room.name, data.room);
+                    return;
+                }
+                
+                if (data.type === 'invite_link') {
+                    showInviteModal(data.link);
+                    return;
+                }
+                
+                if (data.type === 'message') {
+                    if (data.from === currentChat || data.roomId === currentChat) {
+                        displayMessage({
+                            text: data.text,
+                            from: data.from,
+                            time: data.time,
+                            type: 'received'
+                        });
+                    }
+                    return;
+                }
+                
+                if (data.type === 'room_message') {
+                    if (data.roomId === currentChat) {
+                        displayMessage({
+                            text: data.text,
+                            from: data.from,
+                            time: data.time,
+                            type: 'received'
+                        });
+                    }
+                    return;
+                }
+                
+                if (data.type === 'message_delivered') {
+                    const msgElement = document.getElementById('msg-' + data.clientMessageId);
+                    if (msgElement) {
+                        const status = msgElement.querySelector('.status-icon');
+                        if (status) {
+                            status.className = 'status-icon delivered';
+                            status.innerHTML = '<i class="fas fa-check-double"></i>';
+                        }
+                    }
+                    return;
+                }
+                
+                if (data.type === 'typing') {
+                    if (data.from === currentChat) {
+                        document.getElementById('typingIndicator').style.display = 'block';
+                        document.getElementById('typingIndicator').textContent = `${data.from} печатает...`;
+                        
+                        clearTimeout(typingTimeout);
+                        typingTimeout = setTimeout(() => {
+                            document.getElementById('typingIndicator').style.display = 'none';
+                        }, 2000);
+                    }
+                    return;
+                }
+                
+                if (data.type === 'new_post') {
+                    if (data.channelId === currentChat) {
+                        displayMessage({
+                            text: '📢 ' + data.post.text,
+                            from: data.channelId,
+                            time: new Date(data.post.date).toLocaleTimeString(),
+                            type: 'received'
+                        });
+                    }
+                    return;
+                }
+            };
+            
+            socket.onclose = function() {
+                console.log('❌ Отключено');
+                document.getElementById('statusDot').className = 'status-dot disconnected';
+                document.getElementById('statusText').textContent = 'Офлайн';
+                document.getElementById('latency').textContent = '--ms';
+                
+                if (pingInterval) {
+                    clearInterval(pingInterval);
+                    pingInterval = null;
+                }
+                
+                if (reconnectAttempts < 5) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, 3000);
+                }
+            };
+        }
 
         // ===== РЕГИСТРАЦИЯ =====
         function register() {
             const username = document.getElementById('loginUsername').value.trim();
-            
             if (!username) {
                 alert('Введите имя');
                 return;
             }
             
             if (!document.getElementById('privacyAgree').checked) {
-                alert('Примите Политику конфиденциальности');
+                alert('Примите политику конфиденциальности');
                 return;
             }
             
             currentUser = username;
             localStorage.setItem('nanogram_user', username);
-            
             connectWebSocket();
-        }
-
-        // ===== WEBSOCKET =====
-        function connectWebSocket() {
-            socket = new WebSocket('wss://minegram.onrender.com');
-            
-            socket.onopen = function() {
-                console.log('✅ Подключено');
-                socket.send(JSON.stringify({
-                    type: 'register',
-                    username: currentUser
-                }));
-            };
-            
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                console.log('📩', data.type);
-                
-                if (data.type === 'register_success' || data.type === 'login_success') {
-                    // Прячем логин, показываем приложение
-                    document.getElementById('loginPage').style.display = 'none';
-                    document.getElementById('appPage').style.display = 'flex';
-                    
-                    // Заполняем профиль
-                    document.getElementById('headerName').textContent = currentUser;
-                    document.getElementById('headerAvatar').textContent = currentUser.charAt(0).toUpperCase();
-                    
-                    if (currentUser === ADMIN_USERNAME) {
-                        document.getElementById('adminBadge').style.display = 'inline-block';
-                    }
-                    
-                    // Применяем настройки
-                    if (data.settings) {
-                        applySettings(data.settings);
-                    }
-                    
-                    // Загружаем профиль
-                    if (data.profile) {
-                        userProfile = data.profile;
-                    }
-                }
-                
-                if (data.type === 'channels_list') {
-                    channels = data.channels;
-                    updateChatsList('channels');
-                }
-                
-                if (data.type === 'rooms_list') {
-                    rooms = data.rooms;
-                    updateChatsList('rooms');
-                }
-                
-                if (data.type === 'user_list') {
-                    users = data.users;
-                    updateChatsList('chats');
-                }
-                
-                if (data.type === 'new_channel') {
-                    channels.push(data.channel);
-                    updateChatsList('channels');
-                }
-                
-                if (data.type === 'room_created') {
-                    rooms.push(data.room);
-                    updateChatsList('rooms');
-                    showInviteModal(data.room.id, data.room.inviteLink);
-                }
-                
-                if (data.type === 'joined_room') {
-                    rooms.push(data.room);
-                    updateChatsList('rooms');
-                    selectChat('room', data.room.name, data.room);
-                }
-                
-                if (data.type === 'invite_link') {
-                    showInviteModal(data.roomId, data.link);
-                }
-                
-                if (data.type === 'message' || data.type === 'room_message') {
-                    // Получение сообщения
-                    console.log('Новое сообщение:', data);
-                }
-            };
         }
 
         // ===== НАСТРОЙКИ =====
         function applySettings(settings) {
             userSettings = settings;
             
+            document.body.className = document.body.className
+                .replace(/dark-theme|light-theme/g, '')
+                .replace(/font-small|font-medium|font-large/g, '')
+                .replace(/density-comfortable|density-compact/g, '');
+            
             if (settings.theme) {
-                document.body.className = document.body.className.replace(/dark-theme|light-theme/g, '');
                 document.body.classList.add(settings.theme + '-theme');
                 document.getElementById('themeSelect').value = settings.theme;
             }
-            
             if (settings.fontSize) {
-                document.body.className = document.body.className.replace(/font-small|font-medium|font-large/g, '');
                 document.body.classList.add('font-' + settings.fontSize);
                 document.getElementById('fontSizeSelect').value = settings.fontSize;
             }
-            
             if (settings.density) {
-                document.body.className = document.body.className.replace(/density-comfortable|density-compact/g, '');
                 document.body.classList.add('density-' + settings.density);
                 document.getElementById('densitySelect').value = settings.density;
-            }
-            
-            if (settings.sound !== undefined) {
-                document.getElementById('soundCheck').checked = settings.sound;
-            }
-            
-            if (settings.notifications !== undefined) {
-                document.getElementById('notifyCheck').checked = settings.notifications;
-            }
-            
-            if (settings.lastSeen) {
-                document.getElementById('lastSeenSelect').value = settings.lastSeen;
             }
         }
 
@@ -1075,7 +1132,6 @@
                 settings: { [key]: value }
             }));
             
-            // Применяем сразу
             if (key === 'theme') {
                 document.body.className = document.body.className.replace(/dark-theme|light-theme/g, '');
                 document.body.classList.add(value + '-theme');
@@ -1088,41 +1144,13 @@
             }
         }
 
-        // ===== ПРОФИЛЬ =====
-        function saveProfile() {
-            const name = document.getElementById('profileName').value;
-            const bio = document.getElementById('profileBio').value;
-            const status = document.getElementById('profileStatus').value;
-            
-            userProfile = {
-                ...userProfile,
-                name: name || currentUser,
-                bio: bio,
-                status: status
-            };
-            
-            socket.send(JSON.stringify({
-                type: 'update_profile',
-                username: currentUser,
-                profile: userProfile
-            }));
-            
-            document.getElementById('headerName').textContent = name || currentUser;
-            document.getElementById('headerStatus').textContent = 
-                status === 'online' ? '🟢 Онлайн' :
-                status === 'offline' ? '⚫ Офлайн' :
-                status === 'busy' ? '🔴 Занят' : '🟡 Отошёл';
-            
-            closeAllModals();
-        }
-
         // ===== КАНАЛЫ =====
         function createChannel() {
             const name = document.getElementById('channelName').value.trim();
             const desc = document.getElementById('channelDesc').value.trim();
             
             if (!name) {
-                alert('Введите название');
+                alert('Введите название канала');
                 return;
             }
             
@@ -1139,11 +1167,11 @@
         }
 
         // ===== КОМНАТЫ =====
-        function createPrivateRoom() {
+        function createRoom() {
             const name = document.getElementById('roomName').value.trim();
             
             if (!name) {
-                alert('Введите название');
+                alert('Введите название комнаты');
                 return;
             }
             
@@ -1157,7 +1185,7 @@
             document.getElementById('roomName').value = '';
         }
 
-        function showInviteModal(roomId, link) {
+        function showInviteModal(link) {
             document.getElementById('inviteLink').value = link;
             openModal('inviteModal');
         }
@@ -1169,22 +1197,15 @@
             alert('Ссылка скопирована!');
         }
 
-        function joinByLink() {
-            const link = document.getElementById('joinLink').value.trim();
-            
-            if (!link) {
-                alert('Введите ссылку');
-                return;
+        function openJoinModal() {
+            const link = prompt('Вставьте ссылку-приглашение:');
+            if (link) {
+                socket.send(JSON.stringify({
+                    type: 'join_by_link',
+                    link: link,
+                    username: currentUser
+                }));
             }
-            
-            socket.send(JSON.stringify({
-                type: 'join_by_link',
-                link: link,
-                username: currentUser
-            }));
-            
-            closeAllModals();
-            document.getElementById('joinLink').value = '';
         }
 
         // ===== ТАБЫ =====
@@ -1238,6 +1259,7 @@
             currentChatType = type;
             
             document.getElementById('currentChatName').textContent = name;
+            document.getElementById('messagesContainer').innerHTML = '';
             
             if (type === 'channel') {
                 document.getElementById('currentChatInfo').textContent = 
@@ -1254,9 +1276,6 @@
                 document.getElementById('messageInput').disabled = false;
                 document.getElementById('sendBtn').disabled = false;
             }
-            
-            document.getElementById('messagesContainer').innerHTML = 
-                '<div style="text-align: center; margin-top: 50px;">Выберите чат для начала общения</div>';
         }
 
         // ===== СООБЩЕНИЯ =====
@@ -1264,9 +1283,10 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text || !currentChat || currentChatType === 'channel') return;
+            if (!text || !currentChat) return;
             
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const clientMessageId = Date.now() + '-' + Math.random();
             
             if (currentChatType === 'room') {
                 socket.send(JSON.stringify({
@@ -1274,7 +1294,8 @@
                     roomId: currentChat,
                     from: currentUser,
                     text: text,
-                    time: time
+                    time: time,
+                    clientMessageId: clientMessageId
                 }));
             } else {
                 socket.send(JSON.stringify({
@@ -1282,20 +1303,57 @@
                     to: currentChat,
                     from: currentUser,
                     text: text,
-                    time: time
+                    time: time,
+                    clientMessageId: clientMessageId
                 }));
             }
             
-            // Показываем своё сообщение
-            const container = document.getElementById('messagesContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message sent';
-            msgDiv.innerHTML = `${text}<div class="message-time">${time}</div>`;
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
+            displayMessage({
+                text: text,
+                from: currentUser,
+                time: time,
+                type: 'sent',
+                clientMessageId: clientMessageId
+            });
             
             input.value = '';
         }
+
+        function displayMessage(msg) {
+            const container = document.getElementById('messagesContainer');
+            const messageId = 'msg-' + (msg.clientMessageId || Date.now() + Math.random());
+            
+            const div = document.createElement('div');
+            div.className = `message ${msg.type}`;
+            div.id = messageId;
+            
+            let statusIcon = '';
+            if (msg.type === 'sent') {
+                statusIcon = '<span class="status-icon"><i class="fas fa-check"></i></span>';
+            }
+            
+            div.innerHTML = `
+                ${msg.text}
+                <div class="message-footer">
+                    ${msg.time}
+                    ${statusIcon}
+                </div>
+            `;
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ===== ТАЙПИНГ =====
+        document.getElementById('messageInput').addEventListener('input', function() {
+            if (!currentChat || currentChatType === 'channel' || !socket) return;
+            
+            socket.send(JSON.stringify({
+                type: 'typing',
+                from: currentUser,
+                to: currentChat
+            }));
+        });
 
         // ===== МОДАЛКИ =====
         function openModal(id) {
@@ -1316,26 +1374,15 @@
             }
         }
 
-        // Аватарка
-        document.getElementById('avatarInput')?.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    document.getElementById('profileAvatarModal').innerHTML = 
-                        `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
-                    document.getElementById('headerAvatar').innerHTML = 
-                        `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        function openProfileModal() {
+            alert('Редактирование профиля будет позже');
+        }
 
-        // Автовход
+        // ===== АВТОВХОД =====
         window.onload = function() {
-            const saved = localStorage.getItem('nanogram_user');
-            if (saved) {
-                document.getElementById('loginUsername').value = saved;
+            const savedUser = localStorage.getItem('nanogram_user');
+            if (savedUser) {
+                document.getElementById('loginUsername').value = savedUser;
                 register();
             }
         };
