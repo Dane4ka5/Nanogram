@@ -1,5 +1,26 @@
 {
   "dependencies": {
+    "nodemailer": "^8.0.1",
     "ws": "^8.19.0"
-  }
+  },
+  "name": "nanogram",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dane4ka5/Minegram.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Dane4ka5/Minegram/issues"
+  },
+  "homepage": "https://github.com/Dane4ka5/Minegram#readme"
 }
