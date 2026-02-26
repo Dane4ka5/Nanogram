@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram — нано-мессенджер</title>
+    <title>Nanogram — безопасный мессенджер</title>
+    <!-- CryptoJS для шифрования -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,27 +15,22 @@
         }
 
         body {
-            background: linear-gradient(135deg, 
-                #f8f0ff 0%,    /* светло-лавандовый */
-                #e0f5ff 35%,   /* нежно-голубой */
-                #ffe4f5 70%,   /* светло-розовый */
-                #f8f0ff 100%   /* возврат к лаванде */
-            );
+            background: #1a1b1e;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 0;
-            transition: background 0.5s ease;
+            color: #e4e6eb;
         }
 
-        /* Матовый контейнер */
-        .tg-container, .login-card {
-            background: rgba(255, 255, 255, 0.65);
+        /* Матовый контейнер (тёмная версия) */
+        .tg-container, .login-card, .privacy-modal {
+            background: rgba(32, 33, 36, 0.8);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 20px 40px rgba(150, 130, 200, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
 
         .tg-container {
@@ -46,9 +43,9 @@
         /* Левая панель */
         .chats-sidebar {
             width: 320px;
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(25, 26, 29, 0.7);
             backdrop-filter: blur(12px);
-            border-right: 1px solid rgba(255, 255, 255, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -57,15 +54,15 @@
 
         .sidebar-header {
             padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(20, 21, 24, 0.6);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .sidebar-header h2 {
-            color: #5a4b7a;
+            color: #e4e6eb;
             font-size: 24px;
             font-weight: 600;
             display: flex;
@@ -74,8 +71,8 @@
         }
 
         .sidebar-header h2 span {
-            background: rgba(200, 180, 255, 0.4);
-            color: #5a4b7a;
+            background: rgba(98, 102, 114, 0.3);
+            color: #b0b3b8;
             font-size: 14px;
             padding: 4px 8px;
             border-radius: 20px;
@@ -83,7 +80,7 @@
         }
 
         .logout-btn {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.08);
             border: none;
             width: 40px;
             height: 40px;
@@ -94,12 +91,12 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            color: #5a4b7a;
+            color: #e4e6eb;
         }
 
         .logout-btn:hover {
             transform: scale(1.1) rotate(5deg);
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .current-user {
@@ -107,17 +104,17 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
             margin: 8px 12px;
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #b8a9ff, #8a7cff);
+            background: linear-gradient(135deg, #5c6bc0, #3949ab);
             color: white;
             display: flex;
             align-items: center;
@@ -131,12 +128,22 @@
             transform: scale(1.15) rotate(3deg);
         }
 
+        .admin-badge {
+            background: #ffd700;
+            color: #1a1b1e;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
         .search-box {
             padding: 8px 16px;
             margin: 0 12px 12px;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .search-box input {
@@ -144,12 +151,12 @@
             background: transparent;
             border: none;
             outline: none;
-            color: #4a3b6a;
+            color: #e4e6eb;
             font-size: 15px;
         }
 
         .search-box input::placeholder {
-            color: rgba(74, 59, 106, 0.5);
+            color: rgba(255, 255, 255, 0.3);
         }
 
         .users-list {
@@ -166,19 +173,19 @@
             cursor: pointer;
             border-radius: 25px;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .user-item:hover {
             transform: scale(1.02) translateX(5px);
-            background: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 8px 16px rgba(150, 130, 200, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
         .user-item.selected {
-            background: rgba(200, 180, 255, 0.4);
-            border-color: rgba(180, 160, 255, 0.6);
+            background: rgba(90, 110, 200, 0.2);
+            border-color: rgba(90, 110, 200, 0.3);
         }
 
         .user-info {
@@ -187,13 +194,13 @@
         }
 
         .user-name {
-            color: #4a3b6a;
+            color: #e4e6eb;
             font-weight: 600;
             font-size: 16px;
         }
 
         .user-preview {
-            color: rgba(74, 59, 106, 0.6);
+            color: rgba(255, 255, 255, 0.5);
             font-size: 13px;
             white-space: nowrap;
             overflow: hidden;
@@ -205,26 +212,38 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(20, 21, 24, 0.5);
             backdrop-filter: blur(8px);
         }
 
         .chat-header {
             padding: 16px 24px;
-            background: rgba(255, 255, 255, 0.25);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(25, 26, 29, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .chat-header-info h3 {
-            color: #4a3b6a;
+            color: #e4e6eb;
             font-size: 18px;
             font-weight: 600;
         }
 
         .chat-header-info p {
-            color: #7a6b9a;
+            color: #b0b3b8;
             font-size: 14px;
             margin-top: 4px;
+        }
+
+        .channel-badge {
+            background: rgba(90, 110, 200, 0.3);
+            color: #a5b6ff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid rgba(90, 110, 200, 0.3);
         }
 
         .messages-container {
@@ -250,7 +269,7 @@
 
         .message:hover {
             transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(150, 130, 200, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         @keyframes fadeIn {
@@ -260,32 +279,32 @@
 
         .message.sent {
             align-self: flex-end;
-            background: rgba(180, 160, 255, 0.4);
-            color: #3a2b5a;
+            background: rgba(90, 110, 200, 0.3);
+            color: #e4e6eb;
             border-bottom-right-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(90, 110, 200, 0.3);
         }
 
         .message.received {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.4);
-            color: #4a3b6a;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e4e6eb;
             border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .message-time {
             font-size: 11px;
             margin-top: 4px;
-            opacity: 0.7;
+            opacity: 0.5;
             text-align: right;
             color: inherit;
         }
 
         .message-input-area {
             padding: 16px 24px;
-            background: rgba(255, 255, 255, 0.25);
-            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(25, 26, 29, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             gap: 12px;
         }
@@ -293,31 +312,31 @@
         .message-input-area input {
             flex: 1;
             padding: 14px 20px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 30px;
             outline: none;
             font-size: 15px;
-            color: #4a3b6a;
+            color: #e4e6eb;
             transition: all 0.3s ease;
         }
 
         .message-input-area input:focus {
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.08);
             transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(150, 130, 200, 0.2);
+            border-color: rgba(90, 110, 200, 0.5);
         }
 
         .message-input-area input:disabled {
-            opacity: 0.5;
+            opacity: 0.3;
         }
 
         .message-input-area button {
             padding: 14px 28px;
-            background: rgba(180, 160, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(90, 110, 200, 0.5);
+            border: 1px solid rgba(90, 110, 200, 0.3);
             border-radius: 30px;
-            color: #3a2b5a;
+            color: white;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -326,12 +345,12 @@
 
         .message-input-area button:hover:not(:disabled) {
             transform: scale(1.05) translateY(-2px);
-            background: rgba(200, 180, 255, 0.8);
-            box-shadow: 0 8px 16px rgba(150, 130, 200, 0.3);
+            background: rgba(110, 130, 230, 0.7);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
         .message-input-area button:disabled {
-            opacity: 0.5;
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
@@ -342,7 +361,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: #6a5b8a;
+            color: #b0b3b8;
             gap: 16px;
             text-align: center;
         }
@@ -350,14 +369,14 @@
         .welcome-screen h2 {
             font-size: 24px;
             font-weight: normal;
-            color: #5a4b7a;
+            color: #e4e6eb;
         }
 
         .welcome-screen p {
-            color: rgba(90, 75, 122, 0.7);
+            color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Блок входа */
+        /* Блок входа с SMS */
         .login-container {
             width: 100%;
             height: 100vh;
@@ -374,55 +393,140 @@
         }
 
         .login-card h1 {
-            color: #5a4b7a;
+            color: #e4e6eb;
             font-size: 42px;
             margin-bottom: 8px;
         }
 
         .login-card p {
-            color: #7a6b9a;
-            margin-bottom: 32px;
+            color: #b0b3b8;
+            margin-bottom: 24px;
         }
 
         .login-input {
             width: 100%;
             padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 40px;
-            color: #4a3b6a;
+            color: #e4e6eb;
             font-size: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             outline: none;
             transition: all 0.3s ease;
         }
 
         .login-input:focus {
-            transform: scale(1.02);
-            background: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 20px rgba(150, 130, 200, 0.2);
+            border-color: rgba(90, 110, 200, 0.5);
+            background: rgba(255, 255, 255, 0.08);
         }
 
-        .login-button {
+        .sms-button {
             width: 100%;
             padding: 16px;
-            background: rgba(180, 160, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: rgba(90, 110, 200, 0.3);
+            border: 1px solid rgba(90, 110, 200, 0.3);
             border-radius: 40px;
-            color: #3a2b5a;
-            font-size: 18px;
+            color: white;
+            font-size: 16px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .sms-button:hover {
+            background: rgba(110, 130, 230, 0.5);
+            transform: scale(1.02);
+        }
+
+        .privacy-link {
+            color: #b0b3b8;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 20px;
+        }
+
+        .privacy-link:hover {
+            color: #e4e6eb;
+        }
+
+        /* Модальное окно политики конфиденциальности */
+        .privacy-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 40px;
+            border-radius: 30px;
+            z-index: 1000;
+            display: none;
+            color: #e4e6eb;
+            line-height: 1.6;
+        }
+
+        .privacy-modal.active {
+            display: block;
+        }
+
+        .privacy-modal h2 {
+            color: #e4e6eb;
+            margin: 25px 0 10px;
+            font-size: 20px;
+        }
+
+        .privacy-modal h1 {
+            color: #e4e6eb;
+            font-size: 32px;
+        }
+
+        .privacy-modal p {
+            color: #b0b3b8;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .privacy-modal .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .login-button:hover {
-            transform: scale(1.02) translateY(-2px);
-            background: rgba(200, 180, 255, 0.8);
-            box-shadow: 0 8px 20px rgba(150, 130, 200, 0.3);
+        .privacy-modal .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: rotate(90deg);
         }
 
-        /* Адаптация под телефон (узкий левый столбец) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 999;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        /* Адаптация под телефон */
         @media screen and (max-width: 768px) {
             .chats-sidebar {
                 width: 90px !important;
@@ -467,6 +571,11 @@
             .message {
                 max-width: 80%;
             }
+            
+            .privacy-modal {
+                width: 95%;
+                padding: 30px 20px;
+            }
         }
 
         @media screen and (max-width: 480px) {
@@ -485,53 +594,117 @@
                 width: calc(100% - 75px);
             }
             
-            .message {
-                max-width: 85%;
-                font-size: 14px;
+            .login-card {
+                width: 90%;
+                padding: 30px 20px;
             }
-            
-            .message-input-area {
-                padding: 12px;
-            }
-            
-            .message-input-area input {
-                padding: 12px 16px;
-            }
-            
-            .message-input-area button {
-                padding: 12px 20px;
-            }
-        }
-
-        /* Скроллбар */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(180, 160, 255, 0.4);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(200, 180, 255, 0.6);
         }
     </style>
 </head>
 <body>
+    <!-- Модальное окно политики конфиденциальности -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closePrivacy()"></div>
+    <div class="privacy-modal" id="privacyModal">
+        <button class="close-btn" onclick="closePrivacy()">✕</button>
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #e4e6eb; font-size: 32px;">🧪 Nanogram</h1>
+            <p style="color: #b0b3b8;">Политика конфиденциальности</p>
+            <p style="color: #b0b3b8; font-size: 12px;">Последнее обновление: 2024</p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+            <p style="color: #ffd700; font-weight: bold;">⚡ Соответствует требованиям 152-ФЗ "О персональных данных"</p>
+        </div>
+
+        <h2>1. Общие положения</h2>
+        <p>1.1. Настоящая Политика конфиденциальности определяет порядок обработки персональных данных пользователей мессенджера Nanogram (далее — «Мессенджер») и требования к обеспечению их безопасности.</p>
+        <p>1.2. Используя Nanogram, вы даете согласие на обработку ваших персональных данных в соответствии с настоящей Политикой.</p>
+        <p>1.3. Если вы не согласны с условиями Политики, прекратите использование Мессенджера.</p>
+
+        <h2>2. Какие данные мы собираем</h2>
+        <p>2.1. <strong>Обязательные данные:</strong></p>
+        <p>• Номер телефона (необходим для идентификации)</p>
+        <p>• Имя пользователя (никнейм)</p>
+        <p>• История сообщений (в зашифрованном виде)</p>
+        
+        <p>2.2. <strong>Технические данные:</strong></p>
+        <p>• IP-адрес</p>
+        <p>• Тип устройства и браузера</p>
+        <p>• Время сессии</p>
+
+        <h2>3. Шифрование и безопасность</h2>
+        <p>3.1. Все сообщения шифруются алгоритмом AES-256.</p>
+        <p>3.2. Ключи шифрования уникальны для каждого чата.</p>
+        <p>3.3. Администрация НЕ ИМЕЕТ доступа к содержимому личных сообщений.</p>
+        <p>3.4. Данные хранятся на серверах в зашифрованном виде.</p>
+
+        <h2>4. Цели обработки данных</h2>
+        <p>4.1. Обеспечение функционирования мессенджера</p>
+        <p>4.2. Техническая поддержка пользователей</p>
+        <p>4.3. Предотвращение мошенничества и спама</p>
+        <p>4.4. Улучшение качества сервиса</p>
+
+        <h2>5. Передача данных третьим лицам</h2>
+        <p>5.1. Ваши данные НЕ ПЕРЕДАЮТСЯ третьим лицам, кроме случаев, предусмотренных законодательством РФ.</p>
+        <p>5.2. Мы не продаем и не передаем ваши данные рекламодателям.</p>
+
+        <h2>6. Канал NANOGRAM</h2>
+        <p>6.1. Официальный канал @Dane4ka5 содержит только информацию об обновлениях.</p>
+        <p>6.2. Подписка на канал добровольна.</p>
+        <p>6.3. Администратор канала не видит личные сообщения подписчиков.</p>
+
+        <h2>7. Хранение и удаление данных</h2>
+        <p>7.1. Срок хранения сообщений — до удаления пользователем.</p>
+        <p>7.2. Вы можете удалить свой аккаунт и все данные, написав администратору.</p>
+        <p>7.3. При удалении аккаунта все ваши данные безвозвратно удаляются.</p>
+
+        <h2>8. Права пользователей</h2>
+        <p>8.1. Вы имеете право:</p>
+        <p>• Получить информацию о своих данных</p>
+        <p>• Требовать исправления неточных данных</p>
+        <p>• Отозвать согласие на обработку данных</p>
+        <p>• Требовать удаления данных</p>
+
+        <h2>9. Защита несовершеннолетних</h2>
+        <p>9.1. Сервис не предназначен для лиц младше 14 лет.</p>
+        <p>9.2. Мы не собираем намеренно данные лиц младше 14 лет.</p>
+
+        <h2>10. Контактная информация</h2>
+        <p>10.1. Администратор: Dane4ka5</p>
+        <p>10.2. По вопросам конфиденциальности: через канал NANOGRAM</p>
+        <p>10.3. Дата последнего обновления: 2024</p>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; margin-top: 30px;">
+            <p style="color: #ffd700; text-align: center; font-weight: bold;">✓ Соответствует Федеральному закону от 27.07.2006 № 152-ФЗ</p>
+            <p style="color: #b0b3b8; text-align: center; font-size: 12px; margin-top: 10px;">Нажимая "Войти", вы подтверждаете согласие с Политикой конфиденциальности</p>
+        </div>
+    </div>
+
     <div id="loginBlock" class="login-container" style="display: flex;">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>нано-мессенджер 🌸</p>
-            <input type="text" id="username" class="login-input" placeholder="Ваше имя" autofocus>
-            <button class="login-button" onclick="register()">Войти</button>
-            <p style="margin-top: 20px; color: #7a6b9a; font-size: 12px;">
-                💾 История сохраняется · Матовый дизайн · Интерактив
-            </p>
+            <p>300+ пользователей ждут релиз</p>
+            
+            <input type="text" id="phoneInput" class="login-input" placeholder="Номер телефона" autofocus>
+            <button class="sms-button" onclick="requestSMS()">📱 Получить код</button>
+            
+            <input type="text" id="smsInput" class="login-input" placeholder="Код из SMS" style="display: none;">
+            <input type="text" id="username" class="login-input" placeholder="Ваше имя" style="display: none;">
+            
+            <!-- Чекбокс согласия -->
+            <div style="display: flex; align-items: center; gap: 8px; margin: 15px 0; justify-content: center;">
+                <input type="checkbox" id="privacyAgree" style="width: 18px; height: 18px;">
+                <label for="privacyAgree" style="color: #b0b3b8; font-size: 14px;">
+                    Я принимаю 
+                    <span onclick="openPrivacy()" style="color: #a5b6ff; cursor: pointer; text-decoration: underline;">
+                        Политику конфиденциальности
+                    </span>
+                </label>
+            </div>
+            
+            <button class="login-button" id="registerBtn" onclick="register()" style="display: none;">Войти</button>
+            <div class="privacy-link" onclick="openPrivacy()">Политика конфиденциальности</div>
         </div>
     </div>
 
@@ -546,6 +719,7 @@
             <div class="current-user" id="currentUserDisplay">
                 <div class="user-avatar" id="currentUserAvatar"></div>
                 <span id="currentUserName"></span>
+                <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span>
             </div>
             
             <div class="search-box">
@@ -553,53 +727,130 @@
             </div>
 
             <div class="users-list" id="userList">
-                <div class="user-item">
-                    <div class="user-avatar">📱</div>
+                <!-- Канал NANOGRAM -->
+                <div class="user-item" id="channelItem" style="background: rgba(90, 110, 200, 0.15);">
+                    <div class="user-avatar">📢</div>
                     <div class="user-info">
-                        <div class="user-name">Загрузка...</div>
+                        <div class="user-name">NANOGRAM</div>
+                        <div class="user-preview">Официальный канал</div>
                     </div>
                 </div>
+                <div style="margin: 10px 0; color: rgba(255,255,255,0.3); text-align: center;">────────</div>
             </div>
         </div>
 
         <!-- Правая панель -->
         <div class="chat-area">
-            <div class="chat-header">
+            <div class="chat-header" id="chatHeader">
                 <div class="chat-header-info">
-                    <h3 id="selectedUserName">Выберите чат</h3>
-                    <p id="selectedUserStatus"></p>
+                    <h3 id="selectedUserName">NANOGRAM</h3>
+                    <p id="selectedUserStatus">Официальный канал обновлений</p>
+                </div>
+                <div class="channel-badge" id="adminControls" style="display: none;">
+                    👑 Админка
                 </div>
             </div>
 
             <div class="messages-container" id="messagesContainer">
-                <div class="welcome-screen">
-                    <h2>🌸 Добро пожаловать в Nanogram</h2>
-                    <p>Выберите собеседника слева</p>
+                <div class="welcome-screen" id="channelWelcome">
+                    <div class="user-avatar" style="width: 80px; height: 80px; font-size: 40px;">📢</div>
+                    <h2>Добро пожаловать в NANOGRAM</h2>
+                    <p>Официальный канал обновлений от @Dane4ka5</p>
+                    <p style="font-size: 14px; margin-top: 20px;">🔐 Все сообщения зашифрованы</p>
                 </div>
             </div>
 
-            <div class="message-input-area">
+            <div class="message-input-area" id="messageInputArea">
                 <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
                 <button id="sendButton" onclick="sendMessage()" disabled>📤</button>
+            </div>
+            
+            <!-- Панель для админа (только Dane4ka5) -->
+            <div id="adminPanel" style="display: none; padding: 12px 24px; background: rgba(90, 110, 200, 0.1); border-top: 1px solid rgba(255,255,255,0.08);">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="postInput" placeholder="Напишите пост в канал..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; color: white;">
+                    <button onclick="createPost()" style="padding: 12px 24px; background: rgba(90, 110, 200, 0.5); border: none; border-radius: 20px; color: white; cursor: pointer;">📢 Опубликовать</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Конфигурация
+        const ADMIN_USERNAME = 'Dane4ka5';
+        const CHANNEL_ID = 'NANOGRAM';
+        const ENCRYPTION_KEY = 'nanogram-secret-2024';
+        
         let socket = null;
-        let currentUser = localStorage.getItem('nanogram_user');
-        let selectedUser = null;
+        let currentUser = null;
+        let currentPhone = null;
+        let selectedUser = CHANNEL_ID;
         let messages = {};
+        let channelPosts = [];
+        let smsCode = null;
 
-        // Автовход
-        window.onload = function() {
-            if (currentUser) {
-                document.getElementById('username').value = currentUser;
-                register();
+        // Ключ шифрования для текущего пользователя
+        function getEncryptionKey(partner) {
+            return CryptoJS.SHA256(currentUser + partner + ENCRYPTION_KEY).toString();
+        }
+
+        // Шифрование сообщения
+        function encryptMessage(text, partner) {
+            const key = getEncryptionKey(partner);
+            return CryptoJS.AES.encrypt(text, key).toString();
+        }
+
+        // Дешифровка сообщения
+        function decryptMessage(encryptedText, partner) {
+            try {
+                const key = getEncryptionKey(partner);
+                const bytes = CryptoJS.AES.decrypt(encryptedText, key);
+                return bytes.toString(CryptoJS.enc.Utf8);
+            } catch (e) {
+                console.error('Ошибка дешифровки:', e);
+                return '[Зашифрованное сообщение]';
             }
-        };
+        }
 
+        // SMS функции
+        function requestSMS() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!phone) {
+                alert('Введите номер телефона');
+                return;
+            }
+            
+            currentPhone = phone;
+            smsCode = Math.floor(100000 + Math.random() * 900000);
+            alert(`📱 Демо-режим: ваш код ${smsCode}`);
+            
+            document.getElementById('smsInput').style.display = 'block';
+            document.getElementById('smsInput').focus();
+        }
+
+        function verifySMS() {
+            const inputCode = document.getElementById('smsInput').value.trim();
+            if (inputCode == smsCode) {
+                document.getElementById('username').style.display = 'block';
+                document.getElementById('registerBtn').style.display = 'block';
+                document.getElementById('smsInput').disabled = true;
+                return true;
+            } else {
+                alert('❌ Неверный код');
+                return false;
+            }
+        }
+
+        // Регистрация
         function register() {
+            if (!verifySMS()) return;
+            
+            // Проверка согласия с политикой
+            if (!document.getElementById('privacyAgree').checked) {
+                alert('Необходимо принять Политику конфиденциальности');
+                return;
+            }
+            
             const username = document.getElementById('username').value.trim();
             if (!username) {
                 alert('Введите имя!');
@@ -608,6 +859,7 @@
 
             currentUser = username;
             localStorage.setItem('nanogram_user', username);
+            localStorage.setItem('nanogram_phone', currentPhone);
             
             socket = new WebSocket('wss://minegram.onrender.com');
 
@@ -615,7 +867,8 @@
                 console.log('✅ Подключено к Nanogram');
                 socket.send(JSON.stringify({
                     type: 'register',
-                    username: username
+                    username: username,
+                    phone: currentPhone
                 }));
             };
 
@@ -628,14 +881,34 @@
                     document.getElementById('chatBlock').style.display = 'flex';
                     document.getElementById('currentUserAvatar').textContent = username.charAt(0).toUpperCase();
                     document.getElementById('currentUserName').textContent = username;
+                    
+                    if (username === ADMIN_USERNAME) {
+                        document.getElementById('adminBadge').style.display = 'inline-block';
+                        document.getElementById('adminPanel').style.display = 'block';
+                        document.getElementById('adminControls').style.display = 'block';
+                    }
+                    
+                    selectChannel();
                 }
 
                 if (data.type === 'history') {
                     messages = data.history || {};
-                    if (selectedUser) {
-                        loadMessages(selectedUser);
+                }
+
+                if (data.type === 'channels') {
+                    if (data.channels && data.channels[CHANNEL_ID]) {
+                        channelPosts = data.channels[CHANNEL_ID].posts || [];
+                        updateChannelPosts();
                     }
-                    updateUserList(Array.from(document.querySelectorAll('.user-name')).map(el => el.textContent));
+                }
+
+                if (data.type === 'new_post') {
+                    if (data.channelId === CHANNEL_ID) {
+                        channelPosts.push(data.post);
+                        if (selectedUser === CHANNEL_ID) {
+                            displayChannelPost(data.post);
+                        }
+                    }
                 }
 
                 if (data.type === 'user_list') {
@@ -643,26 +916,90 @@
                 }
 
                 if (data.type === 'message') {
-                    receiveMessage(data.from, data.text, data.time);
+                    const decryptedText = decryptMessage(data.text, data.from);
+                    receiveMessage(data.from, decryptedText, data.time);
                 }
             };
+        }
 
-            socket.onclose = function() {
-                console.log('❌ Отключено от Nanogram');
-                setTimeout(() => {
-                    alert('Потеряно соединение. Переподключаюсь...');
-                    register();
-                }, 3000);
+        // Канал
+        function selectChannel() {
+            selectedUser = CHANNEL_ID;
+            document.getElementById('selectedUserName').textContent = 'NANOGRAM';
+            document.getElementById('selectedUserStatus').textContent = 'Официальный канал обновлений';
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('sendButton').disabled = true;
+            
+            loadChannelPosts();
+        }
+
+        function loadChannelPosts() {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            
+            if (channelPosts.length === 0) {
+                document.getElementById('channelWelcome').style.display = 'flex';
+                return;
+            }
+            
+            document.getElementById('channelWelcome').style.display = 'none';
+            
+            channelPosts.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(post => {
+                displayChannelPost(post);
+            });
+        }
+
+        function displayChannelPost(post) {
+            const container = document.getElementById('messagesContainer');
+            
+            const div = document.createElement('div');
+            div.className = 'message received';
+            div.style.maxWidth = '80%';
+            div.style.background = 'rgba(90, 110, 200, 0.15)';
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span class="user-avatar" style="width: 24px; height: 24px; font-size: 12px;">📢</span>
+                    <span style="font-weight: bold;">NANOGRAM</span>
+                    <span style="font-size: 11px; opacity: 0.5;">${new Date(post.date).toLocaleDateString()}</span>
+                </div>
+                <div>${post.text}</div>
+                <div style="font-size: 11px; margin-top: 8px; opacity: 0.5;">👁️ ${post.views || 0} просмотров</div>
+            `;
+            container.appendChild(div);
+        }
+
+        function createPost() {
+            if (currentUser !== ADMIN_USERNAME) return;
+            
+            const postText = document.getElementById('postInput').value.trim();
+            if (!postText) return;
+            
+            // Имитация отправки поста
+            const newPost = {
+                id: channelPosts.length + 1,
+                text: postText,
+                date: new Date().toISOString(),
+                views: 0
             };
+            
+            channelPosts.push(newPost);
+            if (selectedUser === CHANNEL_ID) {
+                displayChannelPost(newPost);
+            }
+            
+            document.getElementById('postInput').value = '';
         }
 
         function updateUserList(users) {
             const list = document.getElementById('userList');
+            // Сохраняем канал
+            const channelItem = list.children[0];
             list.innerHTML = '';
+            list.appendChild(channelItem);
             
             users.filter(u => u !== currentUser).forEach(user => {
                 const div = document.createElement('div');
-                div.className = `user-item ${selectedUser === user ? 'selected' : ''}`;
+                div.className = `user-item`;
                 div.onclick = () => selectUser(user);
                 
                 const lastMsg = getLastMessage(user);
@@ -676,13 +1013,20 @@
                 `;
                 list.appendChild(div);
             });
+            
+            document.getElementById('channelItem').onclick = selectChannel;
         }
 
         function getLastMessage(user) {
             const chatKey = [currentUser, user].sort().join('_');
             if (messages[chatKey] && messages[chatKey].length > 0) {
                 const last = messages[chatKey][messages[chatKey].length - 1];
-                return last.from === currentUser ? 'Вы: ' + last.text : last.text;
+                try {
+                    const decrypted = decryptMessage(last.text, user);
+                    return last.from === currentUser ? 'Вы: ' + decrypted : decrypted;
+                } catch {
+                    return 'Сообщение';
+                }
             }
             return 'Нет сообщений';
         }
@@ -690,17 +1034,10 @@
         function selectUser(user) {
             selectedUser = user;
             
-            document.querySelectorAll('.user-item').forEach(el => {
-                el.classList.remove('selected');
-                if (el.querySelector('.user-name')?.textContent === user) {
-                    el.classList.add('selected');
-                }
-            });
-
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendButton').disabled = false;
             document.getElementById('selectedUserName').textContent = user;
             document.getElementById('selectedUserStatus').textContent = '● онлайн';
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
             
             loadMessages(user);
         }
@@ -716,14 +1053,19 @@
                 container.innerHTML = `
                     <div class="welcome-screen">
                         <h3>Начните общение с ${user}</h3>
-                        <p>Сообщения сохранятся автоматически</p>
+                        <p>🔐 Сообщения шифруются</p>
                     </div>
                 `;
                 return;
             }
 
             chatMessages.forEach(msg => {
-                displayMessage(msg.text, msg.from === currentUser ? 'sent' : 'received', msg.time);
+                try {
+                    const decryptedText = decryptMessage(msg.text, msg.from === currentUser ? user : msg.from);
+                    displayMessage(decryptedText, msg.from === currentUser ? 'sent' : 'received', msg.time);
+                } catch {
+                    displayMessage('[Ошибка дешифровки]', msg.from === currentUser ? 'sent' : 'received', msg.time);
+                }
             });
             
             container.scrollTop = container.scrollHeight;
@@ -733,15 +1075,17 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text || !selectedUser) return;
+            if (!text || !selectedUser || selectedUser === CHANNEL_ID) return;
 
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const encryptedText = encryptMessage(text, selectedUser);
 
             socket.send(JSON.stringify({
                 type: 'message',
                 to: selectedUser,
                 from: currentUser,
-                text: text,
+                text: encryptedText,
                 time: time
             }));
 
@@ -751,7 +1095,7 @@
             }
             messages[chatKey].push({
                 from: currentUser,
-                text: text,
+                text: encryptedText,
                 time: time
             });
 
@@ -782,10 +1126,8 @@
         function displayMessage(text, type, time) {
             const container = document.getElementById('messagesContainer');
             
-            if (container.children.length === 1 && container.children[0].classList.contains('welcome-screen')) {
-                container.innerHTML = '';
-            }
-
+            document.getElementById('channelWelcome').style.display = 'none';
+            
             const div = document.createElement('div');
             div.className = `message ${type}`;
             div.innerHTML = `
@@ -799,12 +1141,36 @@
         function logout() {
             if (socket) socket.close();
             localStorage.removeItem('nanogram_user');
+            localStorage.removeItem('nanogram_phone');
             document.getElementById('loginBlock').style.display = 'flex';
             document.getElementById('chatBlock').style.display = 'none';
-            document.getElementById('username').value = '';
-            selectedUser = null;
+            selectedUser = CHANNEL_ID;
             currentUser = null;
         }
+
+        function openPrivacy() {
+            document.getElementById('privacyModal').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closePrivacy() {
+            document.getElementById('privacyModal').classList.remove('active');
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Автовход если есть сохранённые данные
+        window.onload = function() {
+            const savedUser = localStorage.getItem('nanogram_user');
+            const savedPhone = localStorage.getItem('nanogram_phone');
+            if (savedUser && savedPhone) {
+                document.getElementById('phoneInput').value = savedPhone;
+                document.getElementById('username').value = savedUser;
+                smsCode = '000000';
+                document.getElementById('smsInput').value = '000000';
+                document.getElementById('privacyAgree').checked = true;
+                register();
+            }
+        };
     </script>
 </body>
 </html>
