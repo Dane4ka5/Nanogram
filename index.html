@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Minegram — лавандовый рай</title>
+    <title>Nanogram — нано-мессенджер</title>
     <style>
         * {
             margin: 0;
@@ -525,8 +525,8 @@
 <body>
     <div id="loginBlock" class="login-container" style="display: flex;">
         <div class="login-card">
-            <h1>⛓️ Minegram</h1>
-            <p>Лавандовый рай 🌸</p>
+            <h1>🧪 Nanogram</h1>
+            <p>нано-мессенджер 🌸</p>
             <input type="text" id="username" class="login-input" placeholder="Ваше имя" autofocus>
             <button class="login-button" onclick="register()">Войти</button>
             <p style="margin-top: 20px; color: #7a6b9a; font-size: 12px;">
@@ -539,7 +539,7 @@
         <!-- Левая панель -->
         <div class="chats-sidebar">
             <div class="sidebar-header">
-                <h2>⛓️ <span>Minegram</span></h2>
+                <h2>🧪 <span>Nanogram</span></h2>
                 <button class="logout-btn" onclick="logout()">🚪</button>
             </div>
             
@@ -573,7 +573,7 @@
 
             <div class="messages-container" id="messagesContainer">
                 <div class="welcome-screen">
-                    <h2>🌸 Добро пожаловать в Minegram</h2>
+                    <h2>🌸 Добро пожаловать в Nanogram</h2>
                     <p>Выберите собеседника слева</p>
                 </div>
             </div>
@@ -587,7 +587,7 @@
 
     <script>
         let socket = null;
-        let currentUser = localStorage.getItem('minegram_user');
+        let currentUser = localStorage.getItem('nanogram_user');
         let selectedUser = null;
         let messages = {};
 
@@ -607,12 +607,12 @@
             }
 
             currentUser = username;
-            localStorage.setItem('minegram_user', username);
+            localStorage.setItem('nanogram_user', username);
             
             socket = new WebSocket('wss://minegram.onrender.com');
 
             socket.onopen = function() {
-                console.log('✅ Подключено');
+                console.log('✅ Подключено к Nanogram');
                 socket.send(JSON.stringify({
                     type: 'register',
                     username: username
@@ -648,7 +648,7 @@
             };
 
             socket.onclose = function() {
-                console.log('❌ Отключено');
+                console.log('❌ Отключено от Nanogram');
                 setTimeout(() => {
                     alert('Потеряно соединение. Переподключаюсь...');
                     register();
@@ -798,7 +798,7 @@
 
         function logout() {
             if (socket) socket.close();
-            localStorage.removeItem('minegram_user');
+            localStorage.removeItem('nanogram_user');
             document.getElementById('loginBlock').style.display = 'flex';
             document.getElementById('chatBlock').style.display = 'none';
             document.getElementById('username').value = '';
