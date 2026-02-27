@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.7.6 — безопасный месенджер </title>
+    <title>Nanogram v0.7.9 — вход по телефону</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -45,7 +45,7 @@
             transition: all 0.3s ease;
         }
 
-        /* ===== МАТОВЫЙ ЭФФЕКТ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ ===== */
+        /* ===== МАТОВЫЙ ЭФФЕКТ ===== */
         .app-container, .chats-panel, .chat-panel, .modal, .login-card, 
         .panel-header, .profile-section, .chat-item, .message-input-area,
         .chat-header, .tab, .icon-btn {
@@ -56,7 +56,7 @@
             box-shadow: var(--shadow);
         }
 
-        /* ===== АНИМАЦИЯ ПРИ НАВЕДЕНИИ ===== */
+        /* ===== АНИМАЦИИ ===== */
         .chat-item {
             transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
             cursor: pointer;
@@ -81,56 +81,6 @@
             box-shadow: 0 8px 20px rgba(160, 140, 200, 0.4);
         }
 
-        .tab {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .tab:hover {
-            transform: translateY(-3px) scale(1.02);
-            background: var(--hover);
-            border-color: var(--accent);
-            box-shadow: 0 6px 15px rgba(160, 140, 200, 0.2);
-        }
-
-        .tab.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-            transform: scale(1.02);
-        }
-
-        .profile-section {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .profile-section:hover {
-            transform: scale(1.02);
-            background: var(--hover);
-            border-color: var(--accent);
-            box-shadow: 0 10px 25px rgba(160, 140, 200, 0.25);
-        }
-
-        .send-btn {
-            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-        }
-
-        .send-btn:hover:not(:disabled) {
-            transform: scale(1.15) rotate(5deg);
-            background: var(--accent-hover);
-            box-shadow: 0 8px 20px rgba(160, 140, 200, 0.4);
-        }
-
-        .message {
-            transition: all 0.3s ease;
-        }
-
-        .message:hover {
-            transform: scale(1.02) translateY(-2px);
-            box-shadow: 0 8px 20px rgba(160, 140, 200, 0.25);
-        }
-
         /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
         .app-container {
             width: 100%;
@@ -140,7 +90,6 @@
             position: relative;
         }
 
-        /* Левая панель */
         .chats-panel {
             width: 100%;
             max-width: 400px;
@@ -159,7 +108,6 @@
             transform: translateX(-100%);
         }
 
-        /* Правая панель */
         .chat-panel {
             width: 100%;
             height: 100%;
@@ -176,7 +124,6 @@
             transform: translateX(100%);
         }
 
-        /* Десктоп версия */
         @media (min-width: 769px) {
             .chats-panel {
                 position: relative;
@@ -196,7 +143,7 @@
             }
         }
 
-        /* Шапка панели */
+        /* ===== ШАПКА ===== */
         .panel-header {
             padding: 16px 20px;
             display: flex;
@@ -213,7 +160,6 @@
             align-items: center;
             gap: 8px;
             color: var(--text-primary);
-            text-shadow: 0 2px 5px rgba(160, 140, 200, 0.2);
         }
 
         .header-buttons {
@@ -249,13 +195,7 @@
             transition: all 0.3s ease;
         }
 
-        .mobile-back-btn:hover {
-            transform: scale(1.1);
-            background: var(--accent);
-            color: white;
-        }
-
-        /* Статус соединения */
+        /* ===== СТАТУС СОЕДИНЕНИЯ ===== */
         .connection-status {
             padding: 6px 16px;
             font-size: 13px;
@@ -273,13 +213,11 @@
             border-radius: 50%;
             background: #7ed321;
             animation: pulse 2s infinite;
-            box-shadow: 0 0 10px rgba(126, 211, 33, 0.5);
         }
 
         .status-dot.disconnected {
             background: #ff6b6b;
             animation: none;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
         }
 
         @keyframes pulse {
@@ -288,12 +226,20 @@
             100% { opacity: 1; transform: scale(1); }
         }
 
-        /* Профиль */
+        /* ===== ПРОФИЛЬ ===== */
         .profile-section {
             padding: 14px 18px;
             margin: 12px 16px;
             border-radius: 20px;
             background: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .profile-section:hover {
+            transform: scale(1.02);
+            background: var(--hover);
+            border-color: var(--accent);
         }
 
         .profile-header {
@@ -314,13 +260,6 @@
             color: white;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(160, 140, 200, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .avatar:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(160, 140, 200, 0.4);
         }
 
         .avatar img {
@@ -354,10 +293,9 @@
             border-radius: 20px;
             font-weight: bold;
             white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
         }
 
-        /* Поиск */
+        /* ===== ПОИСК ===== */
         .search-box {
             padding: 10px 18px;
             margin: 0 16px 16px;
@@ -369,11 +307,6 @@
             border: 1px solid var(--border);
         }
 
-        .search-box i {
-            color: var(--text-secondary);
-            font-size: 16px;
-        }
-
         .search-box input {
             flex: 1;
             background: transparent;
@@ -383,11 +316,7 @@
             font-size: 15px;
         }
 
-        .search-box input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        /* Табы */
+        /* ===== ТАБЫ ===== */
         .tabs {
             display: flex;
             padding: 0 16px;
@@ -405,12 +334,28 @@
             background: var(--bg-secondary);
             color: var(--text-secondary);
             border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: var(--hover);
+            border-color: var(--accent);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            transform: scale(1.02);
         }
 
         .tab i {
             margin-right: 6px;
         }
-                /* Список чатов */
+
+        /* ===== СПИСОК ЧАТОВ ===== */
         .chats-list {
             flex: 1;
             overflow-y: auto;
@@ -449,7 +394,6 @@
             color: white;
             margin-right: 16px;
             flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(160, 140, 200, 0.3);
         }
 
         .chat-info {
@@ -481,8 +425,7 @@
             margin-left: 10px;
             white-space: nowrap;
         }
-
-        /* Шапка чата */
+                /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
         .chat-header {
             padding: 14px 20px;
             display: flex;
@@ -523,7 +466,7 @@
             100% { opacity: 0.5; }
         }
 
-        /* Контейнер сообщений */
+        /* ===== СООБЩЕНИЯ ===== */
         .messages-container {
             flex: 1;
             padding: 20px;
@@ -562,7 +505,6 @@
             background: var(--message-sent);
             color: var(--text-primary);
             border-bottom-right-radius: 6px;
-            border: 1px solid rgba(160, 140, 200, 0.3);
         }
 
         .message.received {
@@ -580,22 +522,13 @@
             margin-top: 6px;
             font-size: 11px;
             opacity: 0.7;
-            color: var(--text-secondary);
-        }
-
-        .status-icon {
-            font-size: 12px;
         }
 
         .status-icon.delivered { 
             color: var(--accent); 
         }
 
-        .status-icon.read { 
-            color: var(--accent-hover); 
-        }
-
-        /* Поле ввода */
+        /* ===== ПОЛЕ ВВОДА ===== */
         .message-input-area {
             padding: 16px 20px;
             background: var(--bg-secondary);
@@ -641,13 +574,11 @@
             justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(160, 140, 200, 0.3);
         }
 
-        .send-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none !important;
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.15) rotate(5deg);
+            background: var(--accent-hover);
         }
 
         /* ===== МОДАЛЬНЫЕ ОКНА ===== */
@@ -682,7 +613,6 @@
             display: none;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            box-shadow: 0 20px 40px rgba(120, 90, 180, 0.2);
         }
 
         .modal.active {
@@ -698,10 +628,6 @@
             gap: 10px;
         }
 
-        .modal h2 i {
-            color: var(--accent);
-        }
-
         .modal input,
         .modal textarea,
         .modal select {
@@ -714,7 +640,6 @@
             margin-bottom: 16px;
             outline: none;
             font-size: 15px;
-            transition: all 0.3s ease;
         }
 
         .modal input:focus,
@@ -735,13 +660,11 @@
             margin-right: 12px;
             transition: all 0.3s ease;
             font-size: 15px;
-            box-shadow: 0 4px 12px rgba(160, 140, 200, 0.2);
         }
 
         .modal button:hover {
             background: var(--accent-hover);
             transform: scale(1.03);
-            box-shadow: 0 8px 20px rgba(160, 140, 200, 0.3);
         }
 
         .modal .close-btn {
@@ -760,7 +683,6 @@
             justify-content: center;
             padding: 0;
             font-size: 20px;
-            box-shadow: none;
         }
 
         .modal .close-btn:hover {
@@ -769,7 +691,7 @@
             transform: rotate(90deg);
         }
 
-        /* Профиль в модалке */
+        /* ===== ПРОФИЛЬ В МОДАЛКЕ ===== */
         .profile-edit {
             text-align: center;
             margin-bottom: 20px;
@@ -781,15 +703,9 @@
             font-size: 42px;
             margin: 0 auto 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .profile-edit .avatar:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 25px rgba(160, 140, 200, 0.4);
-        }
-
-        /* Страница входа */
+        /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
             width: 100%;
             height: 100vh;
@@ -806,14 +722,12 @@
             text-align: center;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            box-shadow: 0 20px 40px rgba(120, 90, 180, 0.2);
         }
 
         .login-card h1 {
             font-size: 48px;
             margin-bottom: 10px;
             color: var(--text-primary);
-            text-shadow: 0 4px 10px rgba(160, 140, 200, 0.3);
         }
 
         .login-card p {
@@ -852,21 +766,19 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(160, 140, 200, 0.3);
+            margin: 20px 0;
         }
 
         .login-btn:hover {
             background: var(--accent-hover);
             transform: scale(1.02);
-            box-shadow: 0 8px 25px rgba(160, 140, 200, 0.4);
         }
 
         .checkbox {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 20px 0;
+            margin: 15px 0;
             justify-content: center;
             color: var(--text-secondary);
         }
@@ -877,7 +789,18 @@
             accent-color: var(--accent);
         }
 
-        /* Скроллбар */
+        .privacy-link {
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .privacy-link:hover {
+            color: var(--accent-hover);
+        }
+
+        /* ===== СКРОЛЛБАР ===== */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -890,7 +813,6 @@
         ::-webkit-scrollbar-thumb {
             background: var(--accent-light);
             border-radius: 10px;
-            border: 2px solid var(--bg-secondary);
         }
 
         ::-webkit-scrollbar-thumb:hover {
@@ -923,10 +845,8 @@
             <option value="away">🟡 Отошёл</option>
         </select>
         
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button onclick="saveProfile()">💾 Сохранить</button>
-            <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
-        </div>
+        <button onclick="saveProfile()">💾 Сохранить</button>
+        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
     
     <!-- Модалка создания канала -->
@@ -935,10 +855,8 @@
         <h2><i class="fas fa-bullhorn"></i> Создать канал</h2>
         <input type="text" id="channelName" placeholder="Название канала">
         <textarea id="channelDesc" placeholder="Описание" rows="3"></textarea>
-        <div style="display: flex; gap: 10px;">
-            <button onclick="createChannel()">📢 Создать</button>
-            <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
-        </div>
+        <button onclick="createChannel()">📢 Создать</button>
+        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
     
     <!-- Модалка создания комнаты -->
@@ -946,21 +864,16 @@
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-lock"></i> Приватная комната</h2>
         <input type="text" id="roomName" placeholder="Название комнаты">
-        <div style="display: flex; gap: 10px;">
-            <button onclick="createRoom()">🔒 Создать</button>
-            <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
-        </div>
+        <button onclick="createRoom()">🔒 Создать</button>
+        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
     
     <!-- Модалка приглашения -->
     <div class="modal" id="inviteModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-link"></i> Приглашение</h2>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="inviteLink" readonly style="flex: 1;">
-            <button onclick="copyInviteLink()" style="padding: 14px;"><i class="fas fa-copy"></i></button>
-        </div>
-        <p style="color: var(--text-secondary); margin-top: 15px;">Отправь эту ссылку друзьям</p>
+        <input type="text" id="inviteLink" readonly>
+        <button onclick="copyInviteLink()">📋 Копировать</button>
         <button onclick="closeAllModals()">Закрыть</button>
     </div>
     
@@ -969,26 +882,37 @@
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-sign-in-alt"></i> Присоединиться</h2>
         <input type="text" id="joinLink" placeholder="Вставьте ссылку-приглашение">
-        <div style="display: flex; gap: 10px;">
-            <button onclick="joinByLink()">🚪 Войти</button>
-            <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
-        </div>
+        <button onclick="joinByLink()">🚪 Войти</button>
+        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
-        <!-- СТРАНИЦА ВХОДА -->
+        <!-- СТРАНИЦА ВХОДА С ТЕЛЕФОНОМ -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.7.6 — лавандовый матовый</p>
+            <p>v0.7.9 — вход по телефону</p>
             
+            <!-- ПОЛЕ ДЛЯ ИМЕНИ -->
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя" autofocus>
+            
+            <!-- ПОЛЕ ДЛЯ ТЕЛЕФОНА (НОВОЕ!) -->
+            <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона" 
+                   pattern="[0-9+\-\s]+" title="Введите номер телефона">
+            
+            <!-- ПОЛЕ ДЛЯ ПАРОЛЯ -->
             <input type="password" id="loginPassword" class="login-input" placeholder="Пароль">
             
+            <!-- ЧЕКБОКС СОГЛАСИЯ С ПОЛИТИКОЙ -->
             <div class="checkbox">
                 <input type="checkbox" id="privacyAgree">
-                <label for="privacyAgree">Я принимаю политику конфиденциальности</label>
+                <label for="privacyAgree">Я принимаю </label>
+                <span class="privacy-link" onclick="window.open('/privacy', '_blank')">Политику конфиденциальности</span>
             </div>
             
-            <button class="login-btn" onclick="register()">🚀 Войти / Регистрация</button>
+            <button class="login-btn" onclick="register()">🚀 Войти / Зарегистрироваться</button>
+            
+            <div style="margin-top: 20px; font-size: 12px; color: var(--text-secondary);">
+                <span class="privacy-link" onclick="window.open('/privacy', '_blank')">📜 Политика конфиденциальности</span>
+            </div>
         </div>
     </div>
 
@@ -1077,6 +1001,7 @@
         // ==============================================
         let socket = null;
         let currentUser = null;
+        let currentPhone = null;
         let currentChat = null;
         let currentChatType = null;
         let users = [];
@@ -1102,24 +1027,27 @@
         }
         
         // ==============================================
-        // РЕГИСТРАЦИЯ И ВХОД
+        // РЕГИСТРАЦИЯ С ТЕЛЕФОНОМ
         // ==============================================
         function register() {
             const username = document.getElementById('loginUsername').value.trim();
+            const phone = document.getElementById('loginPhone').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             
-            if (!username || !password) {
-                alert('Введите имя и пароль');
+            if (!username || !phone || !password) {
+                alert('❌ Заполните все поля: имя, телефон и пароль');
                 return;
             }
             
             if (!document.getElementById('privacyAgree').checked) {
-                alert('Примите политику конфиденциальности');
+                alert('❌ Необходимо принять политику конфиденциальности');
                 return;
             }
             
             currentUser = username;
+            currentPhone = phone;
             localStorage.setItem('nanogram_user', username);
+            localStorage.setItem('nanogram_phone', phone);
             
             connectWebSocket(password);
         }
@@ -1136,14 +1064,15 @@
                 document.getElementById('statusText').textContent = 'Онлайн';
                 reconnectAttempts = 0;
                 
-                // Отправляем регистрацию
+                // Отправляем регистрацию с телефоном и согласием
                 socket.send(JSON.stringify({
                     type: 'register',
                     username: currentUser,
-                    password: password
+                    password: password,
+                    phone: currentPhone,
+                    privacyAccepted: true
                 }));
                 
-                // Пинг каждые 5 секунд
                 if (pingInterval) clearInterval(pingInterval);
                 pingInterval = setInterval(() => {
                     if (socket.readyState === WebSocket.OPEN) {
@@ -1158,22 +1087,26 @@
             socket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 
-                // Понг с задержкой
                 if (data.type === 'pong') {
                     const latency = Date.now() - data.timestamp;
                     document.getElementById('latency').textContent = latency + 'ms';
                     return;
                 }
                 
-                // Подтверждение соединения
                 if (data.type === 'connection_established') {
-                    console.log('🔌 Соединение установлено', data);
+                    console.log('🔌 Соединение установлено');
                     return;
                 }
                 
-                console.log('📩 Получен тип:', data.type, data);
+                console.log('📩 Получен тип:', data.type);
                 
-                // Успешный вход
+                // Ошибка
+                if (data.type === 'error') {
+                    alert('❌ ' + data.message);
+                    return;
+                }
+                
+                // Успешный вход/регистрация
                 if (data.type === 'login_success' || data.type === 'register_success') {
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'flex';
@@ -1194,12 +1127,6 @@
                     }
                     
                     hideChatPanel();
-                }
-                
-                // Ошибка
-                if (data.type === 'error') {
-                    alert('Ошибка: ' + data.message);
-                    return;
                 }
                 
                 // История сообщений
@@ -1231,54 +1158,9 @@
                     }
                 }
                 
-                // Новый канал
-                if (data.type === 'new_channel') {
-                    channels.push(data.channel);
-                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) {
-                        updateChatsList('channels');
-                    }
-                }
-                
-                // Комната создана
-                if (data.type === 'room_created') {
-                    rooms.push(data.room);
-                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
-                        updateChatsList('rooms');
-                    }
-                    if (data.room.inviteLink) {
-                        showInviteModal(data.room.inviteLink);
-                    }
-                }
-                
-                // Присоединился к комнате
-                if (data.type === 'joined_room') {
-                    rooms.push(data.room);
-                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
-                        updateChatsList('rooms');
-                    }
-                    selectChat('room', data.room.name, data.room);
-                }
-                
-                // Ссылка-приглашение
-                if (data.type === 'invite_link') {
-                    showInviteModal(data.link);
-                }
-                
                 // Новое сообщение
                 if (data.type === 'message') {
                     if (data.from === currentChat) {
-                        displayMessage({
-                            text: data.text,
-                            from: data.from,
-                            time: data.time,
-                            type: 'received'
-                        });
-                    }
-                }
-                
-                // Сообщение в комнате
-                if (data.type === 'room_message') {
-                    if (data.roomId === currentChat) {
                         displayMessage({
                             text: data.text,
                             from: data.from,
@@ -1332,6 +1214,31 @@
                         });
                     }
                 }
+                
+                // Комната создана
+                if (data.type === 'room_created') {
+                    rooms.push(data.room);
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
+                        updateChatsList('rooms');
+                    }
+                    if (data.room.inviteLink) {
+                        showInviteModal(data.room.inviteLink);
+                    }
+                }
+                
+                // Присоединился к комнате
+                if (data.type === 'joined_room') {
+                    rooms.push(data.room);
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
+                        updateChatsList('rooms');
+                    }
+                    selectChat('room', data.room.name, data.room);
+                }
+                
+                // Ссылка-приглашение
+                if (data.type === 'invite_link') {
+                    showInviteModal(data.link);
+                }
             };
             
             socket.onclose = function() {
@@ -1345,7 +1252,6 @@
                     pingInterval = null;
                 }
                 
-                // Попытка переподключения
                 if (reconnectAttempts < 5) {
                     reconnectAttempts++;
                     setTimeout(() => connectWebSocket(password), 3000);
@@ -1356,8 +1262,7 @@
                 console.error('❌ Ошибка WebSocket:', error);
             };
         }
-        
-        // ==============================================
+                // ==============================================
         // ОБНОВЛЕНИЕ СПИСКА ЧАТОВ
         // ==============================================
         function updateChatsList(tab) {
@@ -1411,7 +1316,8 @@
             
             return div;
         }
-                // ==============================================
+        
+        // ==============================================
         // ВЫБОР ЧАТА
         // ==============================================
         function selectChat(type, name, data = null) {
@@ -1457,7 +1363,6 @@
                 }
             }
             
-            // На телефоне показываем чат
             if (window.innerWidth <= 768) {
                 showChatPanel();
             }
@@ -1502,13 +1407,9 @@
             input.value = '';
         }
         
-        // ==============================================
-        // ОТОБРАЖЕНИЕ СООБЩЕНИЯ
-        // ==============================================
         function displayMessage(msg) {
             const container = document.getElementById('messagesContainer');
             
-            // Убираем приветствие
             if (container.children.length === 1 && container.children[0].querySelector('h3')) {
                 container.innerHTML = '';
             }
@@ -1650,7 +1551,6 @@
                 status: status
             };
             
-            // Аватарка
             const modalAvatar = document.getElementById('modalAvatar');
             if (modalAvatar.querySelector('img')) {
                 profile.avatar = modalAvatar.querySelector('img').src;
@@ -1722,7 +1622,6 @@
             document.getElementById('modalOverlay').classList.remove('active');
         }
         
-        // Закрытие по Esc
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeAllModals();
@@ -1734,12 +1633,11 @@
         // ==============================================
         window.onload = function() {
             const savedUser = localStorage.getItem('nanogram_user');
-            if (savedUser) {
+            const savedPhone = localStorage.getItem('nanogram_phone');
+            if (savedUser && savedPhone) {
                 document.getElementById('loginUsername').value = savedUser;
+                document.getElementById('loginPhone').value = savedPhone;
             }
-            
-            // Лавандовое свечение
-            document.body.style.transition = 'background 0.5s ease';
         };
     </script>
 </body>

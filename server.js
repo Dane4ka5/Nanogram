@@ -8,23 +8,23 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.7.7';
+const VERSION = 'v0.7.9';
 const ADMIN_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000; // Каждую минуту
-const MAX_MESSAGES_PER_CHAT = 1000; // Храним 1000 сообщений на чат
-const MAX_BACKUPS = 20; // Храним 20 бэкапов
+const MAX_MESSAGES_PER_CHAT = 1000;
+const MAX_BACKUPS = 20;
 
 // ==============================================
 // ХРАНИЛИЩА ДАННЫХ
 // ==============================================
-const activeUsers = new Map(); // WebSocket -> username
-let userDatabase = {}; // username -> { password, phone, registered, lastSeen }
-let messages = {}; // chatKey -> [message, ...]
+const activeUsers = new Map();
+let userDatabase = {};
+let messages = {};
 let channels = {
     'NANOGRAM': {
         id: 'NANOGRAM',
         name: 'NANOGRAM',
-        description: 'Официальный канал обновлений',
+        description: 'Официальный канал',
         creator: 'Dane4ka5',
         admins: ['Dane4ka5'],
         subscribers: [],
@@ -39,11 +39,11 @@ let userSettings = {};
 let premiumUsers = {};
 
 // ==============================================
-// ЗАГРУЗКА ВСЕХ ДАННЫХ
+// ЗАГРУЗКА ДАННЫХ
 // ==============================================
 function loadAllData() {
     console.log('\n' + '='.repeat(60));
-    console.log('📂 ЗАГРУЗКА ВСЕХ ДАННЫХ...');
+    console.log('📂 ЗАГРУЗКА ДАННЫХ...');
     console.log('='.repeat(60));
     
     try {
@@ -58,10 +58,7 @@ function loadAllData() {
             userSettings = data.userSettings || {};
             premiumUsers = data.premiumUsers || {};
             
-            console.log(`✅ data.json загружен`);
-            console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
-        } else {
-            console.log(`⚠️ data.json не найден`);
+            console.log(`✅ data.json загружен: ${Object.keys(userDatabase).length} пользователей`);
         }
     } catch (e) {
         console.error(`❌ Ошибка загрузки data.json:`, e.message);
@@ -71,16 +68,10 @@ function loadAllData() {
         if (fs.existsSync('./messages.json')) {
             const rawData = fs.readFileSync('./messages.json', 'utf8');
             messages = JSON.parse(rawData);
-            
-            const totalMessages = Object.values(messages).reduce((acc, chat) => acc + chat.length, 0);
-            console.log(`✅ messages.json загружен`);
-            console.log(`   💬 Всего сообщений: ${totalMessages}`);
-        } else {
-            console.log(`⚠️ messages.json не найден`);
-            messages = {};
+            const total = Object.values(messages).reduce((a, c) => a + c.length, 0);
+            console.log(`✅ messages.json загружен: ${total} сообщений`);
         }
     } catch (e) {
-        console.error(`❌ Ошибка загрузки messages.json:`, e.message);
         messages = {};
     }
     
@@ -88,7 +79,7 @@ function loadAllData() {
 }
 
 // ==============================================
-// СОХРАНЕНИЕ ДАННЫХ
+// СОХРАНЕНИЕ
 // ==============================================
 function saveData() {
     try {
@@ -101,12 +92,9 @@ function saveData() {
             premiumUsers: premiumUsers,
             lastSaved: new Date().toISOString()
         };
-        
         fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
-        console.log(`💾 Основные данные сохранены в ${new Date().toLocaleTimeString()}`);
         return true;
     } catch (e) {
-        console.error('❌ Ошибка сохранения данных:', e);
         return false;
     }
 }
@@ -114,47 +102,15 @@ function saveData() {
 function saveMessages() {
     try {
         fs.writeFileSync('./messages.json', JSON.stringify(messages, null, 2), 'utf8');
-        console.log(`💬 Сообщения сохранены в ${new Date().toLocaleTimeString()}`);
         return true;
     } catch (e) {
-        console.error('❌ Ошибка сохранения сообщений:', e);
         return false;
     }
 }
 
-// ==============================================
-// ЛОГИРОВАНИЕ
-// ==============================================
 function logAction(action, username, details) {
     const logEntry = `[${new Date().toISOString()}] ${action} | ${username || 'SYSTEM'} | ${details}\n`;
-    fs.appendFile('./users.log', logEntry, (err) => {
-        if (err) console.error('❌ Ошибка записи в users.log:', err);
-    });
-}
-
-function logError(place, error) {
-    const logEntry = `[${new Date().toISOString()}] ERROR | ${place} | ${error.message}\n`;
-    fs.appendFile('./errors.log', logEntry, () => {});
-}
-
-// ==============================================
-// БЭКАПЫ
-// ==============================================
-function createBackup() {
-    try {
-        if (!fs.existsSync('./backups')) fs.mkdirSync('./backups');
-        
-        const timestamp = Date.now();
-        if (fs.existsSync('./data.json')) {
-            fs.copyFileSync('./data.json', `./backups/data_${timestamp}.json`);
-        }
-        if (fs.existsSync('./messages.json')) {
-            fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
-        }
-        console.log(`💾 Бэкап создан: ${timestamp}`);
-    } catch (e) {
-        console.error('❌ Ошибка бэкапа:', e);
-    }
+    fs.appendFile('./users.log', logEntry, () => {});
 }
 
 // ==============================================
@@ -163,7 +119,6 @@ function createBackup() {
 loadAllData();
 setInterval(saveData, SAVE_INTERVAL);
 setInterval(saveMessages, SAVE_INTERVAL);
-setInterval(createBackup, 60 * 60 * 1000);
 
 // ==============================================
 // ВСПОМОГАТЕЛЬНЫЕ
@@ -182,14 +137,6 @@ function isPremium(username) {
 
 function getChatKey(user1, user2) {
     return [user1, user2].sort().join('_');
-}
-
-function broadcastToAll(message) {
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-        }
-    });
 }
 
 // ==============================================
@@ -229,10 +176,85 @@ function decryptMessage(encryptedPackage) {
 const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     
-    // ==============================================
-    // ТЕНЕВАЯ ПАНЕЛЬ
-    // ==============================================
-    if (req.url.includes('🧪admin') || req.url.includes('%F0%9F%A7%AAadmin')) {
+    // ===== СТРАНИЦА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ =====
+    if (req.url === '/privacy') {
+        res.end(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 Политика конфиденциальности Nanogram</title>
+    <style>
+        body {
+            background: #0d1117;
+            color: #f0f6fc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #161b22;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #30363d;
+        }
+        h1 { color: #ffd700; }
+        h2 { color: #2ea043; margin-top: 30px; }
+        p { color: #8b949e; margin: 15px 0; }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #8b949e;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📜 Политика конфиденциальности Nanogram</h1>
+        
+        <h2>1. Какие данные мы собираем</h2>
+        <p>• Имя пользователя (никнейм)</p>
+        <p>• Номер телефона (только для входа)</p>
+        <p>• Сообщения (в зашифрованном виде AES-256-GCM)</p>
+        <p>• История действий (логи)</p>
+        
+        <h2>2. Как мы используем данные</h2>
+        <p>• Для идентификации пользователей</p>
+        <p>• Для обеспечения работы мессенджера</p>
+        <p>• Для технической поддержки</p>
+        <p>• Для улучшения сервиса</p>
+        
+        <h2>3. Защита данных</h2>
+        <p>• Все сообщения шифруются алгоритмом AES-256-GCM</p>
+        <p>• Пароли хранятся в защищённом виде</p>
+        <p>• Данные не передаются третьим лицам</p>
+        <p>• Регулярное создание бэкапов</p>
+        
+        <h2>4. Ваши права</h2>
+        <p>• Вы можете удалить свой аккаунт в любой момент</p>
+        <p>• Вы можете запросить все свои данные</p>
+        <p>• Вы можете отозвать согласие на обработку данных</p>
+        
+        <h2>5. Контакты</h2>
+        <p>По всем вопросам: <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></p>
+        
+        <div class="footer">
+            <p>Последнее обновление: ${new Date().toLocaleDateString()}</p>
+            <p><a href="/" style="color: #ffd700;">← Вернуться на главную</a></p>
+        </div>
+    </div>
+</body>
+</html>
+        `);
+        return;
+    }
+    
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ =====
+    if (req.url.includes('admin')) {
         
         let data = {};
         try {
@@ -254,23 +276,13 @@ const server = http.createServer((req, res) => {
         
         if (!data.channels) data.channels = {};
         if (!data.channels['NANOGRAM']) {
-            data.channels['NANOGRAM'] = {
-                id: 'NANOGRAM',
-                name: 'NANOGRAM',
-                description: 'Официальный канал обновлений',
-                creator: 'Dane4ka5',
-                admins: ['Dane4ka5'],
-                subscribers: [],
-                posts: [],
-                avatar: '📢',
-                createdAt: new Date().toISOString()
-            };
+            data.channels['NANOGRAM'] = { id: 'NANOGRAM', name: 'NANOGRAM', posts: [] };
         }
         if (!data.channels['NANOGRAM'].posts) data.channels['NANOGRAM'].posts = [];
         
-        // ===== ИСПРАВЛЕННАЯ ОБРАБОТКА ДЕЙСТВИЙ =====
+        // ===== ОБРАБОТКА ДЕЙСТВИЙ =====
         if (req.url.includes('action=')) {
-            let redirectUrl = '/🧪admin';
+            const redirectUrl = '/admin';
             
             // Добавление поста
             if (req.url.includes('action=add_post')) {
@@ -285,18 +297,13 @@ const server = http.createServer((req, res) => {
                         author: 'Dane4ka5',
                         views: 0
                     };
-                    
                     data.channels['NANOGRAM'].posts.push(newPost);
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
                     wss.clients.forEach(client => {
                         const username = activeUsers.get(client);
-                        if (username && data.channels['NANOGRAM'].subscribers.includes(username)) {
-                            client.send(JSON.stringify({
-                                type: 'new_post',
-                                channelId: 'NANOGRAM',
-                                post: newPost
-                            }));
+                        if (username && data.channels['NANOGRAM'].subscribers?.includes(username)) {
+                            client.send(JSON.stringify({ type: 'new_post', channelId: 'NANOGRAM', post: newPost }));
                         }
                     });
                     
@@ -325,22 +332,18 @@ const server = http.createServer((req, res) => {
                 
                 if (username) {
                     if (!data.userProfiles[username]) data.userProfiles[username] = {};
-                    if (bio && bio.trim()) data.userProfiles[username].bio = bio.trim();
-                    if (status && status.trim()) data.userProfiles[username].status = status;
-                    
+                    if (bio) data.userProfiles[username].bio = bio;
+                    if (status) data.userProfiles[username].status = status;
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
                     wss.clients.forEach(client => {
                         const user = activeUsers.get(client);
-                        if (user && user === username) {
-                            client.send(JSON.stringify({
-                                type: 'profile_updated',
-                                profile: data.userProfiles[username]
-                            }));
+                        if (user === username) {
+                            client.send(JSON.stringify({ type: 'profile_updated', profile: data.userProfiles[username] }));
                         }
                     });
                     
-                    logAction('edit_profile', 'Dane4ka5', `${username} профиль обновлён`);
+                    logAction('edit_profile', 'Dane4ka5', username);
                 }
             }
             
@@ -354,27 +357,18 @@ const server = http.createServer((req, res) => {
                     if (!data.premiumUsers) data.premiumUsers = {};
                     
                     if (action === 'add') {
-                        data.premiumUsers[username] = {
-                            active: true,
-                            purchased: new Date().toISOString(),
-                            expires: 'never',
-                            tier: 'premium'
-                        };
+                        data.premiumUsers[username] = { active: true, purchased: new Date().toISOString() };
                         logAction('premium_add', 'Dane4ka5', username);
-                    } else if (action === 'remove') {
+                    } else {
                         delete data.premiumUsers[username];
                         logAction('premium_remove', 'Dane4ka5', username);
                     }
-                    
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
                     wss.clients.forEach(client => {
                         const user = activeUsers.get(client);
-                        if (user && user === username) {
-                            client.send(JSON.stringify({
-                                type: 'premium_updated',
-                                premium: action === 'add'
-                            }));
+                        if (user === username) {
+                            client.send(JSON.stringify({ type: 'premium_updated', premium: action === 'add' }));
                         }
                     });
                 }
@@ -393,9 +387,7 @@ const server = http.createServer((req, res) => {
                 }
             }
             
-            // ВАЖНО: кодируем URL для безопасности
-            const safeRedirect = encodeURI(redirectUrl);
-            res.writeHead(302, { Location: safeRedirect });
+            res.writeHead(302, { Location: redirectUrl });
             res.end();
             return;
         }
@@ -412,7 +404,7 @@ const server = http.createServer((req, res) => {
         
         let totalPosts = data.channels['NANOGRAM'].posts.length;
         
-        // ===== ФОРМИРОВАНИЕ HTML =====
+        // ===== HTML ТЕНЕВОЙ ПАНЕЛИ =====
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`
 <!DOCTYPE html>
@@ -430,21 +422,7 @@ const server = http.createServer((req, res) => {
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
-        h1 { 
-            color: #ffd700; 
-            font-size: 32px; 
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .version {
-            background: #238636;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
+        h1 { color: #ffd700; font-size: 32px; margin-bottom: 20px; }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -457,20 +435,9 @@ const server = http.createServer((req, res) => {
             border-radius: 10px;
             border-left: 4px solid #238636;
         }
-        .stat-card.premium { 
-            border-left-color: #ffd700; 
-            background: rgba(255,215,0,0.1);
-        }
-        .stat-value { 
-            font-size: 28px; 
-            font-weight: bold; 
-            color: #ffd700; 
-        }
-        .stat-label { 
-            color: #8b949e; 
-            font-size: 14px; 
-            margin-top: 5px; 
-        }
+        .stat-card.premium { border-left-color: #ffd700; background: rgba(255,215,0,0.1); }
+        .stat-value { font-size: 28px; font-weight: bold; color: #ffd700; }
+        .stat-label { color: #8b949e; font-size: 14px; margin-top: 5px; }
         .panel {
             background: #161b22;
             padding: 25px;
@@ -478,14 +445,7 @@ const server = http.createServer((req, res) => {
             margin: 20px 0;
             border: 1px solid #30363d;
         }
-        .panel h2 {
-            color: #2ea043;
-            margin-bottom: 20px;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .panel h2 { color: #2ea043; margin-bottom: 20px; }
         input, textarea, select {
             width: 100%;
             padding: 12px;
@@ -494,7 +454,6 @@ const server = http.createServer((req, res) => {
             border: 1px solid #30363d;
             color: #f0f6fc;
             border-radius: 6px;
-            font-size: 14px;
         }
         button {
             background: #238636;
@@ -503,14 +462,10 @@ const server = http.createServer((req, res) => {
             padding: 12px 25px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
             margin-right: 10px;
-            margin-bottom: 10px;
         }
         button:hover { background: #2ea043; }
         button.danger { background: #da3633; }
-        button.danger:hover { background: #f85149; }
         .post-item {
             background: #0d1117;
             padding: 15px;
@@ -518,52 +473,14 @@ const server = http.createServer((req, res) => {
             border-radius: 6px;
             border-left: 4px solid #ffd700;
         }
-        .post-item small {
-            color: #8b949e;
-            display: block;
-            margin-bottom: 8px;
-        }
-        .post-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        pre {
-            background: #0d1117;
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-size: 13px;
-            border: 1px solid #30363d;
-            max-height: 400px;
-        }
         table {
             width: 100%;
             border-collapse: collapse;
             background: #161b22;
             border-radius: 6px;
-            overflow: hidden;
-            margin: 15px 0;
         }
-        th {
-            background: #21262d;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-        }
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #30363d;
-        }
-        tr:hover { background: #1f2a3a; }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .badge.premium { background: #ffd700; color: #000; }
+        th { background: #21262d; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #30363d; }
         .tabs {
             display: flex;
             gap: 10px;
@@ -598,14 +515,13 @@ const server = http.createServer((req, res) => {
             border-top: 1px solid #30363d;
             padding-top: 20px;
         }
+        a { color: #ffd700; text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>
-            🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM
-            <span class="version">${VERSION}</span>
-        </h1>
+        <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM</h1>
         
         <div class="stats-grid">
             <div class="stat-card">
@@ -618,7 +534,7 @@ const server = http.createServer((req, res) => {
             </div>
             <div class="stat-card">
                 <div class="stat-value">${Object.keys(msgs).length}</div>
-                <div class="stat-label">Активных чатов</div>
+                <div class="stat-label">Чатов</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${channelsCount}</div>
@@ -627,10 +543,6 @@ const server = http.createServer((req, res) => {
             <div class="stat-card">
                 <div class="stat-value">${totalPosts}</div>
                 <div class="stat-label">Постов</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${roomsCount}</div>
-                <div class="stat-label">Комнат</div>
             </div>
             <div class="stat-card premium">
                 <div class="stat-value">${premiumCount}</div>
@@ -644,8 +556,6 @@ const server = http.createServer((req, res) => {
             <span class="tab" onclick="showSection('premium')">👑 Премиум</span>
             <span class="tab" onclick="showSection('messages')">💬 Сообщения</span>
             <span class="tab" onclick="showSection('users')">👥 Пользователи</span>
-            <span class="tab" onclick="showSection('rooms')">🔒 Комнаты</span>
-            <span class="tab" onclick="showSection('logs')">📝 Логи</span>
         </div>
         
         <script>
@@ -660,27 +570,25 @@ const server = http.createServer((req, res) => {
         <!-- Секция канала -->
         <div id="section-channel" class="section" style="display: block;">
             <div class="panel">
-                <h2>📢 УПРАВЛЕНИЕ КАНАЛОМ NANOGRAM</h2>
+                <h2>📢 УПРАВЛЕНИЕ КАНАЛОМ</h2>
                 <form method="get">
                     <input type="hidden" name="action" value="add_post">
                     <textarea name="text" placeholder="Текст поста..." rows="5" required></textarea>
                     <button type="submit">📢 Опубликовать</button>
                 </form>
                 
-                <h3 style="margin: 30px 0 15px;">Все посты (${data.channels['NANOGRAM'].posts.length})</h3>
-                <div style="max-height: 500px; overflow-y: auto;">
-                    ${data.channels['NANOGRAM'].posts.slice().reverse().map(post => `
-                        <div class="post-item">
-                            <small>${new Date(post.date).toLocaleString()} | 👁️ ${post.views || 0}</small>
-                            <p style="margin: 10px 0;">${post.text}</p>
-                            <form method="get">
-                                <input type="hidden" name="action" value="delete_post">
-                                <input type="hidden" name="postId" value="${post.id}">
-                                <button type="submit" class="danger">🗑️ Удалить</button>
-                            </form>
-                        </div>
-                    `).join('')}
-                </div>
+                <h3>Все посты (${data.channels['NANOGRAM'].posts.length})</h3>
+                ${data.channels['NANOGRAM'].posts.slice().reverse().map(post => `
+                    <div class="post-item">
+                        <small>${new Date(post.date).toLocaleString()}</small>
+                        <p>${post.text}</p>
+                        <form method="get">
+                            <input type="hidden" name="action" value="delete_post">
+                            <input type="hidden" name="postId" value="${post.id}">
+                            <button type="submit" class="danger">🗑️ Удалить</button>
+                        </form>
+                    </div>
+                `).join('')}
             </div>
         </div>
         
@@ -692,9 +600,7 @@ const server = http.createServer((req, res) => {
                     <input type="hidden" name="action" value="edit_profile">
                     <select name="username" required>
                         <option value="">Выберите пользователя</option>
-                        ${Object.keys(data.users || {}).sort().map(u => 
-                            `<option value="${u}">${u}</option>`
-                        ).join('')}
+                        ${Object.keys(data.users || {}).sort().map(u => `<option value="${u}">${u}</option>`).join('')}
                     </select>
                     <textarea name="bio" placeholder="Новое био" rows="3"></textarea>
                     <select name="status">
@@ -708,7 +614,8 @@ const server = http.createServer((req, res) => {
                 </form>
             </div>
         </div>
-                <!-- Секция премиум -->
+        
+        <!-- Секция премиум -->
         <div id="section-premium" class="section" style="display: none;">
             <div class="panel">
                 <h2>👑 УПРАВЛЕНИЕ PREMIUM</h2>
@@ -716,9 +623,7 @@ const server = http.createServer((req, res) => {
                     <input type="hidden" name="action" value="toggle_premium">
                     <select name="username" required>
                         <option value="">Выберите пользователя</option>
-                        ${Object.keys(data.users || {}).sort().map(u => 
-                            `<option value="${u}">${u}</option>`
-                        ).join('')}
+                        ${Object.keys(data.users || {}).sort().map(u => `<option value="${u}">${u}</option>`).join('')}
                     </select>
                     <select name="premium_action" required>
                         <option value="add">👑 Активировать</option>
@@ -726,20 +631,6 @@ const server = http.createServer((req, res) => {
                     </select>
                     <button type="submit">Применить</button>
                 </form>
-                
-                <h3 style="margin-top: 30px;">Премиум пользователи:</h3>
-                <table>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Дата</th>
-                    </tr>
-                    ${Object.entries(data.premiumUsers || {}).map(([name, info]) => `
-                        <tr>
-                            <td>${name} 👑</td>
-                            <td>${info.purchased ? new Date(info.purchased).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `).join('')}
-                </table>
             </div>
         </div>
         
@@ -747,174 +638,79 @@ const server = http.createServer((req, res) => {
         <div id="section-messages" class="section" style="display: none;">
             <div class="panel">
                 <h2>💬 ПРОСМОТР СООБЩЕНИЙ</h2>
-                <div style="max-height: 600px; overflow-y: auto;">
-                    ${Object.entries(msgs).length === 0 ? '<p>Нет сообщений</p>' : ''}
-                    ${Object.entries(msgs).map(([chatId, chatMsgs]) => `
-                        <div style="margin-bottom: 20px; background: #1a1f2a; padding: 15px; border-radius: 8px;">
-                            <h3 style="color: #ffd700; margin-bottom: 10px;">📁 ${chatId} (${chatMsgs.length})</h3>
-                            ${chatMsgs.slice(-10).reverse().map(msg => `
-                                <div class="message-item" style="margin-bottom: 10px;">
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <small>${msg.from} • ${msg.time || '—'}</small>
-                                        <small>🆔 ${msg.id?.substring(0,6) || '—'}</small>
-                                    </div>
-                                    <div style="margin: 5px 0;">${msg.text || ''}</div>
-                                    <form method="get" style="margin-top: 5px;">
-                                        <input type="hidden" name="action" value="delete_message">
-                                        <input type="hidden" name="chatId" value="${chatId}">
-                                        <input type="hidden" name="messageId" value="${msg.id}">
-                                        <button type="submit" class="danger" style="padding: 2px 8px; font-size: 11px;">🗑️ Удалить</button>
-                                    </form>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `).join('')}
-                </div>
+                ${Object.entries(msgs).map(([chatId, chatMsgs]) => `
+                    <div style="margin-bottom: 20px;">
+                        <h3>📁 ${chatId} (${chatMsgs.length})</h3>
+                        ${chatMsgs.slice(-5).reverse().map(msg => `
+                            <div class="message-item">
+                                <small>${msg.from} • ${msg.time}</small>
+                                <div>${msg.text}</div>
+                                <form method="get">
+                                    <input type="hidden" name="action" value="delete_message">
+                                    <input type="hidden" name="chatId" value="${chatId}">
+                                    <input type="hidden" name="messageId" value="${msg.id}">
+                                    <button type="submit" class="danger">🗑️</button>
+                                </form>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
             </div>
         </div>
         
         <!-- Секция пользователей -->
         <div id="section-users" class="section" style="display: none;">
             <div class="panel">
-                <h2>👥 ВСЕ ПОЛЬЗОВАТЕЛИ</h2>
+                <h2>👥 ПОЛЬЗОВАТЕЛИ</h2>
                 <table>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Телефон</th>
-                        <th>Пароль</th>
-                        <th>Статус</th>
-                        <th>Премиум</th>
-                        <th>Регистрация</th>
-                    </tr>
-                    ${Object.entries(data.users || {}).sort().map(([name, info]) => `
+                    <tr><th>Имя</th><th>Телефон</th><th>Статус</th><th>Премиум</th></tr>
+                    ${Object.entries(data.users || {}).map(([name, info]) => `
                         <tr>
-                            <td><strong>${name}</strong></td>
+                            <td>${name}</td>
                             <td>${info.phone || '—'}</td>
-                            <td>${info.password ? '✅' : '—'}</td>
                             <td>${data.userProfiles?.[name]?.status || 'online'}</td>
                             <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
-                            <td>${info.registered ? new Date(info.registered).toLocaleDateString() : '—'}</td>
                         </tr>
                     `).join('')}
                 </table>
-            </div>
-        </div>
-        
-        <!-- Секция комнат -->
-        <div id="section-rooms" class="section" style="display: none;">
-            <div class="panel">
-                <h2>🔒 ПРИВАТНЫЕ КОМНАТЫ</h2>
-                <table>
-                    <tr>
-                        <th>Название</th>
-                        <th>Создатель</th>
-                        <th>Участники</th>
-                        <th>Ссылка</th>
-                        <th>Сообщений</th>
-                    </tr>
-                    ${Object.values(data.privateRooms || {}).length === 0 ? '<tr><td colspan="5">Нет комнат</td></tr>' : ''}
-                    ${Object.values(data.privateRooms || {}).map(room => `
-                        <tr>
-                            <td><strong>${room.name}</strong></td>
-                            <td>${room.creator}</td>
-                            <td>${room.members?.length || 1}</td>
-                            <td><code>${room.inviteLink || '—'}</code></td>
-                            <td>${room.messages?.length || 0}</td>
-                        </tr>
-                    `).join('')}
-                </table>
-            </div>
-        </div>
-        
-        <!-- Секция логов -->
-        <div id="section-logs" class="section" style="display: none;">
-            <div class="panel">
-                <h2>📝 ПОСЛЕДНИЕ ЛОГИ</h2>
-                <div style="background: #0d1117; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 500px; overflow-y: auto;">
-                    ${(() => {
-                        try {
-                            if (fs.existsSync('./users.log')) {
-                                const logs = fs.readFileSync('./users.log', 'utf8').split('\n').slice(-50).reverse();
-                                return logs.map(log => `<div style="color: #8b949e; border-bottom: 1px solid #30363d; padding: 5px;">${log}</div>`).join('');
-                            }
-                            return '<p>Лог-файл не найден</p>';
-                        } catch (e) {
-                            return '<p>Ошибка чтения логов</p>';
-                        }
-                    })()}
-                </div>
             </div>
         </div>
         
         <div class="footer">
-            <p>Nanogram ${VERSION} | ВЕЧНОЕ ХРАНЕНИЕ | Последнее обновление: ${new Date().toLocaleString()}</p>
-            <p style="margin-top: 10px;">✅ Все данные сохраняются: data.json | messages.json | users.log | errors.log | backups/</p>
+            <p>Nanogram ${VERSION} | <a href="/privacy">📜 Политика конфиденциальности</a></p>
         </div>
     </div>
-    
-    <script>
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                ['channel','profiles','premium','messages','users','rooms','logs'].forEach(s => {
-                    document.getElementById('section-' + s).style.display = 'none';
-                });
-                const id = this.innerText.includes('Канал') ? 'channel' :
-                          this.innerText.includes('Профили') ? 'profiles' :
-                          this.innerText.includes('Премиум') ? 'premium' :
-                          this.innerText.includes('Сообщения') ? 'messages' :
-                          this.innerText.includes('Пользователи') ? 'users' :
-                          this.innerText.includes('Комнаты') ? 'rooms' : 'logs';
-                document.getElementById('section-' + id).style.display = 'block';
-            });
-        });
-    </script>
 </body>
 </html>
         `);
         return;
     }
     
-    // ==============================================
-    // ОБРАБОТКА ОБЫЧНЫХ ФАЙЛОВ
-    // ==============================================
-    if (filePath === './') {
-        filePath = './index.html';
-    }
-
-    const extname = path.extname(filePath);
-    let contentType = 'text/html; charset=utf-8';
-    if (extname === '.css') contentType = 'text/css; charset=utf-8';
-    if (extname === '.js') contentType = 'application/javascript; charset=utf-8';
+    // ===== ОБЫЧНЫЕ ФАЙЛЫ =====
+    let filePath = '.' + req.url;
+    if (filePath === './') filePath = './index.html';
     
-    fs.readFile(filePath, 'utf8', (error, content) => {
-        if (error) {
+    fs.readFile(filePath, 'utf8', (err, content) => {
+        if (err) {
             res.writeHead(404);
             res.end('<h1>404 - Файл не найден</h1>');
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(content);
         }
     });
 });
-
 // ==============================================
-// СОЗДАНИЕ WEBSOCKET СЕРВЕРА
+// WEBSOCKET СЕРВЕР
 // ==============================================
 const wss = new WebSocket.Server({ server });
 
-// ==============================================
-// WEB-SOCKET ОБРАБОТКА
-// ==============================================
 wss.on('connection', (ws) => {
-    const clientIp = ws._socket.remoteAddress;
-    console.log(`🔌 Новое WebSocket подключение с IP: ${clientIp}`);
+    console.log(`🔌 Новое WebSocket подключение`);
     
     ws.send(JSON.stringify({
         type: 'connection_established',
         timestamp: Date.now(),
-        message: 'Подключено к серверу Nanogram',
         version: VERSION
     }));
 
@@ -931,15 +727,25 @@ wss.on('connection', (ws) => {
                 return;
             }
 
-            console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
-                     // ===== РЕГИСТРАЦИЯ / ВХОД =====
+            console.log(`📩 Получен тип: ${data.type}`);
+
+            // ===== РЕГИСТРАЦИЯ / ВХОД С ТЕЛЕФОНОМ И ПОЛИТИКОЙ =====
             if (data.type === 'register') {
-                const { username, password, phone } = data;
+                const { username, password, phone, privacyAccepted } = data;
                 
+                // Валидация
                 if (!username || !password || !phone) {
                     ws.send(JSON.stringify({
                         type: 'error',
                         message: '❌ Имя, пароль и номер телефона обязательны'
+                    }));
+                    return;
+                }
+                
+                if (!privacyAccepted) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: '❌ Необходимо принять политику конфиденциальности'
                     }));
                     return;
                 }
@@ -985,19 +791,23 @@ wss.on('connection', (ws) => {
                     console.log(`👋 Вход: ${cleanUsername}`);
                     userDatabase[cleanUsername].lastSeen = new Date().toISOString();
                     saveData();
-                    logAction('login', cleanUsername, `Вход в систему`);
+                    logAction('login', cleanUsername, `Вход с телефона ${cleanPhone}`);
                     
                     ws.send(JSON.stringify({
                         type: 'login_success',
                         username: cleanUsername,
-                        profile: userProfiles[cleanUsername] || { avatar: '👤', bio: '', status: 'online' },
-                        settings: userSettings[cleanUsername] || {},
+                        profile: userProfiles[cleanUsername] || { 
+                            avatar: '👤', 
+                            bio: '', 
+                            status: 'online' 
+                        },
                         premium: isPremium(cleanUsername),
-                        timestamp: Date.now()
+                        privacyAccepted: true
                     }));
                     
                 } else {
-                    // РЕГИСТРАЦИЯ
+                    // РЕГИСТРАЦИЯ НОВОГО
+                    // Проверка уникальности телефона
                     let phoneExists = false;
                     for (const u of Object.values(userDatabase)) {
                         if (u.phone === cleanPhone) {
@@ -1014,28 +824,22 @@ wss.on('connection', (ws) => {
                         return;
                     }
                     
-                    console.log(`👤 Новый пользователь: ${cleanUsername}`);
+                    console.log(`👤 Новый пользователь: ${cleanUsername} (${cleanPhone})`);
                     
                     userDatabase[cleanUsername] = {
                         username: cleanUsername,
                         password: password,
                         phone: cleanPhone,
                         registered: new Date().toISOString(),
-                        lastSeen: new Date().toISOString()
+                        lastSeen: new Date().toISOString(),
+                        privacyAccepted: true,
+                        privacyAcceptedDate: new Date().toISOString()
                     };
                     
                     userProfiles[cleanUsername] = {
                         avatar: '👤',
                         bio: '',
-                        status: 'online',
-                        lastActive: new Date().toISOString()
-                    };
-                    
-                    userSettings[cleanUsername] = {
-                        theme: 'dark',
-                        fontSize: 'medium',
-                        messageDensity: 'comfortable',
-                        notifications: true
+                        status: 'online'
                     };
                     
                     saveData();
@@ -1045,14 +849,15 @@ wss.on('connection', (ws) => {
                         type: 'register_success',
                         username: cleanUsername,
                         profile: userProfiles[cleanUsername],
-                        settings: userSettings[cleanUsername],
                         premium: false,
-                        timestamp: Date.now()
+                        privacyAccepted: true
                     }));
                 }
                 
+                // Сохраняем в активные
                 activeUsers.set(ws, cleanUsername);
                 
+                // Отправляем все данные
                 ws.send(JSON.stringify({
                     type: 'history',
                     history: messages,
@@ -1092,7 +897,7 @@ wss.on('connection', (ws) => {
                 if (!from || !to || !text) {
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: 'Неполные данные сообщения'
+                        message: '❌ Неполные данные сообщения'
                     }));
                     return;
                 }
@@ -1122,6 +927,7 @@ wss.on('connection', (ws) => {
                 saveMessages();
                 logAction('message', from, `Сообщение к ${to}`);
                 
+                // Отправляем получателю
                 let delivered = false;
                 wss.clients.forEach(client => {
                     const username = activeUsers.get(client);
@@ -1146,8 +952,6 @@ wss.on('connection', (ws) => {
                     delivered: delivered,
                     timestamp: Date.now()
                 }));
-                
-                console.log(`💬 Сообщение от ${from} к ${to} (${delivered ? 'доставлено' : 'не в сети'})`);
             }
 
             // ===== ТАЙПИНГ =====
@@ -1205,7 +1009,7 @@ wss.on('connection', (ws) => {
                 if (!name || !creator) {
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: 'Название и создатель обязательны'
+                        message: '❌ Название и создатель обязательны'
                     }));
                     return;
                 }
@@ -1245,7 +1049,7 @@ wss.on('connection', (ws) => {
                 if (!name || !creator) {
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: 'Название и создатель обязательны'
+                        message: '❌ Название и создатель обязательны'
                     }));
                     return;
                 }
@@ -1272,8 +1076,7 @@ wss.on('connection', (ws) => {
                     room: privateRooms[roomId]
                 }));
             }
-
-            // ===== ПРИСОЕДИНЕНИЕ К КОМНАТЕ =====
+                        // ===== ПРИСОЕДИНЕНИЕ К КОМНАТЕ =====
             if (data.type === 'join_by_link') {
                 const { link, username } = data;
                 
@@ -1298,13 +1101,13 @@ wss.on('connection', (ws) => {
                     } else {
                         ws.send(JSON.stringify({
                             type: 'error',
-                            message: 'Вы уже в этой комнате'
+                            message: '❌ Вы уже в этой комнате'
                         }));
                     }
                 } else {
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: 'Комната не найдена'
+                        message: '❌ Комната не найдена'
                     }));
                 }
             }
@@ -1316,7 +1119,7 @@ wss.on('connection', (ws) => {
                 if (!privateRooms[roomId] || !privateRooms[roomId].members.includes(from)) {
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: 'Нет доступа к комнате'
+                        message: '❌ Нет доступа к комнате'
                     }));
                     return;
                 }
@@ -1352,7 +1155,7 @@ wss.on('connection', (ws) => {
 
             // ===== ПРОСМОТР ПОСТА =====
             if (data.type === 'view_post') {
-                const { channelId, postId } = data;
+                const { channelId, postId, username } = data;
                 
                 if (channels[channelId] && channels[channelId].posts) {
                     const post = channels[channelId].posts.find(p => p.id === postId);
@@ -1365,10 +1168,10 @@ wss.on('connection', (ws) => {
             
         } catch (e) {
             console.error('❌ Ошибка обработки сообщения:', e);
-            logError('websocket', e);
+            logAction('error', 'SYSTEM', e.message);
             ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Внутренняя ошибка сервера'
+                message: '❌ Внутренняя ошибка сервера'
             }));
         }
     });
@@ -1385,9 +1188,20 @@ wss.on('connection', (ws) => {
 
     ws.on('error', (error) => {
         console.error('❌ Ошибка WebSocket:', error);
-        logError('websocket_error', error);
+        logAction('error', 'WEBSOCKET', error.message);
     });
 });
+
+// ==============================================
+// ФУНКЦИИ РАССЫЛКИ
+// ==============================================
+function broadcastToAll(message) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+        }
+    });
+}
 
 function broadcastUserList() {
     const userList = Array.from(activeUsers.values());
@@ -1412,53 +1226,65 @@ function broadcastToRoom(roomId, message, exclude = []) {
 }
 
 // ==============================================
+// ПЕРИОДИЧЕСКАЯ ОЧИСТКА
+// ==============================================
+setInterval(() => {
+    let removed = 0;
+    
+    wss.clients.forEach((ws) => {
+        if (!activeUsers.has(ws) && ws.readyState !== WebSocket.OPEN) {
+            removed++;
+        }
+    });
+    
+    if (removed > 0) {
+        console.log(`🧹 Очищено ${removed} неактивных соединений`);
+    }
+}, 30000);
+
+// ==============================================
 // ЗАПУСК СЕРВЕРА
 // ==============================================
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - ВЕЧНОЕ ХРАНЕНИЕ`);
-    console.log('='.repeat(70));
+    console.log('\n' + '='.repeat(60));
+    console.log(`🚀 Nanogram ${VERSION} - С ПОЛИТИКОЙ И ТЕЛЕФОНОМ`);
+    console.log('='.repeat(60));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`🔐 Шифрование: AES-256-GCM`);
     console.log(`💾 Автосохранение: каждую минуту`);
-    console.log(`📦 Бэкапы: каждый час (хранится ${MAX_BACKUPS})`);
-    console.log(`\n📁 ФАЙЛЫ ДАННЫХ (ВСЁ СОХРАНЯЕТСЯ НАВСЕГДА):`);
+    console.log(`\n📁 ФАЙЛЫ:`);
     console.log(`   👥 Пользователи: data.json`);
     console.log(`   💬 Сообщения: messages.json`);
-    console.log(`   📝 Логи действий: users.log`);
-    console.log(`   ❌ Логи ошибок: errors.log`);
-    console.log(`   💾 Бэкапы: backups/`);
+    console.log(`   📝 Логи: users.log`);
     console.log(`\n📊 СТАТИСТИКА:`);
-    console.log(`   👥 Пользователей в базе: ${Object.keys(userDatabase).length}`);
-    console.log(`   💬 Всего сообщений: ${Object.values(messages).reduce((a, c) => a + c.length, 0)}`);
+    console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
+    console.log(`   💬 Сообщений: ${Object.values(messages).reduce((a, c) => a + c.length, 0)}`);
     console.log(`   📢 Постов в канале: ${channels.NANOGRAM?.posts?.length || 0}`);
-    console.log(`   🔒 Приватных комнат: ${Object.keys(privateRooms).length}`);
-    console.log(`   👑 Премиум пользователей: ${Object.keys(premiumUsers).length}`);
+    console.log(`   🔒 Комнат: ${Object.keys(privateRooms).length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 Локально: http://localhost:${PORT}`);
     console.log(`   🌍 Внешне: https://minegram.onrender.com`);
-    console.log(`   🕵️ Теневая панель: http://localhost:${PORT}/🧪admin`);
-    console.log('='.repeat(70) + '\n');
+    console.log(`   🕵️ Теневая панель: http://localhost:${PORT}/admin`);
+    console.log(`   📜 Политика: http://localhost:${PORT}/privacy`);
+    console.log('='.repeat(60) + '\n');
     
-    logAction('system', 'SERVER', `Сервер запущен v${VERSION}`);
+    logAction('system', 'SERVER', `Запуск v${VERSION} с политикой и телефоном`);
 });
 
 // ==============================================
 // ЗАВЕРШЕНИЕ РАБОТЫ
 // ==============================================
 process.on('SIGINT', () => {
-    console.log('\n📦 Завершение работы сервера...');
-    console.log('💾 Сохраняем все данные...');
+    console.log('\n📦 Сохранение данных...');
     saveData();
     saveMessages();
-    logAction('system', 'SERVER', 'Сервер остановлен');
+    logAction('system', 'SERVER', 'Остановка');
     console.log('✅ Данные сохранены. Сервер остановлен.');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n📦 Завершение работы сервера...');
     saveData();
     saveMessages();
     process.exit(0);
-});   
+});

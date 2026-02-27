@@ -1,5 +1,5 @@
 {
-  "messages": {},
+  "users": {},
   "channels": {
     "NANOGRAM": {
       "name": "NANOGRAM",
@@ -27,10 +27,9 @@
       ]
     }
   },
-  "users": {},
   "privateRooms": {},
   "userProfiles": {},
   "userSettings": {},
   "premiumUsers": {},
-  "lastSaved": "2026-02-27T16:42:03.213Z"
+  "lastSaved": "2026-02-27T21:12:47.604Z"
 }
