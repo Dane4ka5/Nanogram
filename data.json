@@ -27,5 +27,9 @@
       ]
     }
   },
-  "users": {}
+  "users": {},
+  "privateRooms": {},
+  "userSettings": {},
+  "userProfiles": {},
+  "premiumUsers": {}
 }
