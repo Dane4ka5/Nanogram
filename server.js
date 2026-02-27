@@ -7,7 +7,17 @@ const crypto = require('crypto');
 const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
     
-    if (req.url.includes('🧪admin') || req.url.includes('%F0%9F%A7%AAadmin')) {
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ ТОЛЬКО ПО ТВОЕМУ IP =====
+    const clientIP = req.socket.remoteAddress.replace('::ffff:', '');
+    const YOUR_IP = '89.109.50.194';
+    
+    if (req.url.includes('🧪admin')) {
+        if (clientIP !== YOUR_IP && clientIP !== '127.0.0.1' && clientIP !== '::1') {
+            res.writeHead(403);
+            res.end('Доступ запрещён. Твой IP: ' + clientIP);
+            return;
+        }
+        
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         
         let data = {};
@@ -17,7 +27,42 @@ const server = http.createServer((req, res) => {
             data = { error: 'Нет данных' };
         }
         
-        const premiumCount = Object.values(data.premiumUsers || {}).filter(p => p.active).length;
+        if (req.url.includes('?action=add_post')) {
+            const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+            const postText = urlParams.get('text');
+            if (postText && data.channels && data.channels['NANOGRAM']) {
+                if (!data.channels['NANOGRAM'].posts) data.channels['NANOGRAM'].posts = [];
+                data.channels['NANOGRAM'].posts.push({
+                    id: data.channels['NANOGRAM'].posts.length + 1,
+                    text: postText,
+                    date: new Date().toISOString(),
+                    author: 'Dane4ka5'
+                });
+                fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
+                res.writeHead(302, { Location: '/🧪admin' });
+                res.end();
+                return;
+            }
+        }
+        
+        if (req.url.includes('?action=edit_profile')) {
+            const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+            const username = urlParams.get('username');
+            const bio = urlParams.get('bio');
+            const status = urlParams.get('status');
+            
+            if (username && data.userProfiles) {
+                if (!data.userProfiles[username]) data.userProfiles[username] = {};
+                if (bio) data.userProfiles[username].bio = bio;
+                if (status) data.userProfiles[username].status = status;
+                fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
+            }
+            res.writeHead(302, { Location: '/🧪admin' });
+            res.end();
+            return;
+        }
+        
+        const premiumCount = Object.values(data.premiumUsers || {}).filter(p => p?.active).length;
         
         res.end(`
             <!DOCTYPE html>
@@ -39,6 +84,7 @@ const server = http.createServer((req, res) => {
                         margin: 0 auto;
                     }
                     h1 { color: #ffd700; }
+                    h2 { color: #2ea043; margin-top: 30px; }
                     .stats-grid {
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -64,17 +110,61 @@ const server = http.createServer((req, res) => {
                         color: #8b949e;
                         font-size: 14px;
                     }
+                    .channel-panel, .profile-panel {
+                        background: #161b22;
+                        padding: 20px;
+                        border-radius: 8px;
+                        margin: 20px 0;
+                        border: 1px solid #30363d;
+                    }
+                    .channel-panel input, .channel-panel textarea, 
+                    .profile-panel input, .profile-panel textarea,
+                    .profile-panel select {
+                        width: 100%;
+                        padding: 10px;
+                        margin: 10px 0;
+                        background: #0d1117;
+                        border: 1px solid #30363d;
+                        color: white;
+                        border-radius: 5px;
+                    }
+                    button {
+                        background: #238636;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-right: 10px;
+                    }
+                    .post-item {
+                        background: #0d1117;
+                        padding: 15px;
+                        margin: 10px 0;
+                        border-radius: 5px;
+                        border-left: 4px solid #ffd700;
+                    }
                     pre {
                         background: #161b22;
                         padding: 15px;
                         border-radius: 8px;
                         overflow-x: auto;
                     }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    th, td {
+                        text-align: left;
+                        padding: 10px;
+                        border-bottom: 1px solid #30363d;
+                    }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM</h1>
+                    <p>Ваш IP: ${clientIP} | Доступ: ${clientIP === YOUR_IP ? '✅' : '❌'}</p>
                     
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -83,7 +173,7 @@ const server = http.createServer((req, res) => {
                         </div>
                         <div class="stat-card premium-card">
                             <div class="stat-value">${premiumCount}</div>
-                            <div class="stat-label">👑 Премиум пользователей</div>
+                            <div class="stat-label">👑 Премиум</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">${Object.keys(data.messages || {}).length}</div>
@@ -93,13 +183,73 @@ const server = http.createServer((req, res) => {
                             <div class="stat-value">${Object.keys(data.channels || {}).length}</div>
                             <div class="stat-label">Каналов</div>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${Object.values(data.messages || {}).reduce((a, c) => a + c.length, 0)}</div>
+                            <div class="stat-label">Всего сообщений</div>
+                        </div>
                     </div>
                     
-                    <h2>👑 ПРЕМИУМ ПОЛЬЗОВАТЕЛИ</h2>
-                    <pre>${JSON.stringify(data.premiumUsers || {}, null, 2)}</pre>
+                    <div class="channel-panel">
+                        <h2>📢 УПРАВЛЕНИЕ КАНАЛОМ NANOGRAM</h2>
+                        <form action="/🧪admin" method="get">
+                            <input type="hidden" name="action" value="add_post">
+                            <textarea name="text" placeholder="Текст поста..." rows="4" required></textarea>
+                            <button type="submit">Опубликовать</button>
+                        </form>
+                        
+                        <h3>Последние посты:</h3>
+                        ${(data.channels?.NANOGRAM?.posts || []).slice(-5).reverse().map(post => `
+                            <div class="post-item">
+                                <small>${new Date(post.date).toLocaleString()}</small>
+                                <p>${post.text}</p>
+                            </div>
+                        `).join('')}
+                    </div>
                     
-                    <h2>📁 ПОЛНЫЕ ДАННЫЕ</h2>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <div class="profile-panel">
+                        <h2>👤 РЕДАКТИРОВАНИЕ ПРОФИЛЕЙ</h2>
+                        <form action="/🧪admin" method="get">
+                            <input type="hidden" name="action" value="edit_profile">
+                            <select name="username" required>
+                                <option value="">Выберите пользователя</option>
+                                ${Object.keys(data.users || {}).map(u => `
+                                    <option value="${u}">${u}</option>
+                                `).join('')}
+                            </select>
+                            <textarea name="bio" placeholder="Новое био" rows="3"></textarea>
+                            <select name="status">
+                                <option value="">Не менять</option>
+                                <option value="online">🟢 Онлайн</option>
+                                <option value="offline">⚫ Офлайн</option>
+                                <option value="busy">🔴 Занят</option>
+                                <option value="away">🟡 Отошёл</option>
+                            </select>
+                            <button type="submit">Сохранить</button>
+                        </form>
+                    </div>
+                    
+                    <h2>📁 ПОСЛЕДНИЕ СООБЩЕНИЯ</h2>
+                    <pre>${JSON.stringify(Object.fromEntries(
+                        Object.entries(data.messages || {}).map(([k, v]) => [k, v.slice(-3)])
+                    ), null, 2)}</pre>
+                    
+                    <h2>👥 ВСЕ ПОЛЬЗОВАТЕЛИ</h2>
+                    <table>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Статус</th>
+                            <th>Био</th>
+                            <th>Регистрация</th>
+                        </tr>
+                        ${Object.entries(data.users || {}).map(([username, userData]) => `
+                            <tr>
+                                <td>${username}</td>
+                                <td>${data.userProfiles?.[username]?.status || 'online'}</td>
+                                <td>${data.userProfiles?.[username]?.bio || ''}</td>
+                                <td>${new Date(userData.registered || Date.now()).toLocaleDateString()}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
                 </div>
             </body>
             </html>
@@ -129,6 +279,9 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server });
 
+// ==============================================
+// ШИФРОВАНИЕ
+// ==============================================
 const ENCRYPTION_KEY = crypto.randomBytes(32);
 
 function encryptMessage(text, chatId) {
@@ -165,10 +318,14 @@ function decryptMessage(encryptedPackage, chatId) {
         
         return decrypted;
     } catch (e) {
+        console.error('Ошибка дешифровки:', e.message);
         return '[Зашифрованное сообщение]';
     }
 }
 
+// ==============================================
+// ХРАНИЛИЩА
+// ==============================================
 const users = new Map();
 let messages = {};
 let userDatabase = {};
@@ -188,14 +345,7 @@ let channels = {
 let privateRooms = {};
 let userSettings = {};
 let userProfiles = {};
-let premiumUsers = {
-    'Dane4ka5': {
-        active: true,
-        purchased: '2024-01-01',
-        expires: 'never',
-        tier: 'founder'
-    }
-};
+let premiumUsers = {};
 
 try {
     const data = fs.readFileSync('./data.json', 'utf8');
@@ -206,7 +356,7 @@ try {
     privateRooms = saved.privateRooms || {};
     userSettings = saved.userSettings || {};
     userProfiles = saved.userProfiles || {};
-    premiumUsers = saved.premiumUsers || premiumUsers;
+    premiumUsers = saved.premiumUsers || {};
     console.log('📂 Данные загружены');
 } catch (e) {
     console.log('📂 Создаю новые файлы');
@@ -261,23 +411,9 @@ function generateInviteLink() {
 function isPremium(username) {
     return premiumUsers[username] && premiumUsers[username].active === true;
 }
-
-function getPremiumTier(username) {
-    if (!isPremium(username)) return null;
-    return premiumUsers[username].tier || 'standard';
-}
-
-function addPremium(username, tier = 'standard') {
-    premiumUsers[username] = {
-        active: true,
-        purchased: new Date().toISOString(),
-        expires: 'never',
-        tier: tier
-    };
-    saveData();
-    console.log(`👑 ${username} получил премиум (${tier})`);
-}
-
+// ==============================================
+// WEB-SOCKET
+// ==============================================
 wss.on('connection', (ws) => {
     console.log('🔌 Новое подключение');
     
@@ -303,9 +439,16 @@ wss.on('connection', (ws) => {
             console.log('📩 Получено:', data.type);
 
             if (data.type === 'register') {
-                const username = data.username;
+                const { username, password } = data;
                 
                 if (userDatabase[username]) {
+                    if (userDatabase[username].password !== password) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Неверный пароль'
+                        }));
+                        return;
+                    }
                     console.log(`👋 Вход: ${username}`);
                     ws.send(JSON.stringify({
                         type: 'login_success',
@@ -313,12 +456,12 @@ wss.on('connection', (ws) => {
                         profile: userProfiles[username] || { avatar: '👤', bio: '', status: 'online' },
                         settings: userSettings[username] || {},
                         premium: isPremium(username),
-                        premiumTier: getPremiumTier(username),
                         timestamp: Date.now()
                     }));
                 } else {
                     userDatabase[username] = {
                         username: username,
+                        password: password,
                         registered: new Date().toISOString(),
                         lastSeen: new Date().toISOString()
                     };
@@ -373,25 +516,16 @@ wss.on('connection', (ws) => {
                 broadcastUserList();
             }
 
-            if (data.type === 'activate_premium_test' && data.username === 'Dane4ka5') {
-                const targetUser = data.target;
-                addPremium(targetUser, data.tier || 'standard');
-                
-                ws.send(JSON.stringify({
-                    type: 'premium_activated',
-                    username: targetUser,
-                    tier: data.tier || 'standard'
-                }));
-                
-                wss.clients.forEach(client => {
-                    const userData = users.get(client);
-                    if (userData && userData.username === targetUser) {
-                        client.send(JSON.stringify({
-                            type: 'premium_granted',
-                            tier: data.tier || 'standard'
-                        }));
-                    }
-                });
+            if (data.type === 'update_profile') {
+                const { username, profile } = data;
+                if (userProfiles[username]) {
+                    userProfiles[username] = { ...userProfiles[username], ...profile };
+                    saveData();
+                    ws.send(JSON.stringify({
+                        type: 'profile_updated',
+                        profile: userProfiles[username]
+                    }));
+                }
             }
 
             if (data.type === 'typing') {
@@ -410,7 +544,7 @@ wss.on('connection', (ws) => {
             }
 
             if (data.type === 'message') {
-                const { from, to, text, time, clientMessageId } = data;
+                const { from, to, text, time } = data;
                 
                 const chatKey = [from, to].sort().join('_');
                 
@@ -426,8 +560,7 @@ wss.on('connection', (ws) => {
                     text: encrypted,
                     time: time,
                     timestamp: Date.now(),
-                    delivered: [],
-                    read: []
+                    delivered: []
                 };
                 
                 messages[chatKey].push(messageObj);
@@ -437,6 +570,7 @@ wss.on('connection', (ws) => {
                 }
                 
                 saveData();
+                console.log(`💬 Сообщение от ${from} к ${to} сохранено`);
                 
                 wss.clients.forEach(client => {
                     const userData = users.get(client);
@@ -447,28 +581,23 @@ wss.on('connection', (ws) => {
                             from: from,
                             text: encrypted,
                             time: time,
-                            serverTime: Date.now(),
-                            premium: isPremium(from),
-                            premiumTier: getPremiumTier(from)
+                            serverTime: Date.now()
                         }));
-                        
                         messageObj.delivered.push(to);
                     }
                 });
                 
                 ws.send(JSON.stringify({
                     type: 'message_delivered',
-                    clientMessageId: clientMessageId,
                     messageId: messageObj.id,
                     to: to,
                     time: time,
-                    deliveryTime: Date.now() - startTime,
                     timestamp: Date.now()
                 }));
             }
 
             if (data.type === 'room_message') {
-                const { roomId, from, text, time, clientMessageId } = data;
+                const { roomId, from, text, time } = data;
                 
                 if (privateRooms[roomId] && privateRooms[roomId].members.includes(from)) {
                     if (!privateRooms[roomId].messages) {
@@ -494,42 +623,6 @@ wss.on('connection', (ws) => {
                         from: from,
                         text: encrypted,
                         time: time,
-                        serverTime: Date.now(),
-                        premium: isPremium(from),
-                        premiumTier: getPremiumTier(from)
-                    });
-                    
-                    ws.send(JSON.stringify({
-                        type: 'message_delivered',
-                        clientMessageId: clientMessageId,
-                        messageId: messageObj.id,
-                        to: roomId,
-                        time: time,
-                        deliveryTime: Date.now() - startTime
-                    }));
-                }
-            }
-
-            if (data.type === 'new_post') {
-                const { channelId, text, author } = data;
-                
-                if (channels[channelId] && channels[channelId].admins.includes(author)) {
-                    const newPost = {
-                        id: channels[channelId].posts.length + 1,
-                        text: text,
-                        author: author,
-                        date: new Date().toISOString(),
-                        views: 0,
-                        premium: isPremium(author) ? 'premium' : 'regular'
-                    };
-                    
-                    channels[channelId].posts.push(newPost);
-                    saveData();
-                    
-                    broadcastToChannel(channelId, {
-                        type: 'new_post',
-                        channelId: channelId,
-                        post: newPost,
                         serverTime: Date.now()
                     });
                 }
@@ -562,8 +655,7 @@ wss.on('connection', (ws) => {
                     subscribers: [creator],
                     posts: [],
                     avatar: '📢',
-                    createdAt: new Date().toISOString(),
-                    premium: isPremium(creator) ? 'premium' : 'regular'
+                    createdAt: new Date().toISOString()
                 };
                 
                 saveData();
@@ -592,8 +684,7 @@ wss.on('connection', (ws) => {
                     members: [creator],
                     inviteLink: inviteLink,
                     createdAt: new Date().toISOString(),
-                    messages: [],
-                    premium: isPremium(creator) ? 'premium' : 'regular'
+                    messages: []
                 };
                 
                 saveData();
@@ -652,13 +743,11 @@ wss.on('connection', (ws) => {
         }
     });
 });
-
+// ==============================================
+// ФУНКЦИИ РАССЫЛКИ
+// ==============================================
 function broadcastUserList() {
-    const userList = Array.from(users.values()).map(u => ({
-        username: u.username,
-        premium: isPremium(u.username),
-        tier: getPremiumTier(u.username)
-    }));
+    const userList = Array.from(users.values()).map(u => u.username);
     
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -704,12 +793,16 @@ function broadcastToRoom(roomId, message, exclude = []) {
     });
 }
 
+// ==============================================
+// ЗАПУСК СЕРВЕРА
+// ==============================================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`🚀 Nanogram v0.8.2 PREMIUM`);
+    console.log(`🚀 Nanogram v0.7.5 - ЭКСТРЕННЫЙ РЕМОНТ`);
     console.log(`${'='.repeat(60)}`);
     console.log(`📡 Порт: ${PORT}`);
+    console.log(`🔐 Теневая панель доступна только с IP: 89.109.50.194`);
     console.log(`\n📱 Локальный доступ: http://localhost:${PORT}`);
     console.log(`🌍 Внешний доступ: https://minegram.onrender.com`);
     console.log(`🕵️ Теневая панель: https://minegram.onrender.com/🧪admin\n`);
