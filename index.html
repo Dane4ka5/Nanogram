@@ -13,26 +13,22 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* ===== ЛАВАНДОВАЯ МАТОВАЯ ТЕМА ===== */
+        /* ===== ТЁМНАЯ ТЕМА (ВСЁ ЧЁТКО) ===== */
         :root {
-            --lavender-light: #f8f0ff;
-            --lavender-mid: #f0e6ff;
-            --lavender-dark: #e8d9ff;
-            --bg-primary: linear-gradient(135deg, #f8f0ff 0%, #f0e6ff 50%, #e8d9ff 100%);
-            --bg-secondary: rgba(255, 255, 255, 0.7);
-            --bg-tertiary: rgba(255, 255, 255, 0.85);
-            --text-primary: #2d2a3a;
-            --text-secondary: #5a4f7a;
-            --text-light: #7a6b9a;
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-light: #6e7681;
             --accent: #9f8be5;
             --accent-hover: #b09cff;
-            --accent-light: rgba(160, 140, 200, 0.2);
-            --border: rgba(160, 140, 200, 0.25);
-            --hover: rgba(200, 180, 255, 0.3);
-            --message-sent: #c2b0ff;
-            --message-received: rgba(255, 255, 255, 0.9);
-            --shadow: 0 8px 32px rgba(120, 90, 180, 0.15);
-            --glass-effect: blur(16px);
+            --accent-light: rgba(159, 139, 229, 0.2);
+            --border: #30363d;
+            --hover: #2d333b;
+            --message-sent: #9f8be5;
+            --message-received: #2d333b;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             --premium-gold: #ffd700;
             --creator-purple: #8a2be2;
         }
@@ -51,8 +47,6 @@
         .panel-header, .profile-section, .chat-item, .message-input-area,
         .chat-header, .tab, .icon-btn, .donation-btn {
             background: var(--bg-secondary);
-            backdrop-filter: var(--glass-effect);
-            -webkit-backdrop-filter: var(--glass-effect);
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
         }
@@ -66,7 +60,7 @@
         .chat-item:hover {
             transform: translateX(12px) scale(1.02);
             background: var(--hover);
-            box-shadow: 0 12px 28px rgba(160, 140, 200, 0.3);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
             border-color: var(--accent);
         }
 
@@ -79,7 +73,7 @@
             transform: scale(1.2) rotate(8deg);
             background: var(--accent);
             color: white;
-            box-shadow: 0 8px 20px rgba(160, 140, 200, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         }
 
         /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
@@ -236,24 +230,24 @@
             border-radius: 20px;
             font-weight: bold;
             white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         .premium-badge {
             background: linear-gradient(135deg, #ffd700, #ffa500);
-            color: #2d2a3a;
+            color: #000;
             font-size: 11px;
             padding: 4px 10px;
             border-radius: 20px;
             font-weight: bold;
             white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         /* ===== DONATION КНОПКА ===== */
         .donation-btn {
             background: linear-gradient(135deg, var(--premium-gold), #ffa500);
-            color: #2d2a3a;
+            color: #000;
             border: none;
             padding: 14px 20px;
             border-radius: 40px;
@@ -271,7 +265,7 @@
 
         .donation-btn:hover {
             transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         }
 
         .donation-btn i {
@@ -365,6 +359,10 @@
             outline: none;
             color: var(--text-primary);
             font-size: 15px;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
         }
 
         /* ===== ТАБЫ ===== */
@@ -491,8 +489,7 @@
             font-size: 14px;
             margin-left: 5px;
         }
-
-        /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
+                /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
         .chat-header {
             padding: 14px 20px;
             display: flex;
@@ -552,7 +549,6 @@
             animation: slideIn 0.3s ease;
             word-wrap: break-word;
             line-height: 1.4;
-            backdrop-filter: var(--glass-effect);
             border: 1px solid var(--border);
         }
 
@@ -570,7 +566,7 @@
         .message.sent {
             align-self: flex-end;
             background: var(--message-sent);
-            color: var(--text-primary);
+            color: white;
             border-bottom-right-radius: 6px;
         }
 
@@ -597,10 +593,11 @@
 
         .encrypted-badge {
             font-size: 10px;
-            color: var(--text-light);
+            color: var(--text-secondary);
             margin-right: 5px;
         }
-                /* ===== ПОЛЕ ВВОДА ===== */
+
+        /* ===== ПОЛЕ ВВОДА ===== */
         .message-input-area {
             padding: 16px 20px;
             background: var(--bg-secondary);
@@ -660,7 +657,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(4px);
             z-index: 1000;
             display: none;
@@ -685,6 +682,7 @@
             display: none;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
+            color: var(--text-primary);
         }
 
         .modal.active {
@@ -698,6 +696,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .modal h2 i {
+            color: var(--premium-gold);
         }
 
         .modal input,
@@ -779,58 +781,166 @@
 
         /* ===== PREMIUM ИНФО В МОДАЛКЕ ===== */
         .premium-info {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+            background: rgba(255, 215, 0, 0.1);
             border-left: 4px solid var(--premium-gold);
             padding: 15px;
             border-radius: 10px;
             margin: 15px 0;
+            color: var(--text-primary);
         }
 
         .creator-info {
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(147, 112, 219, 0.1));
+            background: rgba(138, 43, 226, 0.1);
             border-left: 4px solid var(--creator-purple);
             padding: 15px;
             border-radius: 10px;
             margin: 15px 0;
+            color: var(--text-primary);
+        }
+
+        /* ===== МОДАЛКА ДОНАТОВ (ИСПРАВЛЕННАЯ) ===== */
+        .donate-container {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
 
         .price-table {
-            background: #1a1f2a;
-            padding: 15px;
-            border-radius: 10px;
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 15px;
             margin: 15px 0;
             border-left: 4px solid var(--premium-gold);
         }
 
-        .price-table p {
-            margin: 8px 0;
+        .price-table h3 {
+            color: var(--premium-gold);
+            margin-bottom: 15px;
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
         }
 
-        .price {
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .price-row:last-child {
+            border-bottom: none;
+        }
+
+        .price-amount {
+            color: var(--premium-gold);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .bug-table {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .bug-table h3 {
+            color: var(--premium-gold);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bug-item {
+            background: var(--bg-secondary);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid;
+            color: var(--text-primary);
+        }
+
+        .bug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .bug-name {
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .bug-reward {
             color: var(--premium-gold);
             font-weight: bold;
         }
 
-        .bug-table {
-            background: #1a1f2a;
-            padding: 15px;
-            border-radius: 10px;
+        .bug-desc {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .bug-small { border-left-color: #ffd700; }
+        .bug-medium { border-left-color: #ffa500; }
+        .bug-critical { border-left-color: #ff4500; }
+        .bug-unique { border-left-color: #8a2be2; }
+
+        .donate-email {
+            text-align: center;
             margin: 15px 0;
-        }
-
-        .bug-item {
             padding: 10px;
-            margin: 5px 0;
-            border-left: 4px solid;
-            background: rgba(255,255,255,0.05);
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            color: var(--text-primary);
         }
 
-        .bug-item.bug-small { border-left-color: #ffd700; }
-        .bug-item.bug-medium { border-left-color: #ffa500; }
-        .bug-item.bug-critical { border-left-color: #ff4500; }
-        .bug-item.bug-unique { border-left-color: #8a2be2; }
+        .donate-email a {
+            color: var(--premium-gold);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .donate-email a:hover {
+            text-decoration: underline;
+        }
+
+        .donate-button {
+            width: 100%;
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #000;
+            font-weight: bold;
+            padding: 16px;
+            border-radius: 40px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .donate-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .close-button {
+            width: 100%;
+            background: transparent;
+            color: var(--text-primary);
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .close-button:hover {
+            background: var(--hover);
+        }
 
         /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
@@ -989,8 +1099,7 @@
         <button onclick="saveProfile()">💾 Сохранить</button>
         <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
-    
-    <!-- Модалка создания канала -->
+        <!-- Модалка создания канала -->
     <div class="modal" id="createChannelModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-bullhorn"></i> Создать канал</h2>
@@ -1027,49 +1136,91 @@
         <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
     
-    <!-- Модалка донатов и премиум -->
+    <!-- МОДАЛКА ДОНАТОВ (ИСПРАВЛЕННАЯ - БЕЛЫЙ ТЕКСТ) -->
     <div class="modal" id="donateModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-heart" style="color: var(--premium-gold);"></i> Поддержка Nanogram</h2>
         
-        <div class="price-table">
-            <h3>💰 Премиум за донаты:</h3>
-            <p><span>1 месяц</span> <span class="price">30 ₽</span></p>
-            <p><span>3 месяца</span> <span class="price">85 ₽</span></p>
-            <p><span>6 месяцев</span> <span class="price">145 ₽</span></p>
-            <p><span>12 месяцев</span> <span class="price">285 ₽</span></p>
+        <div class="donate-container">
+            <h2><i class="fas fa-heart" style="color: #ffd700;"></i> Поддержка Nanogram</h2>
+            
+            <!-- ТАРИФЫ ПРЕМИУМ -->
+            <div class="price-table">
+                <h3><i class="fas fa-crown" style="color: #ffd700;"></i> Премиум за донаты</h3>
+                
+                <div class="price-row">
+                    <span>1 месяц</span>
+                    <span class="price-amount">30 ₽</span>
+                </div>
+                <div class="price-row">
+                    <span>3 месяца</span>
+                    <span class="price-amount">85 ₽</span>
+                </div>
+                <div class="price-row">
+                    <span>6 месяцев</span>
+                    <span class="price-amount">145 ₽</span>
+                </div>
+                <div class="price-row">
+                    <span>12 месяцев</span>
+                    <span class="price-amount">285 ₽</span>
+                </div>
+            </div>
+            
+            <!-- БЕСПЛАТНЫЙ ПРЕМИУМ ЗА БАГИ -->
+            <div class="bug-table">
+                <h3><i class="fas fa-bug" style="color: #ffd700;"></i> Бесплатный премиум за баги</h3>
+                
+                <div class="bug-item bug-small">
+                    <div class="bug-header">
+                        <span class="bug-name">🐛 Незначительный баг</span>
+                        <span class="bug-reward">1 месяц</span>
+                    </div>
+                    <div class="bug-desc">Опечатка, мелкий глюк интерфейса</div>
+                </div>
+                
+                <div class="bug-item bug-medium">
+                    <div class="bug-header">
+                        <span class="bug-name">🐞 Средний баг</span>
+                        <span class="bug-reward">3 месяца</span>
+                    </div>
+                    <div class="bug-desc">Не работает функция, вылетает</div>
+                </div>
+                
+                <div class="bug-item bug-critical">
+                    <div class="bug-header">
+                        <span class="bug-name">🦠 Критический баг</span>
+                        <span class="bug-reward">6 месяцев</span>
+                    </div>
+                    <div class="bug-desc">Проблемы с безопасностью, потеря данных</div>
+                </div>
+                
+                <div class="bug-item bug-unique">
+                    <div class="bug-header">
+                        <span class="bug-name">💎 Уникальная находка</span>
+                        <span class="bug-reward">1 год</span>
+                    </div>
+                    <div class="bug-desc">Дыра в безопасности + имя в списке</div>
+                </div>
+            </div>
+            
+            <!-- КОНТАКТЫ ДЛЯ БАГОВ -->
+            <div class="donate-email">
+                <i class="fas fa-envelope" style="color: #ffd700;"></i>
+                Отчёты о багах: <strong><a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></strong>
+            </div>
+            
+            <!-- КНОПКА ДОНАТА -->
+            <button class="donate-button" onclick="window.open('https://donatepay.ru/don/1474515', '_blank')">
+                <i class="fas fa-heart" style="margin-right: 8px;"></i> Перейти к донату
+            </button>
+            
+            <!-- КНОПКА ЗАКРЫТИЯ -->
+            <button class="close-button" onclick="closeAllModals()">
+                Закрыть
+            </button>
         </div>
-        
-        <div class="bug-table">
-            <h3>🐛 Бесплатный премиум за баги:</h3>
-            <div class="bug-item bug-small">
-                <strong>🐛 Незначительный баг</strong> — <span style="color: var(--premium-gold);">1 месяц</span>
-                <p style="font-size: 12px;">Опечатка, мелкий глюк интерфейса</p>
-            </div>
-            <div class="bug-item bug-medium">
-                <strong>🐞 Средний баг</strong> — <span style="color: var(--premium-gold);">3 месяца</span>
-                <p style="font-size: 12px;">Не работает функция, вылетает</p>
-            </div>
-            <div class="bug-item bug-critical">
-                <strong>🦠 Критический баг</strong> — <span style="color: var(--premium-gold);">6 месяцев</span>
-                <p style="font-size: 12px;">Проблемы с безопасностью, потеря данных</p>
-            </div>
-            <div class="bug-item bug-unique">
-                <strong>💎 Уникальная находка</strong> — <span style="color: var(--premium-gold);">1 год + имя в списке</span>
-                <p style="font-size: 12px;">Дыра в безопасности, критическая уязвимость</p>
-            </div>
-        </div>
-        
-        <p style="text-align: center; margin: 15px 0;">
-            <i class="fas fa-envelope"></i> Отчёты о багах: <strong>nanogram.ru@yandex.ru</strong>
-        </p>
-        
-        <button onclick="window.open('https://donatepay.ru/don/1474515', '_blank')" style="width: 100%; background: linear-gradient(135deg, #ffd700, #ffa500); color: #2d2a3a;">
-            <i class="fas fa-heart"></i> Перейти к донату
-        </button>
-        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary); margin-top: 10px;">Закрыть</button>
     </div>
-        <!-- СТРАНИЦА ВХОДА -->
+
+    <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
@@ -1088,14 +1239,14 @@
             <!-- ЧЕКБОКС СОГЛАСИЯ -->
             <div class="checkbox">
                 <input type="checkbox" id="privacyAgree">
-                <label for="privacyAgree">Я принимаю </label>
+                <label for="privacyAgree">Я принимаю</label>
                 <span class="privacy-link" onclick="window.open('/privacy', '_blank')">Политику конфиденциальности</span>
             </div>
             
             <button class="login-btn" onclick="register()">🚀 Войти / Зарегистрироваться</button>
             
             <div style="margin-top: 20px; font-size: 12px; color: var(--text-secondary);">
-                <span class="privacy-link" onclick="window.open('/privacy', '_blank')">📜 Политика конфиденциальности</span>
+                <span class="privacy-link" onclick="window.open('/privacy', '_blank')">📜 Политика</span>
                 <span style="margin: 0 10px;">|</span>
                 <span class="privacy-link" onclick="openDonateModal()">💰 Донаты</span>
             </div>
@@ -1139,10 +1290,10 @@
                 </div>
             </div>
             
-            <!-- DONATION КНОПКА (НОВАЯ) -->
+            <!-- DONATION КНОПКА -->
             <button class="donation-btn" onclick="openDonateModal()">
                 <i class="fas fa-heart"></i> Поддержать проект
-                <i class="fas fa-crown" style="color: var(--premium-gold);"></i>
+                <i class="fas fa-crown" style="color: #ffd700;"></i>
             </button>
             
             <!-- Поиск -->
@@ -1193,8 +1344,7 @@
             </div>
         </div>
     </div>
-
-    <script>
+        <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
@@ -1483,7 +1633,8 @@
                     showInviteModal(data.link);
                 }
             };
-                        socket.onclose = function() {
+            
+            socket.onclose = function() {
                 console.log('❌ Отключено от сервера');
                 document.getElementById('statusDot').className = 'status-dot disconnected';
                 document.getElementById('statusText').textContent = 'Офлайн';
