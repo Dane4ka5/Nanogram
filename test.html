@@ -1,10 +1,78 @@
+html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Тест</title>
+    <meta charset="UTF-8">
+    <title>Тест WebSocket</title>
 </head>
 <body>
-    <h1>Привет! Сервер работает!</h1>
-    <p>Если ты это видишь, то всё ок.</p>
+    <h1>🔧 ТЕСТ WEBSOCKET</h1>
+    
+    <div id="status">🟡 Подключение...</div>
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(msg) {
+            log.innerHTML += '<div>' + msg + '</div>';
+            console.log(msg);
+        }
+        
+        // ПРОСТОЙ ТЕСТ - БЕЗ ТВОЕГО СЛОЖНОГО HTML
+        const ws = new WebSocket('ws://localhost:3000');
+        
+        ws.onopen = function() {
+            status.innerHTML = '🟢 ПОДКЛЮЧЕНО!';
+            addLog('✅ WebSocket открыт');
+            
+            // Отправляем тестовую регистрацию
+            ws.send(JSON.stringify({
+                type: 'register',
+                username: 'TestUser',
+                password: '12345',
+                phone: '+79991234567',
+                privacyAccepted: true
+            }));
+        };
+        
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            addLog('📩 Получено: ' + JSON.stringify(data));
+            
+            if (data.type === 'register_success' || data.type === 'login_success') {
+                addLog('✅ РЕГИСТРАЦИЯ УСПЕШНА!');
+                
+                // Отправляем тестовое сообщение
+                setTimeout(() => {
+                    ws.send(JSON.stringify({
+                        type: 'message',
+                        from: 'TestUser',
+                        to: 'TestUser', // сам себе
+                        text: 'Тест ' + Date.now(),
+                        time: new Date().toLocaleTimeString()
+                    }));
+                }, 1000);
+            }
+            
+            if (data.type === 'message') {
+                addLog('💬 СООБЩЕНИЕ ПОЛУЧЕНО: ' + data.text);
+            }
+            
+            if (data.type === 'message_delivered') {
+                addLog('✅ Сообщение доставлено');
+            }
+        };
+        
+        ws.onclose = function() {
+            status.innerHTML = '🔴 ОТКЛЮЧЕНО';
+            addLog('❌ WebSocket закрыт');
+        };
+        
+        ws.onerror = function(error) {
+            addLog('❌ ОШИБКА: ' + JSON.stringify(error));
+        };
+    </script>
 </body>
 </html>

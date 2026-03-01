@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.7.9 — вход по телефону</title>
+    <title>Nanogram v0.8.1 — премиум и создатель</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -33,7 +33,8 @@
             --message-received: rgba(255, 255, 255, 0.9);
             --shadow: 0 8px 32px rgba(120, 90, 180, 0.15);
             --glass-effect: blur(16px);
-            --card-bg: rgba(255, 255, 255, 0.6);
+            --premium-gold: #ffd700;
+            --creator-purple: #8a2be2;
         }
 
         body {
@@ -226,6 +227,39 @@
             100% { opacity: 1; transform: scale(1); }
         }
 
+        /* ===== БЕЙДЖИ ===== */
+        .creator-badge {
+            background: linear-gradient(135deg, #8a2be2, #9370db);
+            color: white;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #2d2a3a;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #ff4500, #ff6347);
+            color: white;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
         /* ===== ПРОФИЛЬ ===== */
         .profile-section {
             padding: 14px 18px;
@@ -278,6 +312,9 @@
             font-size: 18px;
             margin-bottom: 4px;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .profile-status {
@@ -285,14 +322,10 @@
             color: var(--text-secondary);
         }
 
-        .admin-badge {
-            background: linear-gradient(135deg, #ffd700, #ffb347);
-            color: #2d2a3a;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            white-space: nowrap;
+        .badge-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
         }
 
         /* ===== ПОИСК ===== */
@@ -406,6 +439,9 @@
             font-size: 16px;
             margin-bottom: 4px;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .chat-preview {
@@ -424,6 +460,18 @@
             color: white;
             margin-left: 10px;
             white-space: nowrap;
+        }
+
+        .premium-icon {
+            color: var(--premium-gold);
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        .creator-icon {
+            color: var(--creator-purple);
+            font-size: 14px;
+            margin-left: 5px;
         }
                 /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
         .chat-header {
@@ -526,6 +574,16 @@
 
         .status-icon.delivered { 
             color: var(--accent); 
+        }
+
+        .status-icon.read { 
+            color: var(--premium-gold); 
+        }
+
+        .encrypted-badge {
+            font-size: 10px;
+            color: var(--text-light);
+            margin-right: 5px;
         }
 
         /* ===== ПОЛЕ ВВОДА ===== */
@@ -705,6 +763,43 @@
             cursor: pointer;
         }
 
+        /* ===== PREMIUM ИНФО ===== */
+        .premium-info {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+            border-left: 4px solid var(--premium-gold);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .creator-info {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(147, 112, 219, 0.1));
+            border-left: 4px solid var(--creator-purple);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        /* ===== DONATION КНОПКА ===== */
+        .donation-btn {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #2d2a3a;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .donation-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+        }
+
         /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
             width: 100%;
@@ -845,6 +940,20 @@
             <option value="away">🟡 Отошёл</option>
         </select>
         
+        <!-- Premium информация -->
+        <div id="premiumInfo" class="premium-info" style="display: none;">
+            <i class="fas fa-crown" style="color: var(--premium-gold);"></i>
+            <strong>Премиум статус активен</strong>
+            <p style="font-size: 12px; margin-top: 5px;">Спасибо за поддержку!</p>
+        </div>
+        
+        <!-- Creator информация -->
+        <div id="creatorInfo" class="creator-info" style="display: none;">
+            <i class="fas fa-star" style="color: var(--creator-purple);"></i>
+            <strong>Создатель Nanogram</strong>
+            <p style="font-size: 12px; margin-top: 5px;">Спасибо, что создал этот проект!</p>
+        </div>
+        
         <button onclick="saveProfile()">💾 Сохранить</button>
         <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
@@ -885,23 +994,23 @@
         <button onclick="joinByLink()">🚪 Войти</button>
         <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
-        <!-- СТРАНИЦА ВХОДА С ТЕЛЕФОНОМ -->
+        <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.7.9 — вход по телефону</p>
+            <p>v0.8.1 — премиум и создатель</p>
             
             <!-- ПОЛЕ ДЛЯ ИМЕНИ -->
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя" autofocus>
             
-            <!-- ПОЛЕ ДЛЯ ТЕЛЕФОНА (НОВОЕ!) -->
+            <!-- ПОЛЕ ДЛЯ ТЕЛЕФОНА -->
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона" 
                    pattern="[0-9+\-\s]+" title="Введите номер телефона">
             
             <!-- ПОЛЕ ДЛЯ ПАРОЛЯ -->
             <input type="password" id="loginPassword" class="login-input" placeholder="Пароль">
             
-            <!-- ЧЕКБОКС СОГЛАСИЯ С ПОЛИТИКОЙ -->
+            <!-- ЧЕКБОКС СОГЛАСИЯ -->
             <div class="checkbox">
                 <input type="checkbox" id="privacyAgree">
                 <label for="privacyAgree">Я принимаю </label>
@@ -939,12 +1048,25 @@
                 <div class="profile-header">
                     <div class="avatar" id="headerAvatar">👤</div>
                     <div class="profile-info">
-                        <div class="profile-name" id="headerName"></div>
+                        <div class="profile-name" id="headerName">
+                            <span id="headerNameText"></span>
+                            <span id="premiumIcon" style="display: none;" class="premium-icon"><i class="fas fa-crown"></i></span>
+                            <span id="creatorIcon" style="display: none;" class="creator-icon"><i class="fas fa-star"></i></span>
+                        </div>
                         <div class="profile-status" id="headerStatus">🟢 Онлайн</div>
+                        <div class="badge-container">
+                            <span class="creator-badge" id="creatorBadge" style="display: none;">Создатель</span>
+                            <span class="premium-badge" id="premiumBadge" style="display: none;">Премиум</span>
+                            <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span>
+                        </div>
                     </div>
-                    <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span>
                 </div>
             </div>
+            
+            <!-- Donation кнопка (для будущей оплаты) -->
+            <button class="donation-btn" id="donationBtn" onclick="openDonation()" style="margin: 0 16px 10px; width: calc(100% - 32px);">
+                <i class="fas fa-heart"></i> Поддержать проект
+            </button>
             
             <!-- Поиск -->
             <div class="search-box">
@@ -997,6 +1119,12 @@
 
     <script>
         // ==============================================
+        // КОНСТАНТЫ
+        // ==============================================
+        const CREATOR_USERNAME = 'Dane4ka5'; // Имя создателя (ты)
+        const VERSION = 'v0.8.1';
+        
+        // ==============================================
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         // ==============================================
         let socket = null;
@@ -1009,9 +1137,31 @@
         let rooms = [];
         let messages = {};
         let userProfile = {};
+        let isPremium = false;
+        let isCreator = false;
         let typingTimeout = null;
         let reconnectAttempts = 0;
         let pingInterval = null;
+
+        // ==============================================
+        // ФУНКЦИИ ДЕШИФРОВКИ (ИСПРАВЛЕНО!)
+        // ==============================================
+        function decryptMessage(encryptedText) {
+            try {
+                // Пытаемся распарсить как JSON (зашифрованное сообщение)
+                const encrypted = JSON.parse(encryptedText);
+                // Если это объект с iv, tag, data - значит зашифровано
+                if (encrypted.iv && encrypted.tag && encrypted.data) {
+                    // В реальном приложении здесь должна быть дешифровка
+                    // Но пока просто помечаем что сообщение зашифровано
+                    return '🔐 [Зашифрованное сообщение]';
+                }
+            } catch (e) {
+                // Если не JSON - значит обычный текст
+                return encryptedText;
+            }
+            return encryptedText;
+        }
 
         // ==============================================
         // МОБИЛЬНАЯ НАВИГАЦИЯ
@@ -1027,7 +1177,7 @@
         }
         
         // ==============================================
-        // РЕГИСТРАЦИЯ С ТЕЛЕФОНОМ
+        // РЕГИСТРАЦИЯ
         // ==============================================
         function register() {
             const username = document.getElementById('loginUsername').value.trim();
@@ -1056,7 +1206,7 @@
         // ПОДКЛЮЧЕНИЕ WEBSOCKET
         // ==============================================
         function connectWebSocket(password) {
-            socket = new WebSocket('wss://minegram.onrender.com');
+            socket = new WebSocket('ws://localhost:3000'); // Для локального теста
             
             socket.onopen = function() {
                 console.log('✅ Подключено к серверу');
@@ -1064,7 +1214,6 @@
                 document.getElementById('statusText').textContent = 'Онлайн';
                 reconnectAttempts = 0;
                 
-                // Отправляем регистрацию с телефоном и согласием
                 socket.send(JSON.stringify({
                     type: 'register',
                     username: currentUser,
@@ -1110,7 +1259,21 @@
                 if (data.type === 'login_success' || data.type === 'register_success') {
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'flex';
-                    document.getElementById('headerName').textContent = currentUser;
+                    document.getElementById('headerNameText').textContent = currentUser;
+                    
+                    // Проверка на создателя (Dane4ka5)
+                    if (currentUser === CREATOR_USERNAME) {
+                        isCreator = true;
+                        document.getElementById('creatorIcon').style.display = 'inline';
+                        document.getElementById('creatorBadge').style.display = 'inline-block';
+                    }
+                    
+                    // Проверка на премиум (для создателя всегда true)
+                    if (data.premium || isCreator) {
+                        isPremium = true;
+                        document.getElementById('premiumIcon').style.display = 'inline';
+                        document.getElementById('premiumBadge').style.display = 'inline-block';
+                    }
                     
                     if (data.profile) {
                         userProfile = data.profile;
@@ -1120,10 +1283,6 @@
                         if (userProfile.status) {
                             updateStatusDisplay(userProfile.status);
                         }
-                    }
-                    
-                    if (currentUser === 'Dane4ka5') {
-                        document.getElementById('adminBadge').style.display = 'inline-block';
                     }
                     
                     hideChatPanel();
@@ -1158,11 +1317,13 @@
                     }
                 }
                 
-                // Новое сообщение
+                // Новое сообщение (С ДЕШИФРОВКОЙ)
                 if (data.type === 'message') {
+                    const decryptedText = decryptMessage(data.text);
+                    
                     if (data.from === currentChat) {
                         displayMessage({
-                            text: data.text,
+                            text: decryptedText,
                             from: data.from,
                             time: data.time,
                             type: 'received'
@@ -1240,8 +1401,7 @@
                     showInviteModal(data.link);
                 }
             };
-            
-            socket.onclose = function() {
+                        socket.onclose = function() {
                 console.log('❌ Отключено от сервера');
                 document.getElementById('statusDot').className = 'status-dot disconnected';
                 document.getElementById('statusText').textContent = 'Офлайн';
@@ -1262,7 +1422,19 @@
                 console.error('❌ Ошибка WebSocket:', error);
             };
         }
-                // ==============================================
+
+        // ==============================================
+        // DONATION ФУНКЦИЯ (ДЛЯ БУДУЩЕЙ ОПЛАТЫ)
+        // ==============================================
+        function openDonation() {
+            // Здесь будет интеграция с DonationAlerts
+            alert('💝 Скоро здесь появится возможность поддержать проект!\n\nПланируется: DonationAlerts, ЮKassa, Telegram Stars');
+            
+            // Пример будущей интеграции:
+            // window.open('https://www.donationalerts.com/r/ваш_логин', '_blank');
+        }
+
+        // ==============================================
         // ОБНОВЛЕНИЕ СПИСКА ЧАТОВ
         // ==============================================
         function updateChatsList(tab) {
@@ -1304,10 +1476,18 @@
             else if (type === 'room') preview = 'Приватная комната';
             else preview = 'Пользователь';
             
+            // Проверка на премиум/создателя для отображения иконок
+            let nameHtml = name;
+            if (name === CREATOR_USERNAME) {
+                nameHtml = name + ' <span class="creator-icon"><i class="fas fa-star"></i></span>';
+            } else if (data?.premium) {
+                nameHtml = name + ' <span class="premium-icon"><i class="fas fa-crown"></i></span>';
+            }
+            
             div.innerHTML = `
                 <div class="chat-avatar">${icon}</div>
                 <div class="chat-info">
-                    <div class="chat-name">${name}</div>
+                    <div class="chat-name">${nameHtml}</div>
                     <div class="chat-preview">${preview}</div>
                 </div>
                 ${type === 'channel' ? '<span class="chat-badge">📢</span>' : ''}
@@ -1339,11 +1519,11 @@
                 document.getElementById('messageInput').focus();
             }
             
-            // Загружаем историю
+            // Загружаем историю с дешифровкой
             if (type === 'room' && data?.messages) {
                 data.messages.forEach(msg => {
                     displayMessage({
-                        text: msg.text,
+                        text: decryptMessage(msg.text),
                         from: msg.from,
                         time: msg.time,
                         type: msg.from === currentUser ? 'sent' : 'received'
@@ -1354,7 +1534,7 @@
                 if (messages[chatKey]) {
                     messages[chatKey].forEach(msg => {
                         displayMessage({
-                            text: msg.text,
+                            text: decryptMessage(msg.text),
                             from: msg.from,
                             time: msg.time,
                             type: msg.from === currentUser ? 'sent' : 'received'
@@ -1422,8 +1602,14 @@
                 statusIcon = '<span class="status-icon"><i class="fas fa-check"></i></span>';
             }
             
+            // Добавляем индикатор шифрования для полученных сообщений
+            let encryptedBadge = '';
+            if (msg.type === 'received' && msg.text.includes('🔐')) {
+                encryptedBadge = '<span class="encrypted-badge"><i class="fas fa-lock"></i></span>';
+            }
+            
             div.innerHTML = `
-                ${msg.text}
+                ${encryptedBadge} ${msg.text}
                 <div class="message-footer">
                     ${msg.time}
                     ${statusIcon}
@@ -1537,6 +1723,14 @@
             document.getElementById('profileName').value = currentUser;
             document.getElementById('profileBio').value = userProfile.bio || '';
             document.getElementById('profileStatus').value = userProfile.status || 'online';
+            
+            // Показываем премиум/создатель информацию
+            if (isCreator) {
+                document.getElementById('creatorInfo').style.display = 'block';
+            } else if (isPremium) {
+                document.getElementById('premiumInfo').style.display = 'block';
+            }
+            
             openModal('profileModal');
         }
         
@@ -1564,7 +1758,7 @@
             }));
             
             userProfile = profile;
-            document.getElementById('headerName').textContent = name || currentUser;
+            document.getElementById('headerNameText').textContent = name || currentUser;
             updateStatusDisplay(status);
             
             closeAllModals();
@@ -1620,6 +1814,10 @@
         function closeAllModals() {
             document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
             document.getElementById('modalOverlay').classList.remove('active');
+            
+            // Скрываем премиум/создатель информацию
+            document.getElementById('creatorInfo').style.display = 'none';
+            document.getElementById('premiumInfo').style.display = 'none';
         }
         
         document.addEventListener('keydown', function(e) {

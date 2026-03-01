@@ -1,5 +1,15 @@
 {
-  "users": {},
+  "users": {
+    "TestUser": {
+      "username": "TestUser",
+      "password": "12345",
+      "phone": "+79991234567",
+      "registered": "2026-03-01T08:23:03.789Z",
+      "lastSeen": "2026-03-01T08:23:03.789Z",
+      "privacyAccepted": true,
+      "privacyAcceptedDate": "2026-03-01T08:23:03.789Z"
+    }
+  },
   "channels": {
     "NANOGRAM": {
       "name": "NANOGRAM",
@@ -28,8 +38,14 @@
     }
   },
   "privateRooms": {},
-  "userProfiles": {},
+  "userProfiles": {
+    "TestUser": {
+      "avatar": "👤",
+      "bio": "",
+      "status": "online"
+    }
+  },
   "userSettings": {},
   "premiumUsers": {},
-  "lastSaved": "2026-02-27T21:12:47.604Z"
+  "lastSaved": "2026-03-01T08:38:32.967Z"
 }
