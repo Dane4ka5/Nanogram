@@ -8,8 +8,8 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.8.0';
-const ADMIN_USERNAME = 'Dane4ka5';
+const VERSION = 'v0.8.2';
+const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000; // Каждую минуту
 const MAX_MESSAGES_PER_CHAT = 1000;
 const MAX_BACKUPS = 20;
@@ -198,7 +198,15 @@ function generateInviteLink() {
 }
 
 function isPremium(username) {
+    // Создатель всегда премиум
+    if (username === CREATOR_USERNAME) return true;
     return premiumUsers[username] && premiumUsers[username].active === true;
+}
+
+function getPremiumTier(username) {
+    if (username === CREATOR_USERNAME) return 'creator';
+    if (premiumUsers[username]) return premiumUsers[username].tier || 'premium';
+    return null;
 }
 
 function getChatKey(user1, user2) {
@@ -297,6 +305,7 @@ function decryptMessage(encryptedPackage) {
         return encryptedPackage;
     }
 }
+
 // ==============================================
 // СОЗДАНИЕ HTTP СЕРВЕРА
 // ==============================================
@@ -310,6 +319,7 @@ const server = http.createServer((req, res) => {
         const diagnostic = {
             server: 'ONLINE',
             version: VERSION,
+            creator: CREATOR_USERNAME,
             timestamp: new Date().toISOString(),
             stats: {
                 users: Object.keys(userDatabase).length,
@@ -335,8 +345,7 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify(diagnostic, null, 2));
         return;
     }
-    
-    // ===== СТРАНИЦА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ =====
+        // ===== СТРАНИЦА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ (С ЦЕНАМИ И БАГАМИ) =====
     if (req.url === '/privacy') {
         res.end(`
 <!DOCTYPE html>
@@ -363,6 +372,7 @@ const server = http.createServer((req, res) => {
         }
         h1 { color: #ffd700; }
         h2 { color: #2ea043; margin-top: 30px; }
+        h3 { color: #ffd700; margin-top: 20px; }
         p { color: #8b949e; margin: 15px 0; }
         .footer {
             margin-top: 40px;
@@ -372,6 +382,19 @@ const server = http.createServer((req, res) => {
         }
         a { color: #ffd700; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .bug-list {
+            background: #1a1f2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ffd700;
+        }
+        .price-table {
+            background: #1a1f2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -404,8 +427,43 @@ const server = http.createServer((req, res) => {
         <h2>5. Контакты</h2>
         <p>По всем вопросам: <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></p>
         
+        <h2>6. NanoPremium за донаты</h2>
+        <p>6.1. NanoPremium статус предоставляется за добровольные пожертвования через DonatePay</p>
+        <p>6.2. Стоимость NanoPremium доступа:</p>
+        <div class="price-table">
+            <p>• <strong>30 рублей</strong> - 1 месяц NanoPremium</p>
+            <p>• <strong>85 рублей</strong> - 3 месяца NanoPremium</p>
+            <p>• <strong>145 рублей</strong> - 6 месяцев NanoPremium</p>
+            <p>• <strong>285 рублей</strong> - 12 месяцев NanoPremium</p>
+        </div>
+        <p>6.3. После совершения доната необходимо написать создателю <strong>@Dane4ka5</strong> с указанием номера телефона для активации</p>
+        <p>6.4. Средства идут на развитие проекта и оплату хостинга</p>
+        <p>6.5. Возврат средств возможен в течение 14 дней, если NanoPremium не был активирован</p>
+        
+        <h2>7. Бесплатный NanoPremium за найденные баги</h2>
+        <p>7.1. За отправку отчёта об ошибке (баге) на почту <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a> можно получить NanoPremium бесплатно</p>
+        <p>7.2. Сроки бесплатного премиума зависят от серьёзности бага:</p>
+        
+        <div class="bug-list">
+            <p><strong>🐛 Незначительный баг</strong> (опечатка, мелкий глюк интерфейса) — <span style="color: #ffd700;">1 месяц NanoPremium</span></p>
+            <p><strong>🐞 Средний баг</strong> (не работает функция, вылетает приложение) — <span style="color: #ffd700;">3 месяца NanoPremium</span></p>
+            <p><strong>🦠 Критический баг</strong> (проблемы с безопасностью, потеря данных) — <span style="color: #ffd700;">6 месяцев NanoPremium</span></p>
+            <p><strong>💎 Уникальная находка</strong> (дыра в безопасности, критическая уязвимость) — <span style="color: #ffd700;">1 год NanoPremium + имя в списке благодарностей</span></p>
+        </div>
+        
+        <p>7.3. В отчёте обязательно указать:</p>
+        <p>   • Ваш никнейм в Nanogram</p>
+        <p>   • Подробное описание бага</p>
+        <p>   • Шаги для воспроизведения (как повторить ошибку)</p>
+        <p>   • Скриншот или видео (если есть)</p>
+        <p>   • Версию браузера/устройства</p>
+        
+        <p>7.4. Решение о выдаче NanoPremium принимает создатель проекта <strong>@Dane4ka5</strong></p>
+        <p>7.5. NanoPremium за найденные баги не суммируется с платным NanoPremium</p>
+        <p>7.6. Один баг = один NanoPremium (повторные отчёты о том же баге не награждаются)</p>
+        
         <div class="footer">
-            <p>Последнее обновление: ${new Date().toLocaleDateString()}</p>
+            <p>Nanogram ${VERSION} | Последнее обновление: ${new Date().toLocaleDateString()}</p>
             <p><a href="/">← Вернуться на главную</a></p>
         </div>
     </div>
@@ -474,7 +532,6 @@ const server = http.createServer((req, res) => {
                     data.channels['NANOGRAM'].posts.push(newPost);
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
-                    // Отправляем всем подписчикам
                     wss.clients.forEach(client => {
                         const username = activeUsers.get(client);
                         if (username && data.channels['NANOGRAM'].subscribers?.includes(username)) {
@@ -799,7 +856,8 @@ const server = http.createServer((req, res) => {
                 `).join('')}
             </div>
         </div>
-                <!-- Секция профилей -->
+        
+        <!-- Секция профилей -->
         <div id="section-profiles" class="section" style="display: none;">
             <div class="panel">
                 <h2>👤 РЕДАКТИРОВАНИЕ ПРОФИЛЕЙ</h2>
@@ -819,18 +877,6 @@ const server = http.createServer((req, res) => {
                     </select>
                     <button type="submit">💾 Сохранить</button>
                 </form>
-                
-                <h3>Текущие профили:</h3>
-                <table>
-                    <tr><th>Имя</th><th>Статус</th><th>Био</th></tr>
-                    ${Object.entries(data.userProfiles || {}).map(([name, profile]) => `
-                        <tr>
-                            <td>${name}</td>
-                            <td>${profile.status || 'online'}</td>
-                            <td>${profile.bio || '—'}</td>
-                        </tr>
-                    `).join('')}
-                </table>
             </div>
         </div>
         
@@ -853,11 +899,12 @@ const server = http.createServer((req, res) => {
                 
                 <h3>Премиум пользователи:</h3>
                 <table>
-                    <tr><th>Имя</th><th>Дата</th></tr>
+                    <tr><th>Имя</th><th>Дата</th><th>Тир</th></tr>
                     ${Object.entries(data.premiumUsers || {}).map(([name, info]) => `
                         <tr>
-                            <td>${name} 👑</td>
+                            <td>${name} ${name === 'Dane4ka5' ? '⭐' : '👑'}</td>
                             <td>${info.purchased ? new Date(info.purchased).toLocaleDateString() : '—'}</td>
+                            <td>${info.tier || 'premium'}</td>
                         </tr>
                     `).join('')}
                 </table>
@@ -910,11 +957,11 @@ const server = http.createServer((req, res) => {
                     </tr>
                     ${Object.entries(data.users || {}).map(([name, info]) => `
                         <tr>
-                            <td><strong>${name}</strong></td>
+                            <td><strong>${name} ${name === 'Dane4ka5' ? '⭐' : ''}</strong></td>
                             <td>${info.phone || '—'}</td>
                             <td>${info.password ? '✅' : '—'}</td>
                             <td>${data.userProfiles?.[name]?.status || 'online'}</td>
-                            <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
+                            <td>${data.premiumUsers?.[name]?.active || name === 'Dane4ka5' ? '👑' : '—'}</td>
                             <td>${info.registered ? new Date(info.registered).toLocaleDateString() : '—'}</td>
                             <td>${info.privacyAccepted ? '✅' : '❌'}</td>
                         </tr>
@@ -1020,7 +1067,6 @@ const server = http.createServer((req, res) => {
         }
     });
 });
-
 // ==============================================
 // СОЗДАНИЕ WEBSOCKET СЕРВЕРА
 // ==============================================
@@ -1128,6 +1174,7 @@ wss.on('connection', (ws) => {
                             status: 'online' 
                         },
                         premium: isPremium(cleanUsername),
+                        premiumTier: getPremiumTier(cleanUsername),
                         timestamp: Date.now()
                     }));
                     
@@ -1175,11 +1222,13 @@ wss.on('connection', (ws) => {
                         type: 'register_success',
                         username: cleanUsername,
                         profile: userProfiles[cleanUsername],
-                        premium: false,
+                        premium: isPremium(cleanUsername),
+                        premiumTier: getPremiumTier(cleanUsername),
                         timestamp: Date.now()
                     }));
                 }
-                                // Сохраняем в активные
+                
+                // Сохраняем в активные
                 activeUsers.set(ws, cleanUsername);
                 
                 // Отправляем все данные
@@ -1265,7 +1314,9 @@ wss.on('connection', (ws) => {
                             from: from,
                             text: encrypted,
                             time: time,
-                            serverTime: Date.now()
+                            serverTime: Date.now(),
+                            premium: isPremium(from),
+                            premiumTier: getPremiumTier(from)
                         }));
                         delivered = true;
                     }
@@ -1557,7 +1608,7 @@ setInterval(() => {
 // ==============================================
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - ПОЛНАЯ СИНХРОНИЗАЦИЯ`);
+    console.log(`🚀 Nanogram ${VERSION} - С ДОНАТАМИ И ПРЕМИУМОМ`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`🔐 Шифрование: AES-256-GCM`);
@@ -1567,11 +1618,20 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   👥 Пользователи: data.json`);
     console.log(`   💬 Сообщения: messages.json`);
     console.log(`   📝 Логи: users.log, errors.log`);
+    console.log(`\n💰 PREMIUM ТАРИФЫ:`);
+    console.log(`   • 30₽  - 1 месяц`);
+    console.log(`   • 85₽  - 3 месяца`);
+    console.log(`   • 145₽ - 6 месяцев`);
+    console.log(`   • 285₽ - 1 год`);
+    console.log(`\n🐛 БЕСПЛАТНЫЙ PREMIUM ЗА БАГИ:`);
+    console.log(`   • 🐛 Мелкий → 1 месяц`);
+    console.log(`   • 🐞 Средний → 3 месяца`);
+    console.log(`   • 🦠 Критический → 6 месяцев`);
+    console.log(`   • 💎 Уникальный → 1 год`);
     console.log(`\n📊 СТАТИСТИКА:`);
     console.log(`   👥 Пользователей в базе: ${Object.keys(userDatabase).length}`);
     console.log(`   💬 Всего сообщений: ${Object.values(messages).reduce((a, c) => a + c.length, 0)}`);
     console.log(`   📢 Постов в канале: ${channels.NANOGRAM?.posts?.length || 0}`);
-    console.log(`   🔒 Приватных комнат: ${Object.keys(privateRooms).length}`);
     console.log(`   👑 Премиум пользователей: ${Object.keys(premiumUsers).length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 Локально: http://localhost:${PORT}`);
@@ -1581,7 +1641,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   🔍 Диагностика: http://localhost:${PORT}/diagnostic`);
     console.log('='.repeat(70) + '\n');
     
-    logAction('system', 'SERVER', `Запуск v${VERSION} с полной синхронизацией`);
+    logAction('system', 'SERVER', `Запуск v${VERSION} с донатами и премиумом`);
 });
 
 // ==============================================

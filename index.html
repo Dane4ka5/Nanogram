@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.8.1 — премиум и создатель</title>
+    <title>Nanogram v0.8.2 — донаты и премиум</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -49,7 +49,7 @@
         /* ===== МАТОВЫЙ ЭФФЕКТ ===== */
         .app-container, .chats-panel, .chat-panel, .modal, .login-card, 
         .panel-header, .profile-section, .chat-item, .message-input-area,
-        .chat-header, .tab, .icon-btn {
+        .chat-header, .tab, .icon-btn, .donation-btn {
             background: var(--bg-secondary);
             backdrop-filter: var(--glass-effect);
             -webkit-backdrop-filter: var(--glass-effect);
@@ -250,14 +250,32 @@
             box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
         }
 
-        .admin-badge {
-            background: linear-gradient(135deg, #ff4500, #ff6347);
-            color: white;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
+        /* ===== DONATION КНОПКА ===== */
+        .donation-btn {
+            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
+            color: #2d2a3a;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 40px;
             font-weight: bold;
-            white-space: nowrap;
+            cursor: pointer;
+            width: calc(100% - 32px);
+            margin: 10px 16px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .donation-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .donation-btn i {
+            font-size: 18px;
         }
 
         /* ===== ПРОФИЛЬ ===== */
@@ -473,7 +491,8 @@
             font-size: 14px;
             margin-left: 5px;
         }
-                /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
+
+        /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
         .chat-header {
             padding: 14px 20px;
             display: flex;
@@ -576,17 +595,12 @@
             color: var(--accent); 
         }
 
-        .status-icon.read { 
-            color: var(--premium-gold); 
-        }
-
         .encrypted-badge {
             font-size: 10px;
             color: var(--text-light);
             margin-right: 5px;
         }
-
-        /* ===== ПОЛЕ ВВОДА ===== */
+                /* ===== ПОЛЕ ВВОДА ===== */
         .message-input-area {
             padding: 16px 20px;
             background: var(--bg-secondary);
@@ -763,7 +777,7 @@
             cursor: pointer;
         }
 
-        /* ===== PREMIUM ИНФО ===== */
+        /* ===== PREMIUM ИНФО В МОДАЛКЕ ===== */
         .premium-info {
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
             border-left: 4px solid var(--premium-gold);
@@ -780,25 +794,43 @@
             margin: 15px 0;
         }
 
-        /* ===== DONATION КНОПКА ===== */
-        .donation-btn {
-            background: linear-gradient(135deg, #ffd700, #ffa500);
-            color: #2d2a3a;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin: 10px 0;
-            font-size: 16px;
-            transition: all 0.3s ease;
+        .price-table {
+            background: #1a1f2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid var(--premium-gold);
         }
 
-        .donation-btn:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+        .price-table p {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
         }
+
+        .price {
+            color: var(--premium-gold);
+            font-weight: bold;
+        }
+
+        .bug-table {
+            background: #1a1f2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .bug-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .bug-item.bug-small { border-left-color: #ffd700; }
+        .bug-item.bug-medium { border-left-color: #ffa500; }
+        .bug-item.bug-critical { border-left-color: #ff4500; }
+        .bug-item.bug-unique { border-left-color: #8a2be2; }
 
         /* ===== СТРАНИЦА ВХОДА ===== */
         .login-container {
@@ -940,15 +972,15 @@
             <option value="away">🟡 Отошёл</option>
         </select>
         
-        <!-- Premium информация -->
-        <div id="premiumInfo" class="premium-info" style="display: none;">
+        <!-- Premium информация (будет показана если пользователь премиум) -->
+        <div id="premiumInfoModal" class="premium-info" style="display: none;">
             <i class="fas fa-crown" style="color: var(--premium-gold);"></i>
             <strong>Премиум статус активен</strong>
-            <p style="font-size: 12px; margin-top: 5px;">Спасибо за поддержку!</p>
+            <p style="font-size: 12px; margin-top: 5px;">Спасибо за поддержку проекта!</p>
         </div>
         
-        <!-- Creator информация -->
-        <div id="creatorInfo" class="creator-info" style="display: none;">
+        <!-- Creator информация (будет показана если создатель) -->
+        <div id="creatorInfoModal" class="creator-info" style="display: none;">
             <i class="fas fa-star" style="color: var(--creator-purple);"></i>
             <strong>Создатель Nanogram</strong>
             <p style="font-size: 12px; margin-top: 5px;">Спасибо, что создал этот проект!</p>
@@ -994,11 +1026,54 @@
         <button onclick="joinByLink()">🚪 Войти</button>
         <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary);">Отмена</button>
     </div>
+    
+    <!-- Модалка донатов и премиум -->
+    <div class="modal" id="donateModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-heart" style="color: var(--premium-gold);"></i> Поддержка Nanogram</h2>
+        
+        <div class="price-table">
+            <h3>💰 Премиум за донаты:</h3>
+            <p><span>1 месяц</span> <span class="price">30 ₽</span></p>
+            <p><span>3 месяца</span> <span class="price">85 ₽</span></p>
+            <p><span>6 месяцев</span> <span class="price">145 ₽</span></p>
+            <p><span>12 месяцев</span> <span class="price">285 ₽</span></p>
+        </div>
+        
+        <div class="bug-table">
+            <h3>🐛 Бесплатный премиум за баги:</h3>
+            <div class="bug-item bug-small">
+                <strong>🐛 Незначительный баг</strong> — <span style="color: var(--premium-gold);">1 месяц</span>
+                <p style="font-size: 12px;">Опечатка, мелкий глюк интерфейса</p>
+            </div>
+            <div class="bug-item bug-medium">
+                <strong>🐞 Средний баг</strong> — <span style="color: var(--premium-gold);">3 месяца</span>
+                <p style="font-size: 12px;">Не работает функция, вылетает</p>
+            </div>
+            <div class="bug-item bug-critical">
+                <strong>🦠 Критический баг</strong> — <span style="color: var(--premium-gold);">6 месяцев</span>
+                <p style="font-size: 12px;">Проблемы с безопасностью, потеря данных</p>
+            </div>
+            <div class="bug-item bug-unique">
+                <strong>💎 Уникальная находка</strong> — <span style="color: var(--premium-gold);">1 год + имя в списке</span>
+                <p style="font-size: 12px;">Дыра в безопасности, критическая уязвимость</p>
+            </div>
+        </div>
+        
+        <p style="text-align: center; margin: 15px 0;">
+            <i class="fas fa-envelope"></i> Отчёты о багах: <strong>nanogram.ru@yandex.ru</strong>
+        </p>
+        
+        <button onclick="window.open('https://donatepay.ru/don/1474515', '_blank')" style="width: 100%; background: linear-gradient(135deg, #ffd700, #ffa500); color: #2d2a3a;">
+            <i class="fas fa-heart"></i> Перейти к донату
+        </button>
+        <button onclick="closeAllModals()" style="background: transparent; color: var(--text-primary); margin-top: 10px;">Закрыть</button>
+    </div>
         <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.8.1 — премиум и создатель</p>
+            <p>v0.8.2 — донаты и премиум</p>
             
             <!-- ПОЛЕ ДЛЯ ИМЕНИ -->
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя" autofocus>
@@ -1021,6 +1096,8 @@
             
             <div style="margin-top: 20px; font-size: 12px; color: var(--text-secondary);">
                 <span class="privacy-link" onclick="window.open('/privacy', '_blank')">📜 Политика конфиденциальности</span>
+                <span style="margin: 0 10px;">|</span>
+                <span class="privacy-link" onclick="openDonateModal()">💰 Донаты</span>
             </div>
         </div>
     </div>
@@ -1057,15 +1134,15 @@
                         <div class="badge-container">
                             <span class="creator-badge" id="creatorBadge" style="display: none;">Создатель</span>
                             <span class="premium-badge" id="premiumBadge" style="display: none;">Премиум</span>
-                            <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Donation кнопка (для будущей оплаты) -->
-            <button class="donation-btn" id="donationBtn" onclick="openDonation()" style="margin: 0 16px 10px; width: calc(100% - 32px);">
+            <!-- DONATION КНОПКА (НОВАЯ) -->
+            <button class="donation-btn" onclick="openDonateModal()">
                 <i class="fas fa-heart"></i> Поддержать проект
+                <i class="fas fa-crown" style="color: var(--premium-gold);"></i>
             </button>
             
             <!-- Поиск -->
@@ -1121,8 +1198,10 @@
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
-        const CREATOR_USERNAME = 'Dane4ka5'; // Имя создателя (ты)
-        const VERSION = 'v0.8.1';
+        const CREATOR_USERNAME = 'Dane4ka5';
+        const VERSION = 'v0.8.2';
+        const DONATE_LINK = 'https://donatepay.ru/don/1474515';
+        const BUG_EMAIL = 'nanogram.ru@yandex.ru';
         
         // ==============================================
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -1144,23 +1223,25 @@
         let pingInterval = null;
 
         // ==============================================
-        // ФУНКЦИИ ДЕШИФРОВКИ (ИСПРАВЛЕНО!)
+        // ФУНКЦИИ ДЕШИФРОВКИ
         // ==============================================
         function decryptMessage(encryptedText) {
             try {
-                // Пытаемся распарсить как JSON (зашифрованное сообщение)
                 const encrypted = JSON.parse(encryptedText);
-                // Если это объект с iv, tag, data - значит зашифровано
                 if (encrypted.iv && encrypted.tag && encrypted.data) {
-                    // В реальном приложении здесь должна быть дешифровка
-                    // Но пока просто помечаем что сообщение зашифровано
                     return '🔐 [Зашифрованное сообщение]';
                 }
             } catch (e) {
-                // Если не JSON - значит обычный текст
                 return encryptedText;
             }
             return encryptedText;
+        }
+
+        // ==============================================
+        // МОДАЛКА ДОНАТОВ
+        // ==============================================
+        function openDonateModal() {
+            openModal('donateModal');
         }
 
         // ==============================================
@@ -1206,7 +1287,7 @@
         // ПОДКЛЮЧЕНИЕ WEBSOCKET
         // ==============================================
         function connectWebSocket(password) {
-            socket = new WebSocket('ws://localhost:3000'); // Для локального теста
+            socket = new WebSocket('wss://minegram.onrender.com');
             
             socket.onopen = function() {
                 console.log('✅ Подключено к серверу');
@@ -1249,7 +1330,6 @@
                 
                 console.log('📩 Получен тип:', data.type);
                 
-                // Ошибка
                 if (data.type === 'error') {
                     alert('❌ ' + data.message);
                     return;
@@ -1266,13 +1346,15 @@
                         isCreator = true;
                         document.getElementById('creatorIcon').style.display = 'inline';
                         document.getElementById('creatorBadge').style.display = 'inline-block';
+                        document.getElementById('creatorInfoModal').style.display = 'block';
                     }
                     
-                    // Проверка на премиум (для создателя всегда true)
+                    // Проверка на премиум
                     if (data.premium || isCreator) {
                         isPremium = true;
                         document.getElementById('premiumIcon').style.display = 'inline';
                         document.getElementById('premiumBadge').style.display = 'inline-block';
+                        document.getElementById('premiumInfoModal').style.display = 'block';
                     }
                     
                     if (data.profile) {
@@ -1317,7 +1399,7 @@
                     }
                 }
                 
-                // Новое сообщение (С ДЕШИФРОВКОЙ)
+                // Новое сообщение с дешифровкой
                 if (data.type === 'message') {
                     const decryptedText = decryptMessage(data.text);
                     
@@ -1424,17 +1506,6 @@
         }
 
         // ==============================================
-        // DONATION ФУНКЦИЯ (ДЛЯ БУДУЩЕЙ ОПЛАТЫ)
-        // ==============================================
-        function openDonation() {
-            // Здесь будет интеграция с DonationAlerts
-            alert('💝 Скоро здесь появится возможность поддержать проект!\n\nПланируется: DonationAlerts, ЮKassa, Telegram Stars');
-            
-            // Пример будущей интеграции:
-            // window.open('https://www.donationalerts.com/r/ваш_логин', '_blank');
-        }
-
-        // ==============================================
         // ОБНОВЛЕНИЕ СПИСКА ЧАТОВ
         // ==============================================
         function updateChatsList(tab) {
@@ -1476,7 +1547,7 @@
             else if (type === 'room') preview = 'Приватная комната';
             else preview = 'Пользователь';
             
-            // Проверка на премиум/создателя для отображения иконок
+            // Проверка на премиум/создателя
             let nameHtml = name;
             if (name === CREATOR_USERNAME) {
                 nameHtml = name + ' <span class="creator-icon"><i class="fas fa-star"></i></span>';
@@ -1602,7 +1673,6 @@
                 statusIcon = '<span class="status-icon"><i class="fas fa-check"></i></span>';
             }
             
-            // Добавляем индикатор шифрования для полученных сообщений
             let encryptedBadge = '';
             if (msg.type === 'received' && msg.text.includes('🔐')) {
                 encryptedBadge = '<span class="encrypted-badge"><i class="fas fa-lock"></i></span>';
@@ -1723,14 +1793,6 @@
             document.getElementById('profileName').value = currentUser;
             document.getElementById('profileBio').value = userProfile.bio || '';
             document.getElementById('profileStatus').value = userProfile.status || 'online';
-            
-            // Показываем премиум/создатель информацию
-            if (isCreator) {
-                document.getElementById('creatorInfo').style.display = 'block';
-            } else if (isPremium) {
-                document.getElementById('premiumInfo').style.display = 'block';
-            }
-            
             openModal('profileModal');
         }
         
@@ -1816,8 +1878,8 @@
             document.getElementById('modalOverlay').classList.remove('active');
             
             // Скрываем премиум/создатель информацию
-            document.getElementById('creatorInfo').style.display = 'none';
-            document.getElementById('premiumInfo').style.display = 'none';
+            document.getElementById('creatorInfoModal').style.display = 'none';
+            document.getElementById('premiumInfoModal').style.display = 'none';
         }
         
         document.addEventListener('keydown', function(e) {
