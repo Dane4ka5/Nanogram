@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.9.0';
+const VERSION = 'v0.9.1';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000; // Каждую минуту
 const MAX_MESSAGES_PER_CHAT = 1000;
@@ -17,8 +17,8 @@ const MAX_BACKUPS = 20;
 // ==============================================
 // ХРАНИЛИЩА ДАННЫХ
 // ==============================================
-const activeUsers = new Map(); // WebSocket -> username
-let userDatabase = {}; // username -> { password, phone, registered, lastSeen, privacySettings }
+const activeUsers = new Map(); // WebSocket -> { username, lastSeen, status, ip }
+let userDatabase = {}; // username -> { password, phone, registered, lastSeen, privacySettings, settings }
 let messages = {}; // chatKey -> [message, ...]
 let groups = {}; // groupId -> { id, name, creator, admins, members, avatar, messages, created }
 let channels = {
@@ -38,9 +38,10 @@ let privateRooms = {};
 let userProfiles = {};
 let userSettings = {};
 let premiumUsers = {};
-let blockedUsers = {}; // username -> [blockedUser1, blockedUser2]
-let hiddenChats = {}; // username -> [chatId1, chatId2]
-let privacySettings = {}; // username -> { showPhone: 'all|contacts|none', showOnline: 'all|contacts|none' }
+let blockedUsers = {};
+let hiddenChats = {};
+let privacySettings = {};
+let userStatuses = {}; // username -> { online: true, lastSeen: timestamp, status: 'online|away|busy' }
 
 // ==============================================
 // ЗАГРУЗКА ВСЕХ ДАННЫХ
@@ -65,6 +66,7 @@ function loadAllData() {
             blockedUsers = data.blockedUsers || {};
             hiddenChats = data.hiddenChats || {};
             privacySettings = data.privacySettings || {};
+            userStatuses = data.userStatuses || {};
             
             console.log(`✅ data.json загружен:`);
             console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
@@ -104,6 +106,7 @@ function saveData() {
             blockedUsers: blockedUsers,
             hiddenChats: hiddenChats,
             privacySettings: privacySettings,
+            userStatuses: userStatuses,
             lastSaved: new Date().toISOString()
         };
         fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
@@ -164,18 +167,7 @@ function isBlocked(byUser, targetUser) {
     return blockedUsers[byUser] && blockedUsers[byUser].includes(targetUser);
 }
 
-function canSeePhone(viewer, target) {
-    const settings = privacySettings[target] || { showPhone: 'all' };
-    if (settings.showPhone === 'all') return true;
-    if (settings.showPhone === 'none') return false;
-    if (settings.showPhone === 'contacts') {
-        // Здесь можно добавить проверку контактов
-        return true;
-    }
-    return true;
-}
-
-function canSeeOnline(viewer, target) {
+function canSeeStatus(viewer, target) {
     const settings = privacySettings[target] || { showOnline: 'all' };
     if (settings.showOnline === 'all') return true;
     if (settings.showOnline === 'none') return false;
@@ -183,6 +175,13 @@ function canSeeOnline(viewer, target) {
     return true;
 }
 
+function getUserStatus(username) {
+    const userData = activeUsers.get(username);
+    if (userData) {
+        return { online: true, status: userData.status || 'online', lastSeen: Date.now() };
+    }
+    return { online: false, lastSeen: userDatabase[username]?.lastSeen || null };
+}
 // ==============================================
 // HTTP СЕРВЕР
 // ==============================================
@@ -192,11 +191,13 @@ const server = http.createServer((req, res) => {
     // ===== ДИАГНОСТИКА =====
     if (req.url === '/diagnostic') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
+        const onlineCount = Array.from(activeUsers.values()).length;
         const diagnostic = {
             server: 'ONLINE',
             version: VERSION,
             stats: {
                 users: Object.keys(userDatabase).length,
+                online: onlineCount,
                 groups: Object.keys(groups).length,
                 messages: Object.keys(messages).length,
                 blocked: Object.keys(blockedUsers).length
@@ -206,23 +207,127 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // ===== ПОЛИТИКА =====
+    // ===== ВСТРОЕННАЯ ПОЛИТИКА (JSON для API) =====
+    if (req.url === '/api/privacy') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const privacyData = {
+            version: VERSION,
+            lastUpdated: new Date().toISOString(),
+            rules: [
+                {
+                    title: "Какие данные собираем",
+                    items: [
+                        "Имя пользователя (никнейм)",
+                        "Номер телефона (только для входа)",
+                        "Сообщения (в зашифрованном виде AES-256-GCM)",
+                        "История действий (логи)"
+                    ]
+                },
+                {
+                    title: "Премиум за донаты",
+                    items: [
+                        "30₽ - 1 месяц",
+                        "85₽ - 3 месяца",
+                        "145₽ - 6 месяцев",
+                        "285₽ - 1 год"
+                    ]
+                },
+                {
+                    title: "Бесплатный премиум за баги",
+                    items: [
+                        "🐛 Незначительный баг - 1 месяц",
+                        "🐞 Средний баг - 3 месяца",
+                        "🦠 Критический баг - 6 месяцев",
+                        "💎 Уникальная находка - 1 год"
+                    ]
+                }
+            ],
+            contact: "nanogram.ru@yandex.ru"
+        };
+        res.end(JSON.stringify(privacyData, null, 2));
+        return;
+    }
+    
+    // ===== ПОЛИТИКА (HTML) =====
     if (req.url === '/privacy') {
         res.end(`<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Политика Nanogram</title>
-<style>body{background:#0d1117;color:#f0f6fc;padding:20px;}</style></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 Политика Nanogram</title>
+    <style>
+        body {
+            background: #0a0c10;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #161b22;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #30363d;
+        }
+        h1 { color: #9f8be5; font-size: 32px; margin-bottom: 20px; }
+        h2 { color: #ffd700; margin-top: 30px; font-size: 24px; }
+        p { color: #b0b3b8; margin: 15px 0; }
+        .price {
+            background: #21262d;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #9f8be5;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #8b949e;
+            font-size: 14px;
+        }
+        a { color: #9f8be5; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
 <body>
-    <h1>📜 Политика Nanogram v${VERSION}</h1>
-    <p>• Приватность: вы сами решаете, кто видит ваш номер и онлайн</p>
-    <p>• Блокировки: вы можете заблокировать любого пользователя</p>
-    <p>• Скрытые чаты: пароль на важные переписки</p>
-    <p>• Группы: до 100 человек</p>
+    <div class="container">
+        <h1>📜 Политика конфиденциальности Nanogram</h1>
+        
+        <h2>1. Какие данные мы собираем</h2>
+        <p>• Имя пользователя (никнейм)</p>
+        <p>• Номер телефона (только для входа)</p>
+        <p>• Сообщения (в зашифрованном виде AES-256-GCM)</p>
+        <p>• История действий (логи для технической поддержки)</p>
+        
+        <h2>2. Премиум за донаты</h2>
+        <div class="price">30 рублей - 1 месяц</div>
+        <div class="price">85 рублей - 3 месяца</div>
+        <div class="price">145 рублей - 6 месяцев</div>
+        <div class="price">285 рублей - 1 год</div>
+        
+        <h2>3. Бесплатный премиум за баги</h2>
+        <p>🐛 Незначительный баг (опечатка, мелкий глюк) — 1 месяц</p>
+        <p>🐞 Средний баг (не работает функция) — 3 месяца</p>
+        <p>🦠 Критический баг (проблемы с безопасностью) — 6 месяцев</p>
+        <p>💎 Уникальная находка (дыра в безопасности) — 1 год + имя в списке</p>
+        
+        <h2>4. Контакты</h2>
+        <p>📧 <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></p>
+        
+        <div class="footer">
+            <p>Версия ${VERSION} | Последнее обновление: ${new Date().toLocaleDateString()}</p>
+            <p><a href="/">← Вернуться</a></p>
+        </div>
+    </div>
 </body>
 </html>`);
         return;
     }
-        // ===== ТЕНЕВАЯ ПАНЕЛЬ (УЛУЧШЕННАЯ) =====
+    
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ (УЛУЧШЕННАЯ) =====
     if (req.url.includes('admin')) {
         
         let data = {};
@@ -295,6 +400,7 @@ const server = http.createServer((req, res) => {
         const channelsCount = Object.keys(data.channels || {}).length;
         const premiumCount = Object.keys(data.premiumUsers || {}).length;
         const bannedCount = Object.values(data.users || {}).filter(u => u.banned).length;
+        const onlineCount = activeUsers.size;
         
         let totalMessages = 0;
         Object.values(msgs).forEach(chat => totalMessages += chat.length);
@@ -317,7 +423,7 @@ const server = http.createServer((req, res) => {
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
-        h1 { color: #ffd700; font-size: 32px; margin-bottom: 10px; }
+        h1 { color: #9f8be5; font-size: 32px; margin-bottom: 10px; }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -332,6 +438,7 @@ const server = http.createServer((req, res) => {
         }
         .stat-value { font-size: 28px; font-weight: bold; color: #ffd700; }
         .stat-label { color: #b0b3b8; font-size: 14px; margin-top: 5px; }
+        .online-badge { color: #2ea043; font-weight: bold; }
         .panel {
             background: #161b22;
             padding: 25px;
@@ -396,9 +503,9 @@ const server = http.createServer((req, res) => {
         
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-value">${usersCount}</div><div class="stat-label">Пользователей</div></div>
+            <div class="stat-card"><div class="stat-value">${onlineCount}</div><div class="stat-label"><span class="online-badge">● Онлайн</span></div></div>
             <div class="stat-card"><div class="stat-value">${totalMessages}</div><div class="stat-label">Сообщений</div></div>
             <div class="stat-card"><div class="stat-value">${groupsCount}</div><div class="stat-label">Групп</div></div>
-            <div class="stat-card"><div class="stat-value">${channelsCount}</div><div class="stat-label">Каналов</div></div>
             <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">Премиум</div></div>
             <div class="stat-card"><div class="stat-value">${bannedCount}</div><div class="stat-label">Заблокировано</div></div>
         </div>
@@ -406,7 +513,7 @@ const server = http.createServer((req, res) => {
         <div class="tabs">
             <span class="tab active" onclick="showSection('users')">👥 Пользователи</span>
             <span class="tab" onclick="showSection('groups')">👥 Группы</span>
-            <span class="tab" onclick="showSection('privacy')">🔒 Приватность</span>
+            <span class="tab" onclick="showSection('privacy')">🔒 Политика</span>
             <span class="tab" onclick="showSection('logs')">📝 Логи</span>
         </div>
         
@@ -426,7 +533,6 @@ const server = http.createServer((req, res) => {
                 <table>
                     <tr>
                         <th>Имя</th>
-                        <th>Телефон</th>
                         <th>Статус</th>
                         <th>Премиум</th>
                         <th>Действия</th>
@@ -434,7 +540,6 @@ const server = http.createServer((req, res) => {
                     ${Object.entries(data.users || {}).map(([name, info]) => `
                         <tr class="${info.banned ? 'banned' : ''}">
                             <td><strong>${name}</strong></td>
-                            <td>${info.phone || '—'}</td>
                             <td>${info.banned ? '🔴 ЗАБЛОКИРОВАН' : '🟢 Активен'}</td>
                             <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
                             <td>
@@ -458,7 +563,7 @@ const server = http.createServer((req, res) => {
             </div>
         </div>
         
-        <!-- Секция групп -->
+        <!-- Секция групп (аналогично) -->
         <div id="section-groups" class="section" style="display: none;">
             <div class="panel">
                 <h2>👥 УПРАВЛЕНИЕ ГРУППАМИ</h2>
@@ -467,7 +572,6 @@ const server = http.createServer((req, res) => {
                         <th>Название</th>
                         <th>Создатель</th>
                         <th>Участники</th>
-                        <th>Сообщений</th>
                         <th>Действия</th>
                     </tr>
                     ${Object.entries(data.groups || {}).map(([id, group]) => `
@@ -475,7 +579,6 @@ const server = http.createServer((req, res) => {
                             <td><strong>${group.name}</strong></td>
                             <td>${group.creator}</td>
                             <td>${group.members?.length || 0}</td>
-                            <td>${group.messages?.length || 0}</td>
                             <td>
                                 <form method="get" style="display:inline;">
                                     <input type="hidden" name="action" value="delete_group">
@@ -489,25 +592,27 @@ const server = http.createServer((req, res) => {
             </div>
         </div>
         
-        <!-- Секция приватности -->
+        <!-- Секция политики -->
         <div id="section-privacy" class="section" style="display: none;">
             <div class="panel">
-                <h2>🔒 НАСТРОЙКИ ПРИВАТНОСТИ</h2>
-                <p>Управление тем, кто что видит - в интерфейсе пользователя</p>
-                <table>
-                    <tr>
-                        <th>Пользователь</th>
-                        <th>Кто видит номер</th>
-                        <th>Кто видит онлайн</th>
-                    </tr>
-                    ${Object.entries(data.privacySettings || {}).map(([name, settings]) => `
-                        <tr>
-                            <td>${name}</td>
-                            <td>${settings.showPhone || 'all'}</td>
-                            <td>${settings.showOnline || 'all'}</td>
-                        </tr>
-                    `).join('')}
-                </table>
+                <h2>🔒 ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ</h2>
+                <div style="background: #0a0c10; padding: 20px; border-radius: 10px;">
+                    <h3 style="color: #9f8be5;">Премиум за донаты:</h3>
+                    <p>• 30₽ - 1 месяц</p>
+                    <p>• 85₽ - 3 месяца</p>
+                    <p>• 145₽ - 6 месяцев</p>
+                    <p>• 285₽ - 1 год</p>
+                    
+                    <h3 style="color: #9f8be5; margin-top: 20px;">Бесплатный премиум за баги:</h3>
+                    <p>🐛 Мелкий баг - 1 месяц</p>
+                    <p>🐞 Средний баг - 3 месяца</p>
+                    <p>🦠 Критический баг - 6 месяцев</p>
+                    <p>💎 Уникальный - 1 год</p>
+                    
+                    <h3 style="color: #9f8be5; margin-top: 20px;">Контакты:</h3>
+                    <p>📧 nanogram.ru@yandex.ru</p>
+                </div>
+                <a href="/privacy" target="_blank" style="display: inline-block; margin-top: 20px; color: #9f8be5;">Открыть полную версию →</a>
             </div>
         </div>
         
@@ -541,7 +646,7 @@ const server = http.createServer((req, res) => {
     fs.readFile(filePath, 'utf8', (err, content) => {
         if (err) {
             res.writeHead(404);
-            res.end('<h1>404</h1>');
+            res.end('<h1>404 - Файл не найден</h1>');
         } else {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(content);
@@ -553,8 +658,11 @@ const server = http.createServer((req, res) => {
 // ==============================================
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', (ws) => {
-    console.log(`🔌 Новое WebSocket подключение`);
+wss.on('connection', (ws, req) => {
+    const clientIp = req.socket.remoteAddress;
+    console.log(`🔌 Новое WebSocket подключение с IP: ${clientIp}`);
+    
+    let currentUsername = null;
     
     ws.send(JSON.stringify({
         type: 'connection_established',
@@ -571,9 +679,9 @@ wss.on('connection', (ws) => {
                 return;
             }
 
-            console.log(`📩 Получен тип: ${data.type}`);
+            console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
 
-            // ===== РЕГИСТРАЦИЯ =====
+            // ===== РЕГИСТРАЦИЯ С ОНЛАЙН СТАТУСОМ =====
             if (data.type === 'register') {
                 const { username, password, phone } = data;
                 
@@ -589,13 +697,26 @@ wss.on('connection', (ws) => {
                 }
                 
                 if (userDatabase[username]) {
+                    // ВХОД
                     if (userDatabase[username].password !== password) {
                         ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный пароль' }));
                         return;
                     }
                     
                     console.log(`👋 Вход: ${username}`);
+                    currentUsername = username;
+                    
+                    // Обновляем статус онлайн
                     userDatabase[username].lastSeen = new Date().toISOString();
+                    userStatuses[username] = { 
+                        online: true, 
+                        status: 'online',
+                        lastSeen: Date.now(),
+                        ip: clientIp
+                    };
+                    
+                    activeUsers.set(ws, { username, status: 'online', lastSeen: Date.now() });
+                    
                     saveData();
                     
                     ws.send(JSON.stringify({
@@ -603,12 +724,16 @@ wss.on('connection', (ws) => {
                         username: username,
                         profile: userProfiles[username] || { avatar: '👤', bio: '' },
                         premium: isPremium(username),
-                        privacy: privacySettings[username] || { showPhone: 'all', showOnline: 'all' },
-                        blocked: blockedUsers[username] || []
+                        privacy: privacySettings[username] || { showOnline: 'all', showPhone: 'all' },
+                        blocked: blockedUsers[username] || [],
+                        status: 'online'
                     }));
                     
+                    // Оповещаем всех о новом онлайн статусе
+                    broadcastUserStatus(username, 'online');
+                    
                 } else {
-                    // Проверка уникальности телефона
+                    // РЕГИСТРАЦИЯ
                     let phoneExists = false;
                     for (const u of Object.values(userDatabase)) {
                         if (u.phone === phone) {
@@ -623,6 +748,7 @@ wss.on('connection', (ws) => {
                     }
                     
                     console.log(`👤 Новый: ${username}`);
+                    currentUsername = username;
                     
                     userDatabase[username] = {
                         username, password, phone,
@@ -632,9 +758,17 @@ wss.on('connection', (ws) => {
                     };
                     
                     userProfiles[username] = { avatar: '👤', bio: '' };
-                    privacySettings[username] = { showPhone: 'all', showOnline: 'all' };
+                    privacySettings[username] = { showOnline: 'all', showPhone: 'all' };
                     blockedUsers[username] = [];
                     hiddenChats[username] = [];
+                    userStatuses[username] = { 
+                        online: true, 
+                        status: 'online',
+                        lastSeen: Date.now(),
+                        ip: clientIp
+                    };
+                    
+                    activeUsers.set(ws, { username, status: 'online', lastSeen: Date.now() });
                     
                     saveData();
                     
@@ -644,11 +778,12 @@ wss.on('connection', (ws) => {
                         profile: userProfiles[username],
                         premium: false,
                         privacy: privacySettings[username],
-                        blocked: []
+                        blocked: [],
+                        status: 'online'
                     }));
+                    
+                    broadcastUserStatus(username, 'online');
                 }
-                
-                activeUsers.set(ws, username);
                 
                 // Отправляем данные
                 ws.send(JSON.stringify({ type: 'history', history: messages }));
@@ -658,10 +793,68 @@ wss.on('connection', (ws) => {
                     groups: Object.values(groups).filter(g => g.members.includes(username))
                 }));
                 
+                // Отправляем список онлайн пользователей (с учётом приватности)
+                const onlineList = [];
+                activeUsers.forEach((value, key) => {
+                    if (value.username !== username) {
+                        if (canSeeStatus(username, value.username)) {
+                            onlineList.push({
+                                username: value.username,
+                                status: value.status
+                            });
+                        }
+                    }
+                });
+                ws.send(JSON.stringify({ type: 'online_list', users: onlineList }));
+                
                 broadcastUserList();
             }
-
-            // ===== СОЗДАНИЕ ГРУППЫ =====
+            
+            // ===== ОБНОВЛЕНИЕ СТАТУСА =====
+            if (data.type === 'update_status') {
+                const { username, status } = data;
+                
+                if (activeUsers.has(ws) && currentUsername === username) {
+                    const userData = activeUsers.get(ws);
+                    userData.status = status;
+                    activeUsers.set(ws, userData);
+                    
+                    if (userStatuses[username]) {
+                        userStatuses[username].status = status;
+                    }
+                    
+                    broadcastUserStatus(username, status);
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'status_updated', 
+                        status: status 
+                    }));
+                }
+            }
+            
+            // ===== ЗАПРОС СТАТУСА ПОЛЬЗОВАТЕЛЯ =====
+            if (data.type === 'get_status') {
+                const { username, target } = data;
+                
+                if (canSeeStatus(username, target)) {
+                    const status = userStatuses[target];
+                    ws.send(JSON.stringify({
+                        type: 'user_status',
+                        username: target,
+                        online: status ? status.online : false,
+                        status: status ? status.status : 'offline',
+                        lastSeen: userDatabase[target]?.lastSeen
+                    }));
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'user_status',
+                        username: target,
+                        online: false,
+                        status: 'hidden'
+                    }));
+                }
+            }
+                        // ===== СОЗДАНИЕ ГРУППЫ =====
             if (data.type === 'create_group') {
                 const { name, creator } = data;
                 
@@ -747,7 +940,8 @@ wss.on('connection', (ws) => {
                 
                 logAction('group_message', from, `В группу ${groupId}`);
             }
-                        // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
+
+            // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
             if (data.type === 'update_privacy') {
                 const { username, settings } = data;
                 
@@ -756,7 +950,10 @@ wss.on('connection', (ws) => {
                 saveData();
                 logAction('update_privacy', username, JSON.stringify(settings));
                 
-                ws.send(JSON.stringify({ type: 'privacy_updated', settings: privacySettings[username] }));
+                ws.send(JSON.stringify({ 
+                    type: 'privacy_updated', 
+                    settings: privacySettings[username] 
+                }));
             }
 
             // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
@@ -792,173 +989,7 @@ wss.on('connection', (ws) => {
                 }
             }
 
-            // ===== СКРЫТЫЙ ЧАТ =====
-            if (data.type === 'hide_chat') {
-                const { username, chatId, password } = data;
-                
-                if (!hiddenChats[username]) hiddenChats[username] = [];
-                
-                // Сохраняем пароль в зашифрованном виде
-                const chatData = {
-                    id: chatId,
-                    password: crypto.createHash('sha256').update(password).digest('hex')
-                };
-                
-                hiddenChats[username].push(chatData);
-                saveData();
-                logAction('hide_chat', username, chatId);
-                
-                ws.send(JSON.stringify({ type: 'chat_hidden', chatId }));
-            }
-
-            // ===== ОТПРАВКА ФАЙЛА =====
-            if (data.type === 'send_file') {
-                const { from, to, fileName, fileData, fileType, time } = data;
-                
-                // Сохраняем файл на сервере
-                const fileId = generateId();
-                const filePath = `./uploads/${fileId}_${fileName}`;
-                
-                if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
-                
-                const buffer = Buffer.from(fileData, 'base64');
-                fs.writeFileSync(filePath, buffer);
-                
-                const chatKey = [from, to].sort().join('_');
-                if (!messages[chatKey]) messages[chatKey] = [];
-                
-                messages[chatKey].push({
-                    id: fileId,
-                    type: 'file',
-                    from,
-                    to,
-                    fileName,
-                    filePath,
-                    fileSize: buffer.length,
-                    time,
-                    timestamp: Date.now()
-                });
-                
-                saveMessages();
-                
-                // Отправляем получателю
-                wss.clients.forEach(client => {
-                    const username = activeUsers.get(client);
-                    if (username === to) {
-                        client.send(JSON.stringify({
-                            type: 'file',
-                            id: fileId,
-                            from,
-                            fileName,
-                            fileSize: buffer.length,
-                            time
-                        }));
-                    }
-                });
-                
-                ws.send(JSON.stringify({ type: 'file_sent', fileId }));
-            }
-
-            // ===== ГОЛОСОВОЕ СООБЩЕНИЕ =====
-            if (data.type === 'voice_message') {
-                const { from, to, audioData, duration, time } = data;
-                
-                const voiceId = generateId();
-                const voicePath = `./uploads/voice_${voiceId}.ogg`;
-                
-                if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
-                
-                const buffer = Buffer.from(audioData, 'base64');
-                fs.writeFileSync(voicePath, buffer);
-                
-                const chatKey = [from, to].sort().join('_');
-                if (!messages[chatKey]) messages[chatKey] = [];
-                
-                messages[chatKey].push({
-                    id: voiceId,
-                    type: 'voice',
-                    from,
-                    to,
-                    duration,
-                    voicePath,
-                    time,
-                    timestamp: Date.now()
-                });
-                
-                saveMessages();
-                
-                wss.clients.forEach(client => {
-                    const username = activeUsers.get(client);
-                    if (username === to) {
-                        client.send(JSON.stringify({
-                            type: 'voice',
-                            id: voiceId,
-                            from,
-                            duration,
-                            time
-                        }));
-                    }
-                });
-            }
-
-            // ===== ИНТЕГРАЦИЯ С YOUTUBE =====
-            if (data.type === 'share_youtube') {
-                const { from, to, videoId, title, time } = data;
-                
-                const chatKey = [from, to].sort().join('_');
-                if (!messages[chatKey]) messages[chatKey] = [];
-                
-                messages[chatKey].push({
-                    id: generateId(),
-                    type: 'youtube',
-                    from,
-                    to,
-                    videoId,
-                    title,
-                    time,
-                    timestamp: Date.now()
-                });
-                
-                saveMessages();
-                
-                wss.clients.forEach(client => {
-                    const username = activeUsers.get(client);
-                    if (username === to) {
-                        client.send(JSON.stringify({
-                            type: 'youtube',
-                            from,
-                            videoId,
-                            title,
-                            time
-                        }));
-                    }
-                });
-            }
-
-            // ===== СТАТУС "ПЕЧАТАЕТ" =====
-            if (data.type === 'typing') {
-                const { from, to } = data;
-                
-                wss.clients.forEach(client => {
-                    const username = activeUsers.get(client);
-                    if (username === to && !isBlocked(to, from)) {
-                        client.send(JSON.stringify({ type: 'typing', from }));
-                    }
-                });
-            }
-
-            // ===== ПРОСМОТРЕНО =====
-            if (data.type === 'read') {
-                const { username, messageId, from } = data;
-                
-                wss.clients.forEach(client => {
-                    const user = activeUsers.get(client);
-                    if (user === from) {
-                        client.send(JSON.stringify({ type: 'read', messageId, by: username }));
-                    }
-                });
-            }
-                        // ===== ЛИЧНОЕ СООБЩЕНИЕ =====
+            // ===== ЛИЧНОЕ СООБЩЕНИЕ =====
             if (data.type === 'message') {
                 const { from, to, text, time } = data;
                 
@@ -989,10 +1020,11 @@ wss.on('connection', (ws) => {
                 saveMessages();
                 logAction('message', from, `→ ${to}`);
                 
+                // Отправляем получателю
                 let delivered = false;
                 wss.clients.forEach(client => {
-                    const username = activeUsers.get(client);
-                    if (username === to) {
+                    const userData = activeUsers.get(client);
+                    if (userData && userData.username === to) {
                         client.send(JSON.stringify({
                             type: 'message',
                             id: messageObj.id,
@@ -1011,21 +1043,191 @@ wss.on('connection', (ws) => {
                     delivered
                 }));
             }
+                        // ===== ОТПРАВКА ФАЙЛА =====
+            if (data.type === 'send_file') {
+                const { from, to, fileName, fileData, fileType, time } = data;
+                
+                if (isBlocked(to, from)) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
+                    return;
+                }
+                
+                // Сохраняем файл на сервере
+                const fileId = generateId();
+                const filePath = `./uploads/${fileId}_${fileName}`;
+                
+                if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
+                
+                const buffer = Buffer.from(fileData, 'base64');
+                fs.writeFileSync(filePath, buffer);
+                
+                const chatKey = [from, to].sort().join('_');
+                if (!messages[chatKey]) messages[chatKey] = [];
+                
+                messages[chatKey].push({
+                    id: fileId,
+                    type: 'file',
+                    from,
+                    to,
+                    fileName,
+                    filePath,
+                    fileSize: buffer.length,
+                    time,
+                    timestamp: Date.now()
+                });
+                
+                saveMessages();
+                logAction('send_file', from, `${fileName} → ${to}`);
+                
+                // Отправляем получателю
+                wss.clients.forEach(client => {
+                    const userData = activeUsers.get(client);
+                    if (userData && userData.username === to) {
+                        client.send(JSON.stringify({
+                            type: 'file',
+                            id: fileId,
+                            from,
+                            fileName,
+                            fileSize: buffer.length,
+                            time
+                        }));
+                    }
+                });
+                
+                ws.send(JSON.stringify({ type: 'file_sent', fileId }));
+            }
+
+            // ===== ИНТЕГРАЦИЯ С YOUTUBE =====
+            if (data.type === 'share_youtube') {
+                const { from, to, videoId, title, time } = data;
+                
+                if (isBlocked(to, from)) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
+                    return;
+                }
+                
+                const chatKey = [from, to].sort().join('_');
+                if (!messages[chatKey]) messages[chatKey] = [];
+                
+                messages[chatKey].push({
+                    id: generateId(),
+                    type: 'youtube',
+                    from,
+                    to,
+                    videoId,
+                    title,
+                    time,
+                    timestamp: Date.now()
+                });
+                
+                saveMessages();
+                
+                wss.clients.forEach(client => {
+                    const userData = activeUsers.get(client);
+                    if (userData && userData.username === to) {
+                        client.send(JSON.stringify({
+                            type: 'youtube',
+                            from,
+                            videoId,
+                            title,
+                            time
+                        }));
+                    }
+                });
+                
+                ws.send(JSON.stringify({ type: 'youtube_shared' }));
+            }
+
+            // ===== СТАТУС "ПЕЧАТАЕТ" =====
+            if (data.type === 'typing') {
+                const { from, to } = data;
+                
+                if (isBlocked(to, from)) return;
+                
+                wss.clients.forEach(client => {
+                    const userData = activeUsers.get(client);
+                    if (userData && userData.username === to) {
+                        client.send(JSON.stringify({ 
+                            type: 'typing', 
+                            from,
+                            status: 'typing' 
+                        }));
+                    }
+                });
+            }
+
+            // ===== ПРОСМОТРЕНО =====
+            if (data.type === 'read') {
+                const { username, messageId, from } = data;
+                
+                wss.clients.forEach(client => {
+                    const userData = activeUsers.get(client);
+                    if (userData && userData.username === from) {
+                        client.send(JSON.stringify({ 
+                            type: 'read', 
+                            messageId, 
+                            by: username 
+                        }));
+                    }
+                });
+            }
+
+            // ===== ПОЛУЧИТЬ ПОЛИТИКУ =====
+            if (data.type === 'get_privacy') {
+                ws.send(JSON.stringify({
+                    type: 'privacy_data',
+                    content: {
+                        donations: [
+                            { price: 30, months: 1 },
+                            { price: 85, months: 3 },
+                            { price: 145, months: 6 },
+                            { price: 285, months: 12 }
+                        ],
+                        bugs: [
+                            { type: '🐛 Незначительный', reward: '1 месяц' },
+                            { type: '🐞 Средний', reward: '3 месяца' },
+                            { type: '🦠 Критический', reward: '6 месяцев' },
+                            { type: '💎 Уникальный', reward: '1 год' }
+                        ],
+                        contact: 'nanogram.ru@yandex.ru'
+                    }
+                }));
+            }
             
         } catch (e) {
             console.error('❌ Ошибка:', e);
             logAction('error', 'SYSTEM', e.message);
-            ws.send(JSON.stringify({ type: 'error', message: 'Ошибка сервера' }));
+            ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: '❌ Внутренняя ошибка сервера' 
+            }));
         }
     });
 
     ws.on('close', () => {
-        const username = activeUsers.get(ws);
-        if (username) {
-            console.log(`👋 ${username} отключился`);
+        if (currentUsername) {
+            console.log(`👋 ${currentUsername} отключился`);
+            
+            // Обновляем статус на офлайн
+            if (userStatuses[currentUsername]) {
+                userStatuses[currentUsername].online = false;
+                userStatuses[currentUsername].lastSeen = Date.now();
+            }
+            
+            userDatabase[currentUsername].lastSeen = new Date().toISOString();
+            saveData();
+            
             activeUsers.delete(ws);
+            
+            // Оповещаем всех об уходе
+            broadcastUserStatus(currentUsername, 'offline');
             broadcastUserList();
         }
+    });
+
+    ws.on('error', (error) => {
+        console.error('❌ Ошибка WebSocket:', error);
+        logAction('error', 'WEBSOCKET', error.message);
     });
 });
 
@@ -1041,12 +1243,33 @@ function broadcastToAll(message) {
 }
 
 function broadcastUserList() {
-    const userList = Array.from(activeUsers.values()).filter(u => {
-        // Показываем только тех, кто не в бане и не скрыт
-        return !userDatabase[u]?.banned;
-    });
+    const userList = Array.from(activeUsers.values())
+        .map(u => u.username)
+        .filter(u => !userDatabase[u]?.banned);
     
-    broadcastToAll({ type: 'user_list', users: userList });
+    broadcastToAll({ 
+        type: 'user_list', 
+        users: userList,
+        timestamp: Date.now()
+    });
+}
+
+function broadcastUserStatus(username, status) {
+    const userData = activeUsers.values();
+    const statusData = {
+        type: 'user_status_update',
+        username,
+        online: status !== 'offline',
+        status: status,
+        timestamp: Date.now()
+    };
+    
+    wss.clients.forEach(client => {
+        const viewer = activeUsers.get(client)?.username;
+        if (viewer && canSeeStatus(viewer, username)) {
+            client.send(JSON.stringify(statusData));
+        }
+    });
 }
 
 function broadcastToGroup(groupId, message) {
@@ -1054,15 +1277,15 @@ function broadcastToGroup(groupId, message) {
     if (!group) return;
     
     wss.clients.forEach(client => {
-        const username = activeUsers.get(client);
-        if (username && group.members.includes(username)) {
+        const userData = activeUsers.get(client);
+        if (userData && group.members.includes(userData.username)) {
             client.send(JSON.stringify(message));
         }
     });
 }
 
 // ==============================================
-// ОЧИСТКА
+// ПЕРИОДИЧЕСКАЯ ОЧИСТКА
 // ==============================================
 setInterval(() => {
     let removed = 0;
@@ -1071,26 +1294,33 @@ setInterval(() => {
             removed++;
         }
     });
-    if (removed > 0) console.log(`🧹 Очищено ${removed}`);
+    if (removed > 0) console.log(`🧹 Очищено ${removed} неактивных`);
 }, 30000);
 
 // ==============================================
 // ЗАПУСК
 // ==============================================
 server.listen(PORT, '0.0.0.0', () => {
+    const onlineCount = activeUsers.size;
+    
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - МЕГА-ОБНОВЛЕНИЕ`);
+    console.log(`🚀 Nanogram ${VERSION} - С АКТИВНОСТЬЮ И ПОЛИТИКОЙ`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`\n📊 СТАТИСТИКА:`);
     console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
+    console.log(`   🟢 Онлайн сейчас: ${onlineCount}`);
     console.log(`   👥 Групп: ${Object.keys(groups).length}`);
     console.log(`   💬 Сообщений: ${Object.values(messages).reduce((a, c) => a + c.length, 0)}`);
     console.log(`   🔒 Заблокировано: ${Object.keys(blockedUsers).length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
     console.log(`   🕵️ /admin - теневая панель`);
+    console.log(`   📜 /privacy - политика`);
+    console.log(`   🔍 /diagnostic - диагностика`);
     console.log('='.repeat(70) + '\n');
+    
+    logAction('system', 'SERVER', `Запуск v${VERSION} с активностью`);
 });
 
 // ==============================================
@@ -1098,6 +1328,13 @@ server.listen(PORT, '0.0.0.0', () => {
 // ==============================================
 process.on('SIGINT', () => {
     console.log('\n📦 Сохранение...');
+    saveData();
+    saveMessages();
+    logAction('system', 'SERVER', 'Остановка');
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
     saveData();
     saveMessages();
     process.exit(0);

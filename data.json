@@ -10,6 +10,7 @@
       "privacyAcceptedDate": "2026-03-01T08:23:03.789Z"
     }
   },
+  "groups": {},
   "channels": {
     "NANOGRAM": {
       "name": "NANOGRAM",
@@ -47,5 +48,8 @@
   },
   "userSettings": {},
   "premiumUsers": {},
-  "lastSaved": "2026-03-01T08:38:32.967Z"
+  "blockedUsers": {},
+  "hiddenChats": {},
+  "privacySettings": {},
+  "lastSaved": "2026-03-07T13:31:28.685Z"
 }
