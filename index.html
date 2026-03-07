@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.0 — гибридная версия</title>
+    <title>Nanogram v0.10.1 — полная версия</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -13,6 +13,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* ===== ТЁМНАЯ ТЕМА ===== */
         :root {
             --bg-primary: #0a0c10;
             --bg-secondary: #161b22;
@@ -37,6 +38,7 @@
             --busy-red: #da3633;
         }
 
+        /* ===== СВЕТЛАЯ ТЕМА ===== */
         body.light-theme {
             --bg-primary: #f6f8fa;
             --bg-secondary: #ffffff;
@@ -60,8 +62,14 @@
             height: 100vh;
             overflow: hidden;
             transition: all 0.3s ease;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
+        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
         .app-container, .chats-panel, .chat-panel, .modal, .login-card, 
         .panel-header, .profile-section, .chat-item, .message-input-area,
         .chat-header, .tab, .icon-btn, .donation-btn, .settings-btn {
@@ -146,13 +154,14 @@
                 display: none !important;
             }
         }
-
+                /* ===== ШАПКА ===== */
         .panel-header {
             padding: 16px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
         }
 
         .panel-header h2 {
@@ -201,6 +210,7 @@
             margin-right: 12px;
         }
 
+        /* ===== СТАТУС СОЕДИНЕНИЯ ===== */
         .connection-status {
             padding: 6px 16px;
             font-size: 13px;
@@ -231,74 +241,7 @@
             100% { opacity: 1; }
         }
 
-        .online-status {
-            color: var(--online-green);
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .away-status {
-            color: var(--away-yellow);
-        }
-
-        .busy-status {
-            color: var(--busy-red);
-        }
-
-        .offline-status {
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .last-seen {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-left: 5px;
-        }
-
-        .creator-badge {
-            background: linear-gradient(135deg, var(--creator-purple), #9370db);
-            color: white;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .premium-badge {
-            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
-            color: #000;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-
-        .donation-btn {
-            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
-            color: #000;
-            border: none;
-            padding: 14px 20px;
-            border-radius: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            width: calc(100% - 32px);
-            margin: 10px 16px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .donation-btn:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-        }
-
+        /* ===== ПРОФИЛЬ ===== */
         .profile-section {
             padding: 14px 18px;
             margin: 12px 16px;
@@ -378,6 +321,66 @@
             gap: 5px;
         }
 
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-icon.online { background: var(--online-green); }
+        .status-icon.away { background: var(--away-yellow); }
+        .status-icon.busy { background: var(--busy-red); }
+
+        .badge-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .creator-badge {
+            background: linear-gradient(135deg, var(--creator-purple), #9370db);
+            color: white;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
+            color: #000;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* ===== DONATION КНОПКА ===== */
+        .donation-btn {
+            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
+            color: #000;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            width: calc(100% - 32px);
+            margin: 10px 16px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .donation-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ===== ПОИСК ===== */
         .search-box {
             padding: 10px 18px;
             margin: 0 16px 16px;
@@ -401,6 +404,11 @@
             font-size: 15px;
         }
 
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* ===== ТАБЫ ===== */
         .tabs {
             display: flex;
             padding: 0 16px;
@@ -445,7 +453,7 @@
         .tab i {
             margin-right: 6px;
         }
-
+                /* ===== СПИСОК ЧАТОВ ===== */
         .chats-list {
             flex: 1;
             overflow-y: auto;
@@ -522,9 +530,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
 
         .chat-badge {
@@ -537,6 +542,23 @@
             white-space: nowrap;
         }
 
+        .group-badge {
+            background: var(--creator-purple);
+        }
+
+        .premium-icon {
+            color: var(--premium-gold);
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        .creator-icon {
+            color: var(--creator-purple);
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        /* ===== ПРАВАЯ ПАНЕЛЬ ЧАТА ===== */
         .chat-header {
             padding: 14px 20px;
             display: flex;
@@ -582,6 +604,31 @@
             gap: 8px;
         }
 
+        .online-status {
+            color: var(--online-green);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .away-status {
+            color: var(--away-yellow);
+        }
+
+        .busy-status {
+            color: var(--busy-red);
+        }
+
+        .offline-status {
+            color: var(--text-muted);
+        }
+
+        .last-seen {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
         .typing-indicator {
             font-size: 13px;
             color: var(--accent);
@@ -596,6 +643,16 @@
             100% { opacity: 0.5; }
         }
 
+        .p2p-badge {
+            background: var(--accent);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+
+        /* ===== СООБЩЕНИЯ ===== */
         .messages-container {
             flex: 1;
             padding: 20px;
@@ -650,6 +707,59 @@
         .status-icon.read { color: var(--success-green); }
         .status-icon.sent { color: var(--text-secondary); }
 
+        .file-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-top: 5px;
+        }
+
+        .file-icon {
+            font-size: 24px;
+            color: var(--accent);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .youtube-preview {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        .youtube-thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: 48px;
+        }
+
+        .youtube-title {
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+                /* ===== ПОЛЕ ВВОДА ===== */
         .message-input-area {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
@@ -716,6 +826,12 @@
             background: var(--accent-hover);
         }
 
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ===== МОДАЛЬНЫЕ ОКНА ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -763,6 +879,10 @@
             gap: 10px;
         }
 
+        .modal h2 i {
+            color: var(--accent);
+        }
+
         .modal input, .modal textarea, .modal select {
             width: 100%;
             padding: 14px 18px;
@@ -773,6 +893,11 @@
             margin-bottom: 16px;
             outline: none;
             font-size: 15px;
+        }
+
+        .modal input:focus, .modal textarea:focus, .modal select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
         }
 
         .modal button {
@@ -786,6 +911,11 @@
             margin-right: 12px;
             transition: all 0.3s ease;
             font-size: 15px;
+        }
+
+        .modal button:hover {
+            background: var(--accent-hover);
+            transform: scale(1.03);
         }
 
         .modal .close-btn {
@@ -806,6 +936,264 @@
             font-size: 20px;
         }
 
+        .modal .close-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        /* ===== ПРОФИЛЬ В МОДАЛКЕ ===== */
+        .profile-edit {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-edit .avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 42px;
+            margin: 0 auto 20px;
+            cursor: pointer;
+        }
+
+        /* ===== НАСТРОЙКИ В МОДАЛКЕ ===== */
+        .settings-section {
+            margin: 20px 0;
+        }
+
+        .settings-section h3 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-item label {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .settings-item select, .settings-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .settings-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+        }
+
+        /* ===== ПРИВАТНОСТЬ ===== */
+        .privacy-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .privacy-option label {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .privacy-option select {
+            width: 150px;
+            margin: 0;
+        }
+
+        /* ===== БЛОКИРОВКИ ===== */
+        .blocked-user {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .blocked-user button {
+            padding: 6px 12px;
+            background: var(--danger-red);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        /* ===== ФАЙЛЫ ===== */
+        .file-preview {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .file-preview i {
+            font-size: 48px;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .file-preview p {
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* ===== СТАТУСЫ ===== */
+        .status-selector {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .status-option {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .status-option.online { color: var(--online-green); }
+        .status-option.away { color: var(--away-yellow); }
+        .status-option.busy { color: var(--busy-red); }
+
+        .status-option:hover {
+            background: var(--hover);
+            transform: scale(1.05);
+        }
+
+        .status-option.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+                /* ===== СТРАНИЦА ВХОДА ===== */
+        .login-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-primary);
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .login-card {
+            padding: 50px 40px;
+            border-radius: 50px;
+            width: 420px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .login-card h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .login-card p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 16px 22px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            color: var(--text-primary);
+            font-size: 16px;
+            margin: 10px 0;
+            outline: none;
+        }
+
+        .login-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-light);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .login-btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .privacy-link {
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .privacy-link:hover {
+            color: var(--accent-hover);
+        }
+
+        /* ===== ТЕМА ===== */
         .theme-toggle {
             position: fixed;
             bottom: 20px;
@@ -819,33 +1207,137 @@
             align-items: center;
             gap: 8px;
             z-index: 100;
+            box-shadow: var(--shadow);
         }
 
-        .suspicious-item {
-            background: #da3633;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
+        .theme-toggle:hover {
+            background: var(--hover);
+            transform: scale(1.05);
+        }
+
+        .theme-toggle i {
+            color: var(--accent);
+            font-size: 18px;
+        }
+
+        /* ===== АДМИН-ПАНЕЛЬ ===== */
+        .admin-panel {
+            display: flex;
+            gap: 10px;
+            margin: 10px 16px;
+        }
+
+        .admin-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .admin-btn.suspicious {
+            background: var(--danger-red);
             color: white;
         }
 
-        .p2p-badge {
+        .admin-btn.stats {
             background: var(--accent);
             color: white;
-            font-size: 10px;
-            padding: 2px 6px;
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.02);
+        }
+
+        /* ===== ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ ===== */
+        .suspicious-item {
+            background: var(--danger-red);
+            padding: 15px;
+            margin: 10px 0;
             border-radius: 10px;
-            margin-left: 5px;
+            border-left: 4px solid var(--premium-gold);
+        }
+
+        .suspicious-item small {
+            color: var(--premium-gold);
+            font-size: 11px;
+        }
+
+        /* ===== СТАТИСТИКА ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--premium-gold);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== СКРОЛЛБАР ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-light);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        /* ===== АДАПТАЦИЯ ===== */
+        @media (max-width: 768px) {
+            .login-card {
+                width: 90%;
+                padding: 30px 20px;
+            }
+
+            .login-card h1 {
+                font-size: 36px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- КНОПКА СМЕНЫ ТЕМЫ -->
     <div class="theme-toggle" onclick="toggleTheme()">
         <i class="fas fa-sun"></i> <span id="themeText">Тёмная</span>
     </div>
 
+    <!-- МОДАЛКИ -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
-        <!-- МОДАЛКА ПРОФИЛЯ -->
+    
+    <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
@@ -853,7 +1345,7 @@
         <div class="profile-edit">
             <div class="avatar" id="modalAvatar" onclick="document.getElementById('avatarInput').click()">👤</div>
             <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-            <p style="color: var(--text-secondary); margin-top: 10px;">Нажми на аватарку</p>
+            <p style="color: var(--text-secondary);">Нажми на аватарку</p>
         </div>
         
         <input type="text" id="profileName" placeholder="Имя" value="">
@@ -864,35 +1356,34 @@
             <button onclick="openStatusModal()" style="background: var(--bg-tertiary);">📊 Статус</button>
         </div>
     </div>
-
+    
     <!-- МОДАЛКА СТАТУСА -->
     <div class="modal" id="statusModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-circle"></i> Мой статус</h2>
         
-        <div style="display: flex; gap: 10px; justify-content: center; margin: 20px;">
-            <button class="status-option online" onclick="setStatus('online')">🟢 Онлайн</button>
-            <button class="status-option away" onclick="setStatus('away')">🟡 Отошёл</button>
-            <button class="status-option busy" onclick="setStatus('busy')">🔴 Занят</button>
+        <div class="status-selector">
+            <div class="status-option online" onclick="setStatus('online')">🟢 Онлайн</div>
+            <div class="status-option away" onclick="setStatus('away')">🟡 Отошёл</div>
+            <div class="status-option busy" onclick="setStatus('busy')">🔴 Занят</div>
         </div>
     </div>
-
-    <!-- МОДАЛКА НАСТРОЕК -->
+        <!-- МОДАЛКА НАСТРОЕК -->
     <div class="modal" id="settingsModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-cog"></i> Настройки</h2>
         
-        <div style="margin: 20px 0;">
-            <h3 style="color: var(--accent);">Оформление</h3>
-            <div style="display: flex; justify-content: space-between; padding: 10px 0;">
-                <span>Тема</span>
+        <div class="settings-section">
+            <h3>Оформление</h3>
+            <div class="settings-item">
+                <label>Тема</label>
                 <select id="themeSelect" onchange="changeTheme(this.value)">
                     <option value="dark">Тёмная</option>
                     <option value="light">Светлая</option>
                 </select>
             </div>
-            <div style="display: flex; justify-content: space-between; padding: 10px 0;">
-                <span>Размер шрифта</span>
+            <div class="settings-item">
+                <label>Размер шрифта</label>
                 <select id="fontSizeSelect" onchange="changeFontSize(this.value)">
                     <option value="14">Маленький</option>
                     <option value="16" selected>Средний</option>
@@ -901,72 +1392,119 @@
             </div>
         </div>
         
-        <button onclick="saveSettings()">💾 Сохранить</button>
-        <button onclick="openPrivacyModal()" style="background: var(--bg-tertiary);">📜 Политика</button>
+        <div class="settings-section">
+            <h3>Уведомления</h3>
+            <div class="settings-item">
+                <label>Звук сообщений</label>
+                <input type="checkbox" id="soundCheck" checked>
+            </div>
+            <div class="settings-item">
+                <label>Уведомления о доставке</label>
+                <input type="checkbox" id="notifyCheck" checked>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="saveSettings()">💾 Сохранить</button>
+            <button onclick="openPrivacyModal()" style="background: var(--bg-tertiary);">🔒 Приватность</button>
+        </div>
     </div>
-
+    
     <!-- МОДАЛКА ПРИВАТНОСТИ -->
     <div class="modal" id="privacyModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-lock"></i> Приватность</h2>
         
-        <div style="margin: 20px 0;">
-            <div style="display: flex; justify-content: space-between; padding: 10px 0;">
-                <span>Кто видит онлайн</span>
-                <select id="privacyOnline">
-                    <option value="all">Все</option>
-                    <option value="contacts">Контакты</option>
-                    <option value="none">Никто</option>
-                </select>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 10px 0;">
-                <span>Кто видит номер</span>
-                <select id="privacyPhone">
-                    <option value="all">Все</option>
-                    <option value="contacts">Контакты</option>
-                    <option value="none">Никто</option>
-                </select>
-            </div>
+        <div class="privacy-option">
+            <label>Кто видит мой онлайн</label>
+            <select id="privacyOnline">
+                <option value="all">Все</option>
+                <option value="contacts">Контакты</option>
+                <option value="none">Никто</option>
+            </select>
+        </div>
+        
+        <div class="privacy-option">
+            <label>Кто видит мой номер</label>
+            <select id="privacyPhone">
+                <option value="all">Все</option>
+                <option value="contacts">Контакты</option>
+                <option value="none">Никто</option>
+            </select>
         </div>
         
         <button onclick="savePrivacy()">💾 Сохранить</button>
     </div>
-
+    
+    <!-- МОДАЛКА БЛОКИРОВОК -->
+    <div class="modal" id="blockModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-ban"></i> Блокировки</h2>
+        
+        <div id="blockedList" style="margin-bottom: 20px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="blockUsername" placeholder="Имя пользователя">
+            <button onclick="blockUser()">🔨 Заблокировать</button>
+        </div>
+    </div>
+    
     <!-- МОДАЛКА ПОДОЗРИТЕЛЬНЫХ (ТОЛЬКО ДЛЯ Dane4ka5) -->
     <div class="modal" id="suspiciousModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-exclamation-triangle" style="color: #da3633;"></i> Подозрительные сообщения</h2>
+        <h2><i class="fas fa-exclamation-triangle" style="color: #da3633;"></i> Подозрительные</h2>
         <div id="suspiciousList" style="max-height: 60vh; overflow-y: auto;"></div>
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button onclick="loadSuspicious()">🔄 Обновить</button>
             <button onclick="clearSuspicious()" style="background: #da3633;">🗑️ Очистить</button>
         </div>
     </div>
-
+    
     <!-- МОДАЛКА СТАТИСТИКИ (ТОЛЬКО ДЛЯ Dane4ka5) -->
     <div class="modal" id="statsModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-chart-bar"></i> Статистика</h2>
-        <div id="statsContent" style="padding: 20px; background: var(--bg-tertiary); border-radius: 10px;"></div>
-        <button onclick="loadStats()" style="margin-top: 20px;">🔄 Обновить</button>
+        <div id="statsContent" class="stats-grid"></div>
+        <button onclick="loadStats()">🔄 Обновить</button>
     </div>
-
+    
     <!-- МОДАЛКА СОЗДАНИЯ ГРУППЫ -->
     <div class="modal" id="createGroupModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-users"></i> Создать группу</h2>
         <input type="text" id="groupName" placeholder="Название группы">
         <button onclick="createGroup()">✅ Создать</button>
+        <button onclick="closeAllModals()" style="background: transparent;">Отмена</button>
     </div>
-
+    
+    <!-- МОДАЛКА ДОБАВЛЕНИЯ В ГРУППУ -->
+    <div class="modal" id="addToGroupModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-user-plus"></i> Добавить в группу</h2>
+        <input type="text" id="addUserToGroup" placeholder="Имя пользователя">
+        <button onclick="addToGroup()">✅ Добавить</button>
+    </div>
+    
     <!-- МОДАЛКА ФАЙЛА -->
     <div class="modal" id="fileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-file"></i> Отправить файл</h2>
-        <input type="file" id="fileInput">
-        <button onclick="sendFile()" id="sendFileBtn">📤 Отправить</button>
+        
+        <div class="file-preview" id="filePreview">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Выберите файл</p>
+        </div>
+        
+        <input type="file" id="fileInput" style="display: none;">
+        <button onclick="document.getElementById('fileInput').click()">📁 Выбрать файл</button>
+        
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <button onclick="sendFile()" id="sendFileBtn" disabled>📤 Отправить</button>
     </div>
-
+    
     <!-- МОДАЛКА YOUTUBE -->
     <div class="modal" id="youtubeModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
@@ -974,12 +1512,11 @@
         <input type="text" id="youtubeLink" placeholder="Ссылка на YouTube">
         <button onclick="shareYoutube()">📤 Отправить</button>
     </div>
-
-    <!-- СТРАНИЦА ВХОДА -->
+        <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.0 — гибридная версия</p>
+            <p>v0.10.1 — полная версия</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1036,7 +1573,7 @@
                             <span id="creatorIcon" style="display: none;"><i class="fas fa-star creator-icon"></i></span>
                         </div>
                         <div class="profile-status" id="headerStatus">
-                            <span class="online-dot online" id="headerStatusDot"></span>
+                            <span class="status-icon online" id="headerStatusDot"></span>
                             <span id="headerStatusText">Онлайн</span>
                         </div>
                     </div>
@@ -1065,9 +1602,9 @@
             <div class="chats-list" id="chatsList"></div>
             
             <!-- Админ-панель (только для Dane4ka5) -->
-            <div id="adminPanel" style="display: none; margin: 10px 16px; gap: 10px;">
-                <button class="tab" onclick="openSuspiciousModal()" style="background: #da3633;">🚨 Подозрительные</button>
-                <button class="tab" onclick="openStatsModal()" style="background: var(--accent);">📊 Статистика</button>
+            <div id="adminPanel" class="admin-panel" style="display: none;">
+                <button class="admin-btn suspicious" onclick="openSuspiciousModal()">🚨 Подозрительные</button>
+                <button class="admin-btn stats" onclick="openStatsModal()">📊 Статистика</button>
             </div>
             
             <button class="tab" onclick="openJoinModal()" style="margin: 16px;">
@@ -1091,6 +1628,7 @@
                         <span class="online-status" id="chatOnlineStatus">
                             <span class="online-dot online"></span> онлайн
                         </span>
+                        <span class="last-seen" id="chatLastSeen"></span>
                     </p>
                     <div id="typingIndicator" class="typing-indicator" style="display: none;"></div>
                 </div>
@@ -1111,14 +1649,11 @@
     </div>
         <script>
         // ==============================================
-        // КОНСТАНТЫ
+        // КОНСТАНТЫ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.0';
+        const VERSION = 'v0.10.1';
         
-        // ==============================================
-        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-        // ==============================================
         let socket = null;
         let currentUser = null;
         let currentPhone = null;
@@ -1139,11 +1674,9 @@
         let blockedUsers = [];
         let privacySettings = { showOnline: 'all', showPhone: 'all' };
         let userStatus = 'online';
-        let peerConnections = new Map();
-        let dataChannels = new Map();
-
+        
         // ==============================================
-        // ВСПОМОГАТЕЛЬНЫЕ
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         // ==============================================
         function generateId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
@@ -1208,7 +1741,7 @@
             const text = document.getElementById('headerStatusText');
             const avatarStatus = document.getElementById('avatarStatus');
             
-            dot.className = 'online-dot ' + userStatus;
+            dot.className = 'status-icon ' + userStatus;
             avatarStatus.className = 'avatar-status ' + userStatus;
             
             if (userStatus === 'online') text.textContent = 'Онлайн';
@@ -1217,18 +1750,44 @@
         }
 
         function openSettingsModal() {
+            document.getElementById('themeSelect').value = 
+                document.body.classList.contains('light-theme') ? 'light' : 'dark';
             openModal('settingsModal');
         }
 
         function saveSettings() {
             const theme = document.getElementById('themeSelect').value;
             const fontSize = document.getElementById('fontSizeSelect').value;
+            const sound = document.getElementById('soundCheck').checked;
+            const notify = document.getElementById('notifyCheck').checked;
+            
             changeTheme(theme);
             changeFontSize(fontSize);
+            
+            localStorage.setItem('nanogram_settings', JSON.stringify({
+                theme, fontSize, sound, notify
+            }));
+            
             closeAllModals();
+            showNotification('✅ Настройки сохранены', 'success');
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('nanogram_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                changeTheme(settings.theme);
+                changeFontSize(settings.fontSize);
+                document.getElementById('themeSelect').value = settings.theme;
+                document.getElementById('fontSizeSelect').value = settings.fontSize;
+                document.getElementById('soundCheck').checked = settings.sound;
+                document.getElementById('notifyCheck').checked = settings.notify;
+            }
         }
 
         function openPrivacyModal() {
+            document.getElementById('privacyOnline').value = privacySettings.showOnline;
+            document.getElementById('privacyPhone').value = privacySettings.showPhone;
             openModal('privacyModal');
         }
 
@@ -1237,6 +1796,7 @@
                 showOnline: document.getElementById('privacyOnline').value,
                 showPhone: document.getElementById('privacyPhone').value
             };
+            
             if (socket) {
                 socket.send(JSON.stringify({
                     type: 'update_privacy',
@@ -1245,6 +1805,54 @@
                 }));
             }
             closeAllModals();
+            showNotification('✅ Настройки приватности сохранены');
+        }
+
+        function openBlockModal() {
+            updateBlockedList();
+            openModal('blockModal');
+        }
+
+        function updateBlockedList() {
+            const list = document.getElementById('blockedList');
+            list.innerHTML = '';
+            
+            if (blockedUsers.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-secondary);">Нет заблокированных</p>';
+                return;
+            }
+            
+            blockedUsers.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'blocked-user';
+                div.innerHTML = `
+                    <span>${user}</span>
+                    <button onclick="unblockUser('${user}')">Разблокировать</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function blockUser() {
+            const username = document.getElementById('blockUsername').value.trim();
+            if (!username) return;
+            
+            socket.send(JSON.stringify({
+                type: 'block_user',
+                username: currentUser,
+                target: username
+            }));
+            
+            document.getElementById('blockUsername').value = '';
+            showNotification(`🔨 ${username} заблокирован`);
+        }
+
+        function unblockUser(username) {
+            socket.send(JSON.stringify({
+                type: 'unblock_user',
+                username: currentUser,
+                target: username
+            }));
         }
 
         function openSuspiciousModal() {
@@ -1293,7 +1901,9 @@
         }
 
         function openCreateMenu() {
-            openModal('createGroupModal');
+            const choice = confirm('Создать:\nOK - группу\nОтмена - канал');
+            if (choice) openModal('createGroupModal');
+            else alert('Создание канала скоро будет');
         }
 
         function openAttachMenu() {
@@ -1303,587 +1913,15 @@
         }
 
         function openJoinModal() {
-            alert('Функция присоединения в разработке');
+            alert('Присоединение по ссылке скоро будет');
         }
 
-        // ==============================================
-        // РЕГИСТРАЦИЯ
-        // ==============================================
-        function register() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const phone = document.getElementById('loginPhone').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            
-            if (!username || !phone || !password) {
-                alert('❌ Заполните все поля');
-                return;
-            }
-            
-            if (!document.getElementById('privacyAgree').checked) {
-                alert('❌ Примите политику');
-                return;
-            }
-            
-            currentUser = username;
-            currentPhone = phone;
-            localStorage.setItem('nanogram_user', username);
-            localStorage.setItem('nanogram_phone', phone);
-            
-            connectWebSocket(password);
+        function openDonateModal() {
+            window.open('https://donatepay.ru/don/1474515', '_blank');
         }
 
-        // ==============================================
-        // WEBSOCKET
-        // ==============================================
-        function connectWebSocket(password) {
-            socket = new WebSocket('wss://minegram.onrender.com');
-            
-            socket.onopen = function() {
-                console.log('✅ Подключено');
-                document.getElementById('statusDot').className = 'status-dot';
-                document.getElementById('statusText').textContent = 'Онлайн';
-                
-                socket.send(JSON.stringify({
-                    type: 'register',
-                    username: currentUser,
-                    password: password,
-                    phone: currentPhone,
-                    privacyAccepted: true
-                }));
-                
-                pingInterval = setInterval(() => {
-                    socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
-                }, 5000);
-            };
-            
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'pong') {
-                    document.getElementById('latency').textContent = (Date.now() - data.timestamp) + 'ms';
-                    return;
-                }
-                
-                console.log('📩', data.type, data);
-                
-                if (data.type === 'login_success' || data.type === 'register_success') {
-                    document.getElementById('loginPage').style.display = 'none';
-                    document.getElementById('appPage').style.display = 'flex';
-                    document.getElementById('headerNameText').textContent = currentUser;
-                    
-                    if (currentUser === CREATOR_USERNAME) {
-                        isCreator = true;
-                        document.getElementById('creatorIcon').style.display = 'inline';
-                        document.getElementById('adminPanel').style.display = 'flex';
-                    }
-                    
-                    if (data.premium || isCreator) {
-                        isPremium = true;
-                        document.getElementById('premiumIcon').style.display = 'inline';
-                    }
-                    
-                    if (data.privacy) privacySettings = data.privacy;
-                    if (data.blocked) blockedUsers = data.blocked;
-                    
-                    updateHeaderStatus();
-                }
-                
-                if (data.type === 'history') messages = data.history || {};
-                if (data.type === 'user_list') users = data.users || [];
-                if (data.type === 'groups_list') groups = data.groups || [];
-                if (data.type === 'channels_list') channels = data.channels || [];
-                if (data.type === 'rooms_list') rooms = data.rooms || [];
-                
-                if (data.type === 'message' && data.from === currentChat) {
-                    displayMessage({ text: data.text, from: data.from, time: data.time, type: 'received' });
-                }
-                
-                if (data.type === 'stats') {
-                    const stats = data.stats;
-                    document.getElementById('statsContent').innerHTML = `
-                        <p>👥 Пользователей: ${stats.users}</p>
-                        <p>🟢 Онлайн: ${stats.online}</p>
-                        <p>💬 Сообщений: ${stats.messages}</p>
-                        <p>👥 Групп: ${stats.groups}</p>
-                        <p>🚨 Подозрительных: ${stats.suspicious}</p>
-                        <p>⏱️ Uptime: ${Math.floor(stats.uptime / 60)} мин</p>
-                        <p>💾 Память: ${stats.memory}</p>
-                        <p>📦 Версия: ${stats.version}</p>
-                    `;
-                }
-                
-                if (data.type === 'suspicious_list') {
-                    const list = document.getElementById('suspiciousList');
-                    list.innerHTML = data.messages.map(msg => `
-                        <div class="suspicious-item">
-                            <div><strong>${msg.from}</strong> → ${msg.to}</div>
-                            <div>${msg.message}</div>
-                            <small>${new Date(msg.timestamp).toLocaleString()} | IP: ${msg.ip}</small>
-                        </div>
-                    `).join('');
-                }
-                
-                updateChatsList(document.querySelector('.tab.active').innerText.toLowerCase());
-            };
-            
-            socket.onclose = function() {
-                document.getElementById('statusDot').className = 'status-dot disconnected';
-                document.getElementById('statusText').textContent = 'Офлайн';
-                clearInterval(pingInterval);
-                
-                if (reconnectAttempts < 5) {
-                    reconnectAttempts++;
-                    setTimeout(() => connectWebSocket(password), 3000);
-                }
-            };
-        }
-
-        // ==============================================
-        // ТАБЫ И СПИСКИ
-        // ==============================================
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            updateChatsList(tab);
-        }
-
-        function updateChatsList(tab) {
-            const list = document.getElementById('chatsList');
-            list.innerHTML = '';
-            
-            if (tab === 'chats') {
-                users.filter(u => u !== currentUser).forEach(user => {
-                    list.appendChild(createChatItem('user', user, '👤'));
-                });
-            } else if (tab === 'groups') {
-                groups.forEach(g => list.appendChild(createChatItem('group', g.name, '👥', g)));
-            } else if (tab === 'channels') {
-                channels.forEach(c => list.appendChild(createChatItem('channel', c.name, '📢', c)));
-            } else if (tab === 'rooms') {
-                rooms.forEach(r => list.appendChild(createChatItem('room', r.name, '🔒', r)));
-            }
-        }
-
-        function createChatItem(type, name, icon, data = null) {
-            const div = document.createElement('div');
-            div.className = 'chat-item';
-            div.onclick = () => selectChat(type, name, data);
-            
-            div.innerHTML = `
-                <div class="chat-avatar">${icon}</div>
-                <div class="chat-info">
-                    <div class="chat-name">${name}</div>
-                    <div class="chat-preview">${type}</div>
-                </div>
-            `;
-            return div;
-        }
-
-        function selectChat(type, name, data = null) {
-            currentChat = name;
-            currentChatType = type;
-            if (type === 'group') currentGroupId = data?.id;
-            
-            document.getElementById('currentChatName').textContent = name;
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('messagesContainer').innerHTML = '';
-            
-            if (window.innerWidth <= 768) showChatPanel();
-        }
-
-        function showChatPanel() {
-            document.getElementById('chatsPanel').classList.add('hidden');
-            document.getElementById('chatPanel').classList.remove('hidden');
-        }
-
-        function hideChatPanel() {
-            document.getElementById('chatPanel').classList.add('hidden');
-            document.getElementById('chatsPanel').classList.remove('hidden');
-        }
-
-        // ==============================================
-        // СООБЩЕНИЯ
-        // ==============================================
-                // ==============================================
-        // WebRTC / P2P СОЕДИНЕНИЯ (500 строк)
-        // ==============================================
-        let pendingCandidates = new Map();
-        
-        const iceServers = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ]
-        };
-
-        async function createPeerConnection(targetUser) {
-            if (peerConnections.has(targetUser)) {
-                return peerConnections.get(targetUser);
-            }
-            
-            const pc = new RTCPeerConnection(iceServers);
-            peerConnections.set(targetUser, pc);
-            
-            const dataChannel = pc.createDataChannel('chat');
-            dataChannels.set(targetUser, dataChannel);
-            
-            dataChannel.onopen = () => {
-                console.log(`✅ P2P канал с ${targetUser} открыт`);
-                showP2PNotification(`🔗 Прямое соединение с ${targetUser}`);
-                if (currentChat === targetUser) {
-                    document.getElementById('p2pBadge').style.display = 'inline';
-                }
-            };
-            
-            dataChannel.onclose = () => {
-                console.log(`❌ P2P канал с ${targetUser} закрыт`);
-                if (currentChat === targetUser) {
-                    document.getElementById('p2pBadge').style.display = 'none';
-                }
-                peerConnections.delete(targetUser);
-                dataChannels.delete(targetUser);
-            };
-            
-            dataChannel.onmessage = (e) => {
-                const msg = JSON.parse(e.data);
-                handleP2PMessage(msg, targetUser);
-            };
-            
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.send(JSON.stringify({
-                        type: 'ice_candidate',
-                        to: targetUser,
-                        from: currentUser,
-                        candidate: event.candidate
-                    }));
-                }
-            };
-            
-            pc.onconnectionstatechange = () => {
-                console.log(`📡 P2P состояние с ${targetUser}: ${pc.connectionState}`);
-            };
-            
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            
-            socket.send(JSON.stringify({
-                type: 'signal',
-                to: targetUser,
-                from: currentUser,
-                signal: { type: 'offer', sdp: offer.sdp }
-            }));
-            
-            return pc;
-        }
-
-        function handleP2PMessage(msg, from) {
-            console.log('📩 P2P сообщение:', msg);
-            
-            if (msg.type === 'message') {
-                displayMessage({
-                    text: msg.text,
-                    from: from,
-                    time: msg.time,
-                    type: 'received',
-                    via: 'p2p'
-                });
-                
-                const dataChannel = dataChannels.get(from);
-                if (dataChannel?.readyState === 'open') {
-                    dataChannel.send(JSON.stringify({
-                        type: 'delivered',
-                        messageId: msg.id
-                    }));
-                }
-                
-                socket.send(JSON.stringify({
-                    type: 'p2p_message',
-                    from: currentUser,
-                    to: from,
-                    text: msg.text,
-                    time: msg.time,
-                    messageId: msg.id
-                }));
-            }
-            
-            if (msg.type === 'typing' && currentChat === from) {
-                document.getElementById('typingIndicator').style.display = 'block';
-                document.getElementById('typingIndicator').textContent = `${from} печатает...`;
-                
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    document.getElementById('typingIndicator').style.display = 'none';
-                }, 2000);
-            }
-            
-            if (msg.type === 'read') {
-                const msgElement = document.querySelector(`[data-id="${msg.messageId}"] .status-icon`);
-                if (msgElement) {
-                    msgElement.className = 'status-icon read';
-                    msgElement.innerHTML = '<i class="fas fa-check-double"></i>';
-                }
-            }
-        }
-
-        function sendViaP2P(to, text, time) {
-            const dataChannel = dataChannels.get(to);
-            
-            if (dataChannel?.readyState === 'open') {
-                const messageId = generateId();
-                
-                dataChannel.send(JSON.stringify({
-                    type: 'message',
-                    id: messageId,
-                    text: text,
-                    time: time
-                }));
-                
-                saveToLocalHistory({
-                    id: messageId,
-                    from: currentUser,
-                    to: to,
-                    text: text,
-                    time: time,
-                    via: 'p2p'
-                });
-                
-                displayMessage({
-                    text: text,
-                    from: currentUser,
-                    time: time,
-                    type: 'sent',
-                    via: 'p2p'
-                });
-                
-                return true;
-            }
-            return false;
-        }
-
-        function showP2PNotification(text) {
-            const notif = document.createElement('div');
-            notif.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--accent);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 30px;
-                z-index: 2000;
-                animation: slideIn 0.3s;
-            `;
-            notif.textContent = text;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 3000);
-        }
-
-        // ==============================================
-        // IndexedDB для локального хранения (200 строк)
-        // ==============================================
-        let db;
-
-        function initDB() {
-            const request = indexedDB.open('Nanogram', 2);
-            
-            request.onupgradeneeded = (e) => {
-                db = e.target.result;
-                
-                if (!db.objectStoreNames.contains('messages')) {
-                    db.createObjectStore('messages', { keyPath: 'id' });
-                }
-                
-                if (!db.objectStoreNames.contains('chats')) {
-                    db.createObjectStore('chats', { keyPath: 'id' });
-                }
-                
-                if (!db.objectStoreNames.contains('contacts')) {
-                    db.createObjectStore('contacts', { keyPath: 'username' });
-                }
-            };
-            
-            request.onsuccess = (e) => {
-                db = e.target.result;
-                console.log('✅ IndexedDB готова');
-            };
-            
-            request.onerror = (e) => {
-                console.error('❌ IndexedDB ошибка:', e);
-            };
-        }
-
-        function saveToLocalHistory(message) {
-            if (!db) return;
-            
-            const tx = db.transaction('messages', 'readwrite');
-            const store = tx.objectStore('messages');
-            store.put({
-                ...message,
-                savedAt: Date.now()
-            });
-        }
-
-        function getLocalHistory(chatId, callback) {
-            if (!db) return callback([]);
-            
-            const tx = db.transaction('messages', 'readonly');
-            const store = tx.objectStore('messages');
-            const request = store.getAll();
-            
-            request.onsuccess = () => {
-                const messages = request.result.filter(m => 
-                    m.from === chatId || m.to === chatId ||
-                    (m.from === currentUser && m.to === chatId) ||
-                    (m.to === currentUser && m.from === chatId)
-                ).sort((a, b) => a.timestamp - b.timestamp);
-                callback(messages);
-            };
-        }
-
-        function syncLocalHistory() {
-            if (!db || !currentUser) return;
-            
-            getLocalHistory(currentChat, (localMsgs) => {
-                localMsgs.forEach(msg => {
-                    if (msg.from === currentUser) {
-                        displayMessage({
-                            text: msg.text,
-                            from: msg.from,
-                            time: msg.time,
-                            type: 'sent',
-                            via: 'local'
-                        });
-                    } else {
-                        displayMessage({
-                            text: msg.text,
-                            from: msg.from,
-                            time: msg.time,
-                            type: 'received',
-                            via: 'local'
-                        });
-                    }
-                });
-            });
-        }
-
-        // ==============================================
-        // ДЕТАЛЬНАЯ ОБРАБОТКА СООБЩЕНИЙ (150 строк)
-        // ==============================================
-        function processMessage(data) {
-            if (data.type === 'message') {
-                if (data.from === currentChat) {
-                    displayMessage({
-                        text: data.text,
-                        from: data.from,
-                        time: data.time,
-                        type: 'received'
-                    });
-                }
-                
-                // Обновляем превью в списке
-                updateChatPreview(data.from, data.text);
-                
-                // Сохраняем локально
-                saveToLocalHistory({
-                    id: data.id,
-                    from: data.from,
-                    to: data.to,
-                    text: data.text,
-                    time: data.time,
-                    timestamp: Date.now()
-                });
-            }
-            
-            if (data.type === 'file') {
-                handleFileMessage(data);
-            }
-            
-            if (data.type === 'youtube') {
-                handleYoutubeMessage(data);
-            }
-            
-            if (data.type === 'voice') {
-                handleVoiceMessage(data);
-            }
-        }
-
-        function updateChatPreview(user, text) {
-            const items = document.querySelectorAll('.chat-item');
-            for (let item of items) {
-                if (item.querySelector('.chat-name')?.textContent === user) {
-                    const preview = item.querySelector('.chat-preview');
-                    if (preview) {
-                        preview.textContent = text.length > 30 ? text.substr(0, 30) + '...' : text;
-                    }
-                    break;
-                }
-            }
-        }
-
-        // ==============================================
-        // ОБРАБОТКА ОШИБОК (50 строк)
-        // ==============================================
-        function handleError(error, context) {
-            console.error(`❌ Ошибка в ${context}:`, error);
-            
-            // Показываем пользователю
-            if (error.message) {
-                showNotification(`⚠️ ${error.message}`);
-            }
-            
-            // Логируем
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'client_error',
-                    username: currentUser,
-                    error: error.message,
-                    context: context,
-                    timestamp: Date.now()
-                }));
-            }
-        }
-
-        window.onerror = function(msg, url, line) {
-            handleError({ message: msg }, `global at line ${line}`);
-        };
-
-        // ==============================================
-        // ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ
-        // ==============================================
-        function handleFileMessage(data) {
-            if (data.from === currentChat) {
-                displayMessage({
-                    text: `📎 Файл: ${data.fileName} (${(data.fileSize/1024).toFixed(2)} KB)`,
-                    from: data.from,
-                    time: data.time,
-                    type: 'received'
-                });
-            }
-        }
-
-        function handleYoutubeMessage(data) {
-            if (data.from === currentChat) {
-                displayMessage({
-                    text: `🎬 YouTube: ${data.title}`,
-                    from: data.from,
-                    time: data.time,
-                    type: 'received'
-                });
-            }
-        }
-
-        function handleVoiceMessage(data) {
-            if (data.from === currentChat) {
-                displayMessage({
-                    text: `🎤 Голосовое сообщение (${data.duration}s)`,
-                    from: data.from,
-                    time: data.time,
-                    type: 'received'
-                });
-            }
+        function openPrivacyPolicyModal() {
+            window.open('/privacy', '_blank');
         }
 
         function showNotification(text, type = 'info') {
@@ -1911,6 +1949,268 @@
             document.body.appendChild(notif);
             setTimeout(() => notif.remove(), 3000);
         }
+
+        // ==============================================
+        // РЕГИСТРАЦИЯ
+        // ==============================================
+        function register() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            
+            if (!username || !phone || !password) {
+                alert('❌ Заполните все поля');
+                return;
+            }
+            
+            if (!document.getElementById('privacyAgree').checked) {
+                alert('❌ Примите политику конфиденциальности');
+                return;
+            }
+            
+            currentUser = username;
+            currentPhone = phone;
+            localStorage.setItem('nanogram_user', username);
+            localStorage.setItem('nanogram_phone', phone);
+            
+            connectWebSocket(password);
+        }
+
+        // ==============================================
+        // WEBSOCKET
+        // ==============================================
+        function connectWebSocket(password) {
+            socket = new WebSocket('wss://minegram.onrender.com');
+            
+            socket.onopen = function() {
+                console.log('✅ Подключено к серверу');
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusText').textContent = 'Онлайн';
+                reconnectAttempts = 0;
+                
+                socket.send(JSON.stringify({
+                    type: 'register',
+                    username: currentUser,
+                    password: password,
+                    phone: currentPhone,
+                    privacyAccepted: true
+                }));
+                
+                pingInterval = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ 
+                            type: 'ping', 
+                            timestamp: Date.now() 
+                        }));
+                    }
+                }, 5000);
+            };
+            
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'pong') {
+                    document.getElementById('latency').textContent = 
+                        (Date.now() - data.timestamp) + 'ms';
+                    return;
+                }
+                
+                console.log('📩', data.type, data);
+                
+                if (data.type === 'login_success' || data.type === 'register_success') {
+                    document.getElementById('loginPage').style.display = 'none';
+                    document.getElementById('appPage').style.display = 'flex';
+                    document.getElementById('headerNameText').textContent = currentUser;
+                    
+                    if (currentUser === CREATOR_USERNAME) {
+                        isCreator = true;
+                        document.getElementById('creatorIcon').style.display = 'inline';
+                        document.getElementById('adminPanel').style.display = 'flex';
+                    }
+                    
+                    if (data.premium || isCreator) {
+                        isPremium = true;
+                        document.getElementById('premiumIcon').style.display = 'inline';
+                    }
+                    
+                    if (data.profile) userProfile = data.profile;
+                    if (data.privacy) privacySettings = data.privacy;
+                    if (data.blocked) blockedUsers = data.blocked;
+                    
+                    updateHeaderStatus();
+                }
+                
+                if (data.type === 'history') messages = data.history || {};
+                if (data.type === 'user_list') users = data.users || [];
+                if (data.type === 'groups_list') groups = data.groups || [];
+                if (data.type === 'channels_list') channels = data.channels || [];
+                if (data.type === 'rooms_list') rooms = data.rooms || [];
+                
+                if (data.type === 'message' && data.from === currentChat) {
+                    displayMessage({
+                        text: data.text,
+                        from: data.from,
+                        time: data.time,
+                        type: 'received'
+                    });
+                }
+                
+                if (data.type === 'group_message' && data.groupId === currentGroupId) {
+                    displayMessage({
+                        text: data.text,
+                        from: data.from,
+                        time: data.time,
+                        type: data.from === currentUser ? 'sent' : 'received'
+                    });
+                }
+                
+                if (data.type === 'typing' && data.from === currentChat) {
+                    document.getElementById('typingIndicator').style.display = 'block';
+                    document.getElementById('typingIndicator').textContent = `${data.from} печатает...`;
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        document.getElementById('typingIndicator').style.display = 'none';
+                    }, 2000);
+                }
+                
+                if (data.type === 'stats') {
+                    updateStatsModal(data.stats);
+                }
+                
+                if (data.type === 'suspicious_list') {
+                    updateSuspiciousList(data.messages);
+                }
+                
+                if (data.type === 'blocked_list') {
+                    blockedUsers = data.blocked;
+                    updateBlockedList();
+                }
+                
+                if (data.type === 'status_update') {
+                    updateUserStatus(data.username, data.status);
+                }
+                
+                updateChatsList(document.querySelector('.tab.active').innerText.toLowerCase());
+            };
+            
+            socket.onclose = function() {
+                document.getElementById('statusDot').className = 'status-dot disconnected';
+                document.getElementById('statusText').textContent = 'Офлайн';
+                document.getElementById('latency').textContent = '--ms';
+                clearInterval(pingInterval);
+                
+                if (reconnectAttempts < 5) {
+                    reconnectAttempts++;
+                    setTimeout(() => connectWebSocket(password), 3000);
+                }
+            };
+            
+            socket.onerror = function(error) {
+                console.error('❌ WebSocket ошибка:', error);
+            };
+        }
+
+        // ==============================================
+        // ОБНОВЛЕНИЕ СПИСКОВ
+        // ==============================================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            updateChatsList(tab);
+        }
+
+        function updateChatsList(tab) {
+            const list = document.getElementById('chatsList');
+            list.innerHTML = '';
+            
+            if (tab === 'chats') {
+                users.filter(u => u !== currentUser && !blockedUsers.includes(u)).forEach(user => {
+                    list.appendChild(createChatItem('user', user, '👤'));
+                });
+            } else if (tab === 'groups') {
+                groups.forEach(group => {
+                    list.appendChild(createChatItem('group', group.name, '👥', group));
+                });
+            } else if (tab === 'channels') {
+                channels.forEach(channel => {
+                    list.appendChild(createChatItem('channel', channel.name, '📢', channel));
+                });
+            } else if (tab === 'rooms') {
+                rooms.forEach(room => {
+                    list.appendChild(createChatItem('room', room.name, '🔒', room));
+                });
+            }
+        }
+
+        function createChatItem(type, name, icon, data = null) {
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            div.onclick = () => selectChat(type, name, data);
+            
+            let status = '';
+            if (type === 'user') {
+                // Можно добавить статус онлайн
+            }
+            
+            div.innerHTML = `
+                <div class="chat-avatar">${icon}</div>
+                <div class="chat-info">
+                    <div class="chat-name">${name}</div>
+                    <div class="chat-preview">${type}</div>
+                </div>
+            `;
+            return div;
+        }
+
+        function selectChat(type, name, data = null) {
+            currentChat = name;
+            currentChatType = type;
+            if (type === 'group') currentGroupId = data?.id;
+            
+            document.getElementById('currentChatName').textContent = name;
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('messagesContainer').innerHTML = '';
+            
+            if (type === 'group' && data?.messages) {
+                data.messages.forEach(msg => {
+                    displayMessage({
+                        text: msg.text,
+                        from: msg.from,
+                        time: msg.time,
+                        type: msg.from === currentUser ? 'sent' : 'received'
+                    });
+                });
+            } else {
+                const chatKey = [currentUser, name].sort().join('_');
+                if (messages[chatKey]) {
+                    messages[chatKey].forEach(msg => {
+                        displayMessage({
+                            text: msg.text,
+                            from: msg.from,
+                            time: msg.time,
+                            type: msg.from === currentUser ? 'sent' : 'received'
+                        });
+                    });
+                }
+            }
+            
+            if (window.innerWidth <= 768) showChatPanel();
+        }
+
+        function showChatPanel() {
+            document.getElementById('chatsPanel').classList.add('hidden');
+            document.getElementById('chatPanel').classList.remove('hidden');
+        }
+
+        function hideChatPanel() {
+            document.getElementById('chatPanel').classList.add('hidden');
+            document.getElementById('chatsPanel').classList.remove('hidden');
+        }
+
+        // ==============================================
+        // СООБЩЕНИЯ
+        // ==============================================
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -1918,23 +2218,47 @@
             
             const time = new Date().toLocaleTimeString();
             
-            socket.send(JSON.stringify({
-                type: 'message',
-                to: currentChat,
-                from: currentUser,
-                text: text,
-                time: time
-            }));
+            if (currentChatType === 'group') {
+                socket.send(JSON.stringify({
+                    type: 'group_message',
+                    groupId: currentGroupId,
+                    from: currentUser,
+                    text,
+                    time
+                }));
+            } else {
+                socket.send(JSON.stringify({
+                    type: 'message',
+                    to: currentChat,
+                    from: currentUser,
+                    text,
+                    time
+                }));
+            }
             
             displayMessage({ text, from: currentUser, time, type: 'sent' });
             input.value = '';
+            
+            socket.send(JSON.stringify({ 
+                type: 'typing', 
+                from: currentUser, 
+                to: currentChat 
+            }));
         }
 
         function displayMessage(msg) {
             const container = document.getElementById('messagesContainer');
+            
+            if (container.children.length === 1 && container.children[0].querySelector('h3')) {
+                container.innerHTML = '';
+            }
+            
             const div = document.createElement('div');
             div.className = `message ${msg.type}`;
-            div.innerHTML = `${msg.text}<div class="message-footer">${msg.time}</div>`;
+            div.innerHTML = `
+                ${msg.text}
+                <div class="message-footer">${msg.time}</div>
+            `;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
@@ -1948,8 +2272,22 @@
             
             socket.send(JSON.stringify({
                 type: 'create_group',
-                name: name,
+                name,
                 creator: currentUser
+            }));
+            
+            closeAllModals();
+        }
+
+        function addToGroup() {
+            const username = document.getElementById('addUserToGroup').value.trim();
+            if (!username || !currentGroupId) return;
+            
+            socket.send(JSON.stringify({
+                type: 'add_to_group',
+                groupId: currentGroupId,
+                username,
+                adder: currentUser
             }));
             
             closeAllModals();
@@ -1958,398 +2296,133 @@
         // ==============================================
         // ФАЙЛЫ
         // ==============================================
+        document.getElementById('fileInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const preview = document.getElementById('filePreview');
+            preview.innerHTML = `
+                <i class="fas fa-file"></i>
+                <p><strong>${file.name}</strong></p>
+                <p>${(file.size / 1024).toFixed(2)} KB</p>
+            `;
+            
+            document.getElementById('sendFileBtn').disabled = false;
+        });
+
         function sendFile() {
-            alert('Функция отправки файлов в разработке');
+            const file = document.getElementById('fileInput').files[0];
+            if (!file || !currentChat) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result.split(',')[1];
+                
+                socket.send(JSON.stringify({
+                    type: 'send_file',
+                    from: currentUser,
+                    to: currentChat,
+                    fileName: file.name,
+                    fileData: base64,
+                    fileType: file.type,
+                    time: new Date().toLocaleTimeString()
+                }));
+                
+                closeAllModals();
+                showNotification('📎 Файл отправляется...');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ==============================================
+        // YOUTUBE
+        // ==============================================
+        function shareYoutube() {
+            const link = document.getElementById('youtubeLink').value.trim();
+            if (!link || !currentChat) return;
+            
+            const videoId = extractYoutubeId(link);
+            if (!videoId) return alert('Неверная ссылка');
+            
+            socket.send(JSON.stringify({
+                type: 'share_youtube',
+                from: currentUser,
+                to: currentChat,
+                videoId,
+                title: 'YouTube Video',
+                time: new Date().toLocaleTimeString()
+            }));
+            
             closeAllModals();
         }
 
-        function shareYoutube() {
-            alert('Функция YouTube в разработке');
-            closeAllModals();
+        function extractYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // ==============================================
+        // АДМИН-ФУНКЦИИ
+        // ==============================================
+        function updateStatsModal(stats) {
+            const content = document.getElementById('statsContent');
+            content.innerHTML = `
+                <div class="stat-item"><div class="stat-value">${stats.users}</div><div class="stat-label">Пользователей</div></div>
+                <div class="stat-item"><div class="stat-value">${stats.online}</div><div class="stat-label">Онлайн</div></div>
+                <div class="stat-item"><div class="stat-value">${stats.messages}</div><div class="stat-label">Сообщений</div></div>
+                <div class="stat-item"><div class="stat-value">${stats.groups}</div><div class="stat-label">Групп</div></div>
+                <div class="stat-item"><div class="stat-value">${stats.suspicious}</div><div class="stat-label">🚨</div></div>
+                <div class="stat-item"><div class="stat-value">${stats.uptime}</div><div class="stat-label">Секунд</div></div>
+            `;
+        }
+
+        function updateSuspiciousList(messages) {
+            const list = document.getElementById('suspiciousList');
+            list.innerHTML = messages.map(msg => `
+                <div class="suspicious-item">
+                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
+                    <div>${msg.message}</div>
+                    <small>${new Date(msg.timestamp).toLocaleString()} | IP: ${msg.ip}</small>
+                </div>
+            `).join('');
+        }
+
+        function updateUserStatus(username, status) {
+            // Обновление статуса в UI
         }
 
         // ==============================================
         // ИНИЦИАЛИЗАЦИЯ
         // ==============================================
         window.onload = function() {
-            const savedUser = localStorage.getItem('nanogram_user');
-            const savedPhone = localStorage.getItem('nanogram_phone');
-            if (savedUser && savedPhone) {
-                document.getElementById('loginUsername').value = savedUser;
-                document.getElementById('loginPhone').value = savedPhone;
-            }
-        };
-                // ==============================================
-        // ОБРАБОТЧИКИ СООБЩЕНИЙ (ДОПОЛНИТЕЛЬНЫЕ)
-        // ==============================================
-        
-        // Обработка входящих P2P сигналов
-        socket.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'signal') {
-                handleP2PSignal(data);
-            }
-            
-            if (data.type === 'signal_answer') {
-                handleP2PAnswer(data);
-            }
-            
-            if (data.type === 'ice_candidate') {
-                handleP2PCandidate(data);
-            }
-        };
-
-        async function handleP2PSignal(data) {
-            const pc = peerConnections.get(data.from) || new RTCPeerConnection(iceServers);
-            
-            if (!peerConnections.has(data.from)) {
-                peerConnections.set(data.from, pc);
-                
-                pc.ondatachannel = (event) => {
-                    const channel = event.channel;
-                    dataChannels.set(data.from, channel);
-                    
-                    channel.onmessage = (e) => handleP2PMessage(JSON.parse(e.data), data.from);
-                    channel.onopen = () => showP2PNotification(`🔗 P2P с ${data.from}`);
-                };
-                
-                pc.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        socket.send(JSON.stringify({
-                            type: 'ice_candidate',
-                            to: data.from,
-                            from: currentUser,
-                            candidate: event.candidate
-                        }));
-                    }
-                };
-            }
-            
-            await pc.setRemoteDescription(new RTCSessionDescription(data.signal));
-            
-            if (data.signal.type === 'offer') {
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                
-                socket.send(JSON.stringify({
-                    type: 'signal_answer',
-                    to: data.from,
-                    from: currentUser,
-                    answer: answer
-                }));
-            }
-        }
-
-        async function handleP2PAnswer(data) {
-            const pc = peerConnections.get(data.from);
-            if (pc) {
-                await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-            }
-        }
-
-        async function handleP2PCandidate(data) {
-            const pc = peerConnections.get(data.from);
-            if (pc) {
-                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-        }
-
-        // ==============================================
-        // СТАТУСЫ ПОЛЬЗОВАТЕЛЕЙ
-        // ==============================================
-        let userStatuses = new Map();
-
-        function updateUserStatus(username, status) {
-            userStatuses.set(username, {
-                status: status,
-                lastSeen: Date.now()
-            });
-            
-            // Обновляем UI если это текущий чат
-            if (currentChat === username) {
-                updateChatHeaderStatus(username);
-            }
-            
-            // Обновляем список чатов
-            updateChatsList(document.querySelector('.tab.active').innerText.toLowerCase());
-        }
-
-        function updateChatHeaderStatus(username) {
-            const statusEl = document.getElementById('chatOnlineStatus');
-            const status = userStatuses.get(username);
-            
-            if (status?.status === 'online') {
-                statusEl.innerHTML = '<span class="online-dot online"></span> онлайн';
-            } else if (status?.status === 'away') {
-                statusEl.innerHTML = '<span class="online-dot away"></span> отошёл';
-            } else if (status?.status === 'busy') {
-                statusEl.innerHTML = '<span class="online-dot busy"></span> занят';
-            } else {
-                statusEl.innerHTML = '<span class="online-dot offline"></span> офлайн';
-            }
-        }
-
-        // ==============================================
-        // НАСТРОЙКИ (ПОЛНЫЕ)
-        // ==============================================
-        function loadSettings() {
-            const saved = localStorage.getItem('nanogram_settings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                
-                if (settings.theme) {
-                    changeTheme(settings.theme);
-                    document.getElementById('themeSelect').value = settings.theme;
-                }
-                
-                if (settings.fontSize) {
-                    changeFontSize(settings.fontSize);
-                    document.getElementById('fontSizeSelect').value = settings.fontSize;
-                }
-                
-                if (settings.sound !== undefined) {
-                    document.getElementById('soundCheck').checked = settings.sound;
-                }
-                
-                if (settings.notifications !== undefined) {
-                    document.getElementById('notifyCheck').checked = settings.notifications;
-                }
-            }
-        }
-
-        function saveSettings() {
-            const settings = {
-                theme: document.getElementById('themeSelect').value,
-                fontSize: document.getElementById('fontSizeSelect').value,
-                sound: document.getElementById('soundCheck')?.checked || true,
-                notifications: document.getElementById('notifyCheck')?.checked || true
-            };
-            
-            localStorage.setItem('nanogram_settings', JSON.stringify(settings));
-            
-            changeTheme(settings.theme);
-            changeFontSize(settings.fontSize);
-            
-            closeAllModals();
-            showNotification('✅ Настройки сохранены', 'success');
-        }
-
-        // ==============================================
-        // ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ Dane4ka5
-        // ==============================================
-        function banUser(username) {
-            if (currentUser !== CREATOR_USERNAME) {
-                alert('❌ Только для создателя');
-                return;
-            }
-            
-            if (confirm(`Забанить пользователя ${username}?`)) {
-                socket.send(JSON.stringify({
-                    type: 'admin_ban',
-                    username: currentUser,
-                    target: username
-                }));
-            }
-        }
-
-        function unbanUser(username) {
-            if (currentUser !== CREATOR_USERNAME) {
-                alert('❌ Только для создателя');
-                return;
-            }
-            
-            socket.send(JSON.stringify({
-                type: 'admin_unban',
-                username: currentUser,
-                target: username
-            }));
-        }
-
-        function getAllMessages() {
-            if (currentUser !== CREATOR_USERNAME) {
-                alert('❌ Только для создателя');
-                return;
-            }
-            
-            socket.send(JSON.stringify({
-                type: 'get_all_messages',
-                username: currentUser
-            }));
-        }
-
-        // ==============================================
-        // ПОДДЕРЖКА ОФЛАЙН РЕЖИМА
-        // ==============================================
-        function goOffline() {
-            if (socket) {
-                socket.close();
-            }
-            document.getElementById('statusDot').className = 'status-dot disconnected';
-            document.getElementById('statusText').textContent = 'Офлайн режим';
-            
-            // Загружаем локальные сообщения
-            if (currentChat) {
-                syncLocalHistory();
-            }
-        }
-
-        function goOnline() {
-            if (!socket || socket.readyState !== WebSocket.OPEN) {
-                const savedPassword = prompt('Введите пароль для подключения:');
-                if (savedPassword) {
-                    connectWebSocket(savedPassword);
-                }
-            }
-        }
-
-        // ==============================================
-        // ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ
-        // ==============================================
-        window.onload = function() {
-            // Инициализируем IndexedDB
-            initDB();
-            
-            // Загружаем настройки
             loadSettings();
             
-            // Загружаем сохранённые данные
             const savedUser = localStorage.getItem('nanogram_user');
             const savedPhone = localStorage.getItem('nanogram_phone');
-            
             if (savedUser && savedPhone) {
                 document.getElementById('loginUsername').value = savedUser;
                 document.getElementById('loginPhone').value = savedPhone;
             }
             
-            // Добавляем обработчики для офлайн режима
-            window.addEventListener('offline', goOffline);
-            window.addEventListener('online', goOnline);
-            
-            console.log('🚀 Nanogram загружен, версия ' + VERSION);
+            console.log('🚀 Nanogram готов к работе, версия', VERSION);
         };
 
         // ==============================================
-        // ОЧИСТКА ПРИ ВЫХОДЕ
-        // ==============================================
-        window.onbeforeunload = function() {
-            if (socket) {
-                socket.close();
-            }
-        };
-
-        // ==============================================
-        // ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ
-        // ==============================================
-        function openPrivacyPolicyModal() {
-            const modal = document.getElementById('privacyPolicyModal');
-            if (!modal) {
-                // Создаём модалку если её нет
-                createPrivacyModal();
-            }
-            openModal('privacyPolicyModal');
-        }
-
-        function createPrivacyModal() {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.id = 'privacyPolicyModal';
-            modal.innerHTML = `
-                <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-                <h2><i class="fas fa-shield-alt"></i> Политика конфиденциальности</h2>
-                <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
-                    <h3 style="color: var(--accent);">1. Собираемые данные</h3>
-                    <p>• Имя пользователя</p>
-                    <p>• Номер телефона</p>
-                    <p>• Сообщения (в зашифрованном виде)</p>
-                    
-                    <h3 style="color: var(--accent); margin-top: 20px;">2. Премиум за донаты</h3>
-                    <p>• 30₽ - 1 месяц</p>
-                    <p>• 85₽ - 3 месяца</p>
-                    <p>• 145₽ - 6 месяцев</p>
-                    <p>• 285₽ - 1 год</p>
-                    
-                    <h3 style="color: var(--accent); margin-top: 20px;">3. Бесплатный премиум</h3>
-                    <p>🐛 Мелкий баг - 1 месяц</p>
-                    <p>🐞 Средний баг - 3 месяца</p>
-                    <p>🦠 Критический баг - 6 месяцев</p>
-                    <p>💎 Уникальный - 1 год</p>
-                    
-                    <h3 style="color: var(--accent); margin-top: 20px;">4. Контакты</h3>
-                    <p>📧 nanogram.ru@yandex.ru</p>
-                </div>
-                <button onclick="closeAllModals()">Закрыть</button>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        function openDonateModal() {
-            openPrivacyPolicyModal(); // Показываем ту же политику
-        }
-
-        // ==============================================
-        // ПОДДЕРЖКА ГОРЯЧИХ КЛАВИШ
+        // ГОРЯЧИЕ КЛАВИШИ
         // ==============================================
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Enter - отправить сообщение
-            if (e.ctrlKey && e.key === 'Enter') {
-                sendMessage();
-            }
-            
-            // Esc - закрыть все модалки
-            if (e.key === 'Escape') {
-                closeAllModals();
-            }
-            
-            // Ctrl+K - поиск
+            if (e.ctrlKey && e.key === 'Enter') sendMessage();
+            if (e.key === 'Escape') closeAllModals();
             if (e.ctrlKey && e.key === 'k') {
                 e.preventDefault();
                 document.getElementById('searchInput').focus();
             }
-            
-            // Ctrl+N - создать группу
             if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
                 openCreateMenu();
             }
         });
-
-        // ==============================================
-        // АНИМАЦИИ И ЭФФЕКТЫ
-        // ==============================================
-        function addMessageAnimation(element) {
-            element.style.animation = 'none';
-            element.offsetHeight; // триггер рефлоу
-            element.style.animation = 'slideIn 0.3s ease';
-        }
-
-        function scrollToBottom(container) {
-            container.scrollTo({
-                top: container.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-
-        // ==============================================
-        // ЭКСПОРТ ФУНКЦИЙ (для отладки)
-        // ==============================================
-        window.Nanogram = {
-            version: VERSION,
-            user: currentUser,
-            status: userStatus,
-            stats: {
-                online: () => users.length,
-                groups: () => groups.length,
-                messages: () => Object.keys(messages).length
-            },
-            debug: {
-                peerConnections,
-                dataChannels,
-                socket: () => socket?.readyState
-            }
-        };
-
-        console.log('🎨 Nanogram готов к работе!');
     </script>
 </body>
 </html>

@@ -15,31 +15,34 @@ const MAX_MESSAGES_PER_CHAT = 10000;
 const MAX_BACKUPS = 50;
 
 // ==============================================
-// ХРАНИЛИЩА
+// ХРАНИЛИЩА ДАННЫХ
 // ==============================================
-const users = new Map(); // username -> ws
+const users = new Map(); // username -> WebSocket
 const activeUsers = new Map(); // ws -> { username, ip, status }
+
 let userDatabase = {}; // username -> { password, phone, registered, banned }
 let messages = {}; // chatKey -> [messages]
-let groups = {}; // groupId -> { name, members, messages }
+let groups = {}; // groupId -> { name, members, admins, messages }
 let channels = {
     'NANOGRAM': {
         id: 'NANOGRAM',
         name: 'NANOGRAM',
+        description: 'Официальный канал',
         creator: 'Dane4ka5',
         admins: ['Dane4ka5'],
         subscribers: [],
         posts: [],
+        avatar: '📢',
         createdAt: new Date().toISOString()
     }
 };
-let privateRooms = {};
-let userProfiles = {};
-let userSettings = {};
-let premiumUsers = {};
-let blockedUsers = {};
-let privacySettings = {};
-let suspiciousMessages = [];
+let privateRooms = {}; // roomId -> { name, creator, members, inviteLink }
+let userProfiles = {}; // username -> { avatar, bio }
+let userSettings = {}; // username -> { theme, fontSize, notifications }
+let premiumUsers = {}; // username -> { active, purchased }
+let blockedUsers = {}; // username -> [blockedUser1, blockedUser2]
+let privacySettings = {}; // username -> { showOnline, showPhone }
+let suspiciousMessages = []; // [{ from, to, message, ip, timestamp, word }]
 
 // ==============================================
 // ПОДОЗРИТЕЛЬНЫЕ СЛОВА
@@ -50,7 +53,7 @@ const SUSPICIOUS_WORDS = [
 ];
 
 // ==============================================
-// ЗАГРУЗКА
+// ЗАГРУЗКА ДАННЫХ
 // ==============================================
 function loadAllData() {
     console.log('\n' + '='.repeat(60));
@@ -73,9 +76,11 @@ function loadAllData() {
             privacySettings = data.privacySettings || {};
             
             console.log(`✅ data.json загружен: ${Object.keys(userDatabase).length} пользователей`);
+            console.log(`   👥 Групп: ${Object.keys(groups).length}`);
+            console.log(`   📢 Каналов: ${Object.keys(channels).length}`);
         }
     } catch (e) {
-        console.error(`❌ Ошибка:`, e.message);
+        console.error(`❌ Ошибка загрузки data.json:`, e.message);
     }
     
     try {
@@ -92,15 +97,20 @@ function loadAllData() {
 }
 
 // ==============================================
-// СОХРАНЕНИЕ
+// СОХРАНЕНИЕ ДАННЫХ
 // ==============================================
 function saveData() {
     try {
         const data = {
             users: userDatabase,
-            groups, channels, privateRooms,
-            userProfiles, userSettings, premiumUsers,
-            blockedUsers, privacySettings,
+            groups: groups,
+            channels: channels,
+            privateRooms: privateRooms,
+            userProfiles: userProfiles,
+            userSettings: userSettings,
+            premiumUsers: premiumUsers,
+            blockedUsers: blockedUsers,
+            privacySettings: privacySettings,
             lastSaved: new Date().toISOString()
         };
         fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
@@ -135,7 +145,7 @@ function checkSuspicious(text, from, to, ip) {
             };
             suspiciousMessages.push(alert);
             fs.appendFile('./suspicious.log', JSON.stringify(alert) + '\n', () => {});
-            console.log('\x1b[31m%s\x1b[0m', `🚨 ПОДОЗРИТЕЛЬНО: ${from} → ${to}`);
+            console.log('\x1b[31m%s\x1b[0m', `🚨 ПОДОЗРИТЕЛЬНО: ${from} → ${to}: "${text}"`);
             return true;
         }
     }
@@ -145,7 +155,6 @@ function checkSuspicious(text, from, to, ip) {
 function generateId() {
     return crypto.randomBytes(8).toString('hex');
 }
-
 // ==============================================
 // HTTP СЕРВЕР
 // ==============================================
@@ -155,33 +164,262 @@ const server = http.createServer((req, res) => {
     // ===== ДИАГНОСТИКА =====
     if (req.url === '/diagnostic') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
+        const onlineCount = users.size;
         const diagnostic = {
             server: 'ONLINE',
             version: VERSION,
+            creator: CREATOR_USERNAME,
+            timestamp: new Date().toISOString(),
             stats: {
                 users: Object.keys(userDatabase).length,
-                online: users.size,
+                online: onlineCount,
+                groups: Object.keys(groups).length,
+                channels: Object.keys(channels).length,
                 messages: Object.keys(messages).length,
                 suspicious: suspiciousMessages.length
+            },
+            files: {
+                dataJson: fs.existsSync('./data.json'),
+                messagesJson: fs.existsSync('./messages.json'),
+                usersLog: fs.existsSync('./users.log'),
+                suspiciousLog: fs.existsSync('./suspicious.log')
             }
         };
         res.end(JSON.stringify(diagnostic, null, 2));
         return;
     }
     
-    // ===== ПОЛИТИКА =====
+    // ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ =====
     if (req.url === '/privacy') {
-        res.end(`<!DOCTYPE html>...`); // сокращено
+        res.end(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 Политика Nanogram</title>
+    <style>
+        body {
+            background: #0a0c10;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #161b22;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #30363d;
+        }
+        h1 { color: #9f8be5; font-size: 32px; }
+        h2 { color: #ffd700; margin-top: 30px; }
+        p { color: #b0b3b8; }
+        .price { background: #21262d; padding: 10px; border-left: 4px solid #9f8be5; margin: 10px 0; }
+        .footer { margin-top: 40px; text-align: center; color: #8b949e; }
+        a { color: #9f8be5; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📜 Политика конфиденциальности Nanogram</h1>
+        
+        <h2>1. Какие данные мы собираем</h2>
+        <p>• Имя пользователя</p>
+        <p>• Номер телефона</p>
+        <p>• Сообщения (в зашифрованном виде)</p>
+        
+        <h2>2. Премиум за донаты</h2>
+        <div class="price">30 рублей - 1 месяц</div>
+        <div class="price">85 рублей - 3 месяца</div>
+        <div class="price">145 рублей - 6 месяцев</div>
+        <div class="price">285 рублей - 1 год</div>
+        
+        <h2>3. Бесплатный премиум за баги</h2>
+        <p>🐛 Незначительный баг — 1 месяц</p>
+        <p>🐞 Средний баг — 3 месяца</p>
+        <p>🦠 Критический баг — 6 месяцев</p>
+        <p>💎 Уникальная находка — 1 год + имя в списке</p>
+        
+        <h2>4. Контакты</h2>
+        <p>📧 <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></p>
+        
+        <div class="footer">
+            <p>Версия ${VERSION} | Последнее обновление: ${new Date().toLocaleDateString()}</p>
+            <p><a href="/">← Вернуться на главную</a></p>
+        </div>
+    </div>
+</body>
+</html>`);
         return;
     }
     
-    // ===== ТЕНЕВАЯ ПАНЕЛЬ =====
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
     if (req.url.includes('admin')) {
-        let data = {};
-        try { data = JSON.parse(fs.readFileSync('./data.json', 'utf8')); } catch (e) {}
         
+        // Проверка по IP или паролю (упрощённо)
+        const clientIp = req.socket.remoteAddress;
+        
+        let data = {};
+        try {
+            if (fs.existsSync('./data.json')) {
+                data = JSON.parse(fs.readFileSync('./data.json', 'utf8'));
+            }
+        } catch (e) {
+            data = {};
+        }
+        
+        let msgs = {};
+        try {
+            if (fs.existsSync('./messages.json')) {
+                msgs = JSON.parse(fs.readFileSync('./messages.json', 'utf8'));
+            }
+        } catch (e) {
+            msgs = {};
+        }
+        
+        // ===== СТАТИСТИКА =====
+        const usersCount = Object.keys(data.users || {}).length;
+        const groupsCount = Object.keys(data.groups || {}).length;
+        const channelsCount = Object.keys(data.channels || {}).length;
+        const premiumCount = Object.keys(data.premiumUsers || {}).length;
+        const onlineCount = users.size;
+        
+        let totalMessages = 0;
+        Object.values(msgs).forEach(chat => totalMessages += chat.length);
+        
+        // ===== HTML ТЕНЕВОЙ ПАНЕЛИ =====
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html>...`); // сокращено
+        res.end(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Теневая панель Nanogram ${VERSION}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0c10;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #9f8be5; font-size: 32px; margin-bottom: 20px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #9f8be5;
+        }
+        .stat-value { font-size: 28px; font-weight: bold; color: #ffd700; }
+        .stat-label { color: #b0b3b8; font-size: 14px; margin-top: 5px; }
+        .panel {
+            background: #161b22;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #30363d;
+        }
+        .panel h2 { color: #9f8be5; margin-bottom: 20px; }
+        .suspicious {
+            background: #da3633;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ffd700;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #0a0c10;
+        }
+        th { background: #21262d; padding: 12px; text-align: left; color: #9f8be5; }
+        td { padding: 12px; border-bottom: 1px solid #30363d; }
+        .banned { background: rgba(218, 54, 51, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM</h1>
+        <p>Добро пожаловать, Создатель! 👑</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value">${usersCount}</div><div class="stat-label">Пользователей</div></div>
+            <div class="stat-card"><div class="stat-value">${onlineCount}</div><div class="stat-label">🟢 Онлайн сейчас</div></div>
+            <div class="stat-card"><div class="stat-value">${totalMessages}</div><div class="stat-label">Сообщений</div></div>
+            <div class="stat-card"><div class="stat-value">${groupsCount}</div><div class="stat-label">Групп</div></div>
+            <div class="stat-card"><div class="stat-value">${channelsCount}</div><div class="stat-label">Каналов</div></div>
+            <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">Премиум</div></div>
+            <div class="stat-card"><div class="stat-value">${suspiciousMessages.length}</div><div class="stat-label">🚨 Подозрительных</div></div>
+        </div>
+        
+        <div class="panel">
+            <h2>🚨 ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ</h2>
+            ${suspiciousMessages.slice(-20).reverse().map(msg => `
+                <div class="suspicious">
+                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
+                    <div style="margin: 10px 0;">${msg.message}</div>
+                    <div style="font-size: 12px; color: #ffd700;">
+                        ${new Date(msg.timestamp).toLocaleString()} | IP: ${msg.ip} | Слово: "${msg.word}"
+                    </div>
+                </div>
+            `).join('')}
+            ${suspiciousMessages.length === 0 ? '<p>Нет подозрительных сообщений</p>' : ''}
+        </div>
+        
+        <div class="panel">
+            <h2>👥 ПОЛЬЗОВАТЕЛИ</h2>
+            <table>
+                <tr>
+                    <th>Имя</th>
+                    <th>Телефон</th>
+                    <th>Статус</th>
+                    <th>Премиум</th>
+                    <th>Действия</th>
+                </tr>
+                ${Object.entries(data.users || {}).map(([name, info]) => `
+                    <tr class="${info.banned ? 'banned' : ''}">
+                        <td><strong>${name}</strong></td>
+                        <td>${info.phone || '—'}</td>
+                        <td>${info.banned ? '🔴 ЗАБЛОКИРОВАН' : '🟢 Активен'}</td>
+                        <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
+                        <td>
+                            ${info.banned ? `
+                                <button onclick="unban('${name}')" style="background:#2ea043;">✅ Разбанить</button>
+                            ` : `
+                                <button onclick="ban('${name}')" style="background:#da3633;">🔨 Забанить</button>
+                            `}
+                        </td>
+                    </tr>
+                `).join('')}
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function ban(username) {
+            if (confirm(\`Забанить \${username}?\`)) {
+                window.location.href = \`/admin?action=ban_user&username=\${username}\`;
+            }
+        }
+        function unban(username) {
+            if (confirm(\`Разбанить \${username}?\`)) {
+                window.location.href = \`/admin?action=unban_user&username=\${username}\`;
+            }
+        }
+    </script>
+</body>
+</html>
+        `);
         return;
     }
     
@@ -192,7 +430,7 @@ const server = http.createServer((req, res) => {
     fs.readFile(filePath, 'utf8', (err, content) => {
         if (err) {
             res.writeHead(404);
-            res.end('<h1>404</h1>');
+            res.end('<h1>404 - Файл не найден</h1>');
         } else {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(content);
@@ -213,28 +451,51 @@ wss.on('connection', (ws, req) => {
     ws.send(JSON.stringify({
         type: 'connection_established',
         version: VERSION,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        message: 'Подключено к серверу Nanogram'
     }));
 
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message.toString('utf8'));
             
-            // ===== ПИНГ =====
+            // ===== ПИНГ-ПОНГ =====
             if (data.type === 'ping') {
                 ws.send(JSON.stringify({ 
                     type: 'pong', 
-                    timestamp: Date.now() 
+                    timestamp: Date.now(),
+                    latency: Date.now() - data.timestamp
                 }));
                 return;
             }
             
-            // ===== РЕГИСТРАЦИЯ =====
+            console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
+
+            // ===== РЕГИСТРАЦИЯ / ВХОД =====
             if (data.type === 'register') {
-                const { username, password, phone } = data;
+                const { username, password, phone, privacyAccepted } = data;
+                
+                if (!username || !password || !phone) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Имя, пароль и телефон обязательны' 
+                    }));
+                    return;
+                }
+                
+                if (!privacyAccepted) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Необходимо принять политику конфиденциальности' 
+                    }));
+                    return;
+                }
+                
+                const cleanUsername = username.trim();
+                const cleanPhone = phone.trim().replace(/\s+/g, '');
                 
                 // Проверка на бан
-                if (userDatabase[username]?.banned) {
+                if (userDatabase[cleanUsername]?.banned) {
                     ws.send(JSON.stringify({ 
                         type: 'error', 
                         message: '❌ Вы заблокированы' 
@@ -243,8 +504,8 @@ wss.on('connection', (ws, req) => {
                 }
                 
                 // Существующий пользователь
-                if (userDatabase[username]) {
-                    if (userDatabase[username].password !== password) {
+                if (userDatabase[cleanUsername]) {
+                    if (userDatabase[cleanUsername].password !== password) {
                         ws.send(JSON.stringify({ 
                             type: 'error', 
                             message: '❌ Неверный пароль' 
@@ -252,33 +513,45 @@ wss.on('connection', (ws, req) => {
                         return;
                     }
                     
-                    if (userDatabase[username].phone !== phone) {
+                    if (userDatabase[cleanUsername].phone !== cleanPhone) {
                         ws.send(JSON.stringify({ 
                             type: 'error', 
-                            message: '❌ Неверный телефон' 
+                            message: '❌ Неверный номер для этого аккаунта' 
                         }));
                         return;
                     }
                     
-                    currentUser = username;
-                    users.set(username, ws);
-                    activeUsers.set(ws, { username, ip: clientIp, status: 'online' });
+                    console.log(`👋 Вход: ${cleanUsername}`);
+                    currentUser = cleanUsername;
+                    
+                    userDatabase[cleanUsername].lastSeen = new Date().toISOString();
+                    
+                    users.set(cleanUsername, ws);
+                    activeUsers.set(ws, { 
+                        username: cleanUsername, 
+                        ip: clientIp, 
+                        status: 'online',
+                        joinedAt: Date.now()
+                    });
+                    
+                    saveData();
+                    logAction('login', cleanUsername, clientIp);
                     
                     ws.send(JSON.stringify({
                         type: 'login_success',
-                        username,
-                        premium: premiumUsers[username]?.active || false,
-                        privacy: privacySettings[username] || { showOnline: 'all', showPhone: 'all' }
+                        username: cleanUsername,
+                        profile: userProfiles[cleanUsername] || { avatar: '👤', bio: '' },
+                        premium: premiumUsers[cleanUsername]?.active || false,
+                        privacy: privacySettings[cleanUsername] || { showOnline: 'all', showPhone: 'all' },
+                        blocked: blockedUsers[cleanUsername] || []
                     }));
-                    
-                    logAction('login', username, clientIp);
                     
                 // Новый пользователь
                 } else {
                     // Проверка уникальности телефона
                     let phoneExists = false;
                     for (const u of Object.values(userDatabase)) {
-                        if (u.phone === phone) {
+                        if (u.phone === cleanPhone) {
                             phoneExists = true;
                             break;
                         }
@@ -287,36 +560,47 @@ wss.on('connection', (ws, req) => {
                     if (phoneExists) {
                         ws.send(JSON.stringify({ 
                             type: 'error', 
-                            message: '❌ Телефон уже используется' 
+                            message: '❌ Этот номер телефона уже используется' 
                         }));
                         return;
                     }
                     
-                    currentUser = username;
+                    console.log(`👤 Новый пользователь: ${cleanUsername} (${cleanPhone})`);
+                    currentUser = cleanUsername;
                     
-                    userDatabase[username] = {
-                        username, password, phone,
+                    userDatabase[cleanUsername] = {
+                        username: cleanUsername,
+                        password: password,
+                        phone: cleanPhone,
                         registered: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
                         banned: false
                     };
                     
-                    premiumUsers[username] = { active: false };
-                    privacySettings[username] = { showOnline: 'all', showPhone: 'all' };
-                    blockedUsers[username] = [];
+                    userProfiles[cleanUsername] = { avatar: '👤', bio: '' };
+                    premiumUsers[cleanUsername] = { active: false };
+                    privacySettings[cleanUsername] = { showOnline: 'all', showPhone: 'all' };
+                    blockedUsers[cleanUsername] = [];
                     
-                    users.set(username, ws);
-                    activeUsers.set(ws, { username, ip: clientIp, status: 'online' });
+                    users.set(cleanUsername, ws);
+                    activeUsers.set(ws, { 
+                        username: cleanUsername, 
+                        ip: clientIp, 
+                        status: 'online',
+                        joinedAt: Date.now()
+                    });
                     
                     saveData();
+                    logAction('register', cleanUsername, clientIp);
                     
                     ws.send(JSON.stringify({
                         type: 'register_success',
-                        username,
+                        username: cleanUsername,
+                        profile: userProfiles[cleanUsername],
                         premium: false,
-                        privacy: privacySettings[username]
+                        privacy: privacySettings[cleanUsername],
+                        blocked: []
                     }));
-                    
-                    logAction('register', username, clientIp);
                 }
                 
                 // Отправляем списки
@@ -333,14 +617,32 @@ wss.on('connection', (ws, req) => {
                 ws.send(JSON.stringify({ 
                     type: 'groups_list', 
                     groups: Object.values(groups).filter(g => 
-                        g.members && g.members.includes(username)
+                        g.members && g.members.includes(cleanUsername)
                     )
                 }));
+                
+                ws.send(JSON.stringify({ 
+                    type: 'rooms_list', 
+                    rooms: Object.values(privateRooms).filter(r => 
+                        r.members && r.members.includes(cleanUsername)
+                    )
+                }));
+                
+                // Оповещаем всех о новом пользователе
+                broadcastUserList();
+                broadcastStatusUpdate(cleanUsername, 'online');
             }
-            
-            // ===== ОТПРАВКА СООБЩЕНИЯ =====
+                        // ===== ОТПРАВКА СООБЩЕНИЯ =====
             if (data.type === 'message') {
                 const { from, to, text, time } = data;
+                
+                if (!from || !to || !text) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Неполные данные сообщения' 
+                    }));
+                    return;
+                }
                 
                 // Проверка на бан
                 if (userDatabase[from]?.banned) {
@@ -363,32 +665,451 @@ wss.on('connection', (ws, req) => {
                     from, to, text, time,
                     timestamp: Date.now(),
                     ip: clientIp,
-                    suspicious: isSuspicious
+                    suspicious: isSuspicious,
+                    delivered: false
                 };
                 
                 messages[chatKey].push(messageObj);
+                
+                if (messages[chatKey].length > MAX_MESSAGES_PER_CHAT) {
+                    messages[chatKey] = messages[chatKey].slice(-MAX_MESSAGES_PER_CHAT);
+                }
+                
                 saveMessages();
                 
                 // Отправляем получателю
                 const targetWs = users.get(to);
-                if (targetWs) {
+                let delivered = false;
+                
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     targetWs.send(JSON.stringify({
                         type: 'message',
                         id: messageObj.id,
                         from,
                         text,
-                        time
+                        time,
+                        serverTime: Date.now()
                     }));
+                    delivered = true;
+                    messageObj.delivered = true;
                 }
                 
                 // Подтверждение отправителю
                 ws.send(JSON.stringify({
                     type: 'message_delivered',
                     messageId: messageObj.id,
-                    to
+                    to,
+                    time,
+                    delivered,
+                    suspicious: isSuspicious
                 }));
                 
                 logAction('message', from, `→ ${to}${isSuspicious ? ' 🚨' : ''}`);
+            }
+
+            // ===== СОЗДАНИЕ ГРУППЫ =====
+            if (data.type === 'create_group') {
+                const { name, creator } = data;
+                
+                if (!name || !creator) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Название группы обязательно' 
+                    }));
+                    return;
+                }
+                
+                const groupId = 'group_' + generateId();
+                
+                groups[groupId] = {
+                    id: groupId,
+                    name: name,
+                    creator: creator,
+                    admins: [creator],
+                    members: [creator],
+                    avatar: '👥',
+                    createdAt: new Date().toISOString(),
+                    messages: []
+                };
+                
+                saveData();
+                logAction('create_group', creator, name);
+                
+                ws.send(JSON.stringify({ 
+                    type: 'group_created', 
+                    group: groups[groupId] 
+                }));
+                
+                // Оповещаем создателя
+                ws.send(JSON.stringify({
+                    type: 'groups_list',
+                    groups: Object.values(groups).filter(g => 
+                        g.members && g.members.includes(creator)
+                    )
+                }));
+            }
+
+            // ===== ДОБАВЛЕНИЕ В ГРУППУ =====
+            if (data.type === 'add_to_group') {
+                const { groupId, username, adder } = data;
+                
+                if (!groups[groupId]) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Группа не найдена' 
+                    }));
+                    return;
+                }
+                
+                if (!groups[groupId].admins.includes(adder)) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Нет прав администратора' 
+                    }));
+                    return;
+                }
+                
+                if (!groups[groupId].members.includes(username)) {
+                    groups[groupId].members.push(username);
+                    saveData();
+                    logAction('add_to_group', adder, `${username} → ${groupId}`);
+                    
+                    // Оповещаем всех участников
+                    groups[groupId].members.forEach(member => {
+                        const memberWs = users.get(member);
+                        if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+                            memberWs.send(JSON.stringify({
+                                type: 'group_updated',
+                                group: groups[groupId]
+                            }));
+                        }
+                    });
+                    
+                    // Личное уведомление добавленному
+                    const targetWs = users.get(username);
+                    if (targetWs) {
+                        targetWs.send(JSON.stringify({
+                            type: 'added_to_group',
+                            group: groups[groupId]
+                        }));
+                    }
+                }
+            }
+
+            // ===== СООБЩЕНИЕ В ГРУППЕ =====
+            if (data.type === 'group_message') {
+                const { groupId, from, text, time } = data;
+                
+                if (!groups[groupId] || !groups[groupId].members.includes(from)) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Нет доступа к группе' 
+                    }));
+                    return;
+                }
+                
+                const messageObj = {
+                    id: generateId(),
+                    from, text, time,
+                    timestamp: Date.now(),
+                    groupId
+                };
+                
+                if (!groups[groupId].messages) groups[groupId].messages = [];
+                groups[groupId].messages.push(messageObj);
+                
+                // Сохраняем в общую базу
+                const chatKey = `group_${groupId}`;
+                if (!messages[chatKey]) messages[chatKey] = [];
+                messages[chatKey].push(messageObj);
+                
+                saveData();
+                saveMessages();
+                
+                // Рассылаем всем участникам
+                groups[groupId].members.forEach(member => {
+                    const memberWs = users.get(member);
+                    if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+                        memberWs.send(JSON.stringify({
+                            type: 'group_message',
+                            id: messageObj.id,
+                            groupId,
+                            from,
+                            text,
+                            time,
+                            serverTime: Date.now()
+                        }));
+                    }
+                });
+                
+                logAction('group_message', from, `→ group:${groupId}`);
+            }
+                        // ===== ОТПРАВКА ФАЙЛА =====
+            if (data.type === 'send_file') {
+                const { from, to, fileName, fileData, fileType, time } = data;
+                
+                try {
+                    const fileId = generateId();
+                    const filePath = `./uploads/${fileId}_${fileName}`;
+                    
+                    if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
+                    
+                    const buffer = Buffer.from(fileData, 'base64');
+                    fs.writeFileSync(filePath, buffer);
+                    
+                    const chatKey = [from, to].sort().join('_');
+                    if (!messages[chatKey]) messages[chatKey] = [];
+                    
+                    const fileObj = {
+                        id: fileId,
+                        type: 'file',
+                        from, to,
+                        fileName,
+                        fileSize: buffer.length,
+                        fileType,
+                        time,
+                        timestamp: Date.now(),
+                        filePath
+                    };
+                    
+                    messages[chatKey].push(fileObj);
+                    saveMessages();
+                    
+                    const targetWs = users.get(to);
+                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                        targetWs.send(JSON.stringify({
+                            type: 'file',
+                            id: fileId,
+                            from,
+                            fileName,
+                            fileSize: buffer.length,
+                            fileType,
+                            time
+                        }));
+                    }
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'file_sent', 
+                        fileId,
+                        fileName
+                    }));
+                    
+                    logAction('send_file', from, `${fileName} → ${to}`);
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка отправки файла:', error);
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Ошибка при отправке файла' 
+                    }));
+                }
+            }
+
+            // ===== ОБНОВЛЕНИЕ СТАТУСА =====
+            if (data.type === 'update_status') {
+                const { username, status } = data;
+                
+                const userData = activeUsers.get(ws);
+                if (userData && userData.username === username) {
+                    userData.status = status;
+                    activeUsers.set(ws, userData);
+                    
+                    broadcastStatusUpdate(username, status);
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'status_updated', 
+                        status 
+                    }));
+                    
+                    logAction('update_status', username, status);
+                }
+            }
+
+            // ===== P2P СИГНАЛЫ (WebRTC) =====
+            if (data.type === 'signal') {
+                const { to, from, signal } = data;
+                
+                const targetWs = users.get(to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'signal',
+                        from,
+                        signal
+                    }));
+                }
+            }
+
+            if (data.type === 'signal_answer') {
+                const { to, from, answer } = data;
+                
+                const targetWs = users.get(to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'signal_answer',
+                        from,
+                        answer
+                    }));
+                }
+            }
+
+            if (data.type === 'ice_candidate') {
+                const { to, from, candidate } = data;
+                
+                const targetWs = users.get(to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'ice_candidate',
+                        from,
+                        candidate
+                    }));
+                }
+            }
+
+            // ===== P2P СООБЩЕНИЕ (сохраняем на сервере) =====
+            if (data.type === 'p2p_message') {
+                const { from, to, text, time, messageId } = data;
+                
+                const chatKey = [from, to].sort().join('_');
+                if (!messages[chatKey]) messages[chatKey] = [];
+                
+                messages[chatKey].push({
+                    id: messageId || generateId(),
+                    from, to, text, time,
+                    timestamp: Date.now(),
+                    via: 'p2p'
+                });
+                
+                saveMessages();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'p2p_message_saved',
+                    messageId 
+                }));
+            }
+                        // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
+            if (data.type === 'update_privacy') {
+                const { username, settings } = data;
+                
+                if (!privacySettings[username]) {
+                    privacySettings[username] = {};
+                }
+                
+                privacySettings[username] = { 
+                    ...privacySettings[username], 
+                    ...settings 
+                };
+                
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'privacy_updated', 
+                    settings: privacySettings[username] 
+                }));
+                
+                logAction('update_privacy', username, JSON.stringify(settings));
+            }
+
+            // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
+            if (data.type === 'block_user') {
+                const { username, target } = data;
+                
+                if (!username || !target) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Не указан пользователь' 
+                    }));
+                    return;
+                }
+                
+                if (!blockedUsers[username]) {
+                    blockedUsers[username] = [];
+                }
+                
+                if (!blockedUsers[username].includes(target)) {
+                    blockedUsers[username].push(target);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'blocked_list', 
+                        blocked: blockedUsers[username] 
+                    }));
+                    
+                    logAction('block_user', username, target);
+                }
+            }
+
+            // ===== РАЗБЛОКИРОВКА =====
+            if (data.type === 'unblock_user') {
+                const { username, target } = data;
+                
+                if (blockedUsers[username]) {
+                    blockedUsers[username] = blockedUsers[username]
+                        .filter(b => b !== target);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'blocked_list', 
+                        blocked: blockedUsers[username] 
+                    }));
+                    
+                    logAction('unblock_user', username, target);
+                }
+            }
+
+            // ===== СТАТУС "ПЕЧАТАЕТ" =====
+            if (data.type === 'typing') {
+                const { from, to } = data;
+                
+                const targetWs = users.get(to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'typing',
+                        from
+                    }));
+                }
+            }
+
+            // ===== ПРОЧТЕНО =====
+            if (data.type === 'read') {
+                const { from, to, messageId } = data;
+                
+                const targetWs = users.get(from === currentUser ? to : from);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'read',
+                        by: currentUser,
+                        messageId
+                    }));
+                }
+            }
+
+            // ===== ПОЛУЧИТЬ ИСТОРИЮ =====
+            if (data.type === 'get_history') {
+                const { username, with: otherUser } = data;
+                
+                const chatKey = [username, otherUser].sort().join('_');
+                const history = messages[chatKey] || [];
+                
+                ws.send(JSON.stringify({
+                    type: 'history',
+                    with: otherUser,
+                    messages: history.slice(-100)
+                }));
+            }
+
+            // ===== ПОЛУЧИТЬ СТАТУС ПОЛЬЗОВАТЕЛЯ =====
+            if (data.type === 'get_user_status') {
+                const { username, target } = data;
+                
+                const userData = activeUsers.get(users.get(target));
+                
+                ws.send(JSON.stringify({
+                    type: 'user_status',
+                    username: target,
+                    online: !!userData,
+                    status: userData ? userData.status : 'offline',
+                    lastSeen: userDatabase[target]?.lastSeen || null
+                }));
             }
                         // ===== СТАТИСТИКА (ТОЛЬКО ДЛЯ Dane4ka5) =====
             if (data.type === 'get_stats') {
@@ -400,23 +1121,35 @@ wss.on('connection', (ws, req) => {
                     return;
                 }
                 
-                const stats = {
-                    users: Object.keys(userDatabase).length,
-                    online: users.size,
-                    messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
-                    groups: Object.keys(groups).length,
-                    suspicious: suspiciousMessages.length,
-                    uptime: process.uptime(),
-                    memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
-                    version: VERSION
-                };
-                
-                ws.send(JSON.stringify({
-                    type: 'stats',
-                    stats
-                }));
-                
-                logAction('admin_stats', data.username, 'Запрос статистики');
+                try {
+                    const stats = {
+                        users: Object.keys(userDatabase || {}).length,
+                        online: users ? users.size : 0,
+                        messages: Object.values(messages || {}).reduce((a, c) => a + (c ? c.length : 0), 0),
+                        groups: Object.keys(groups || {}).length,
+                        channels: Object.keys(channels || {}).length,
+                        rooms: Object.keys(privateRooms || {}).length,
+                        premium: Object.keys(premiumUsers || {}).length,
+                        suspicious: suspiciousMessages ? suspiciousMessages.length : 0,
+                        uptime: process.uptime(),
+                        memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+                        version: VERSION
+                    };
+                    
+                    ws.send(JSON.stringify({
+                        type: 'stats',
+                        stats: stats
+                    }));
+                    
+                    logAction('admin_stats', data.username, 'Запрос статистики');
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка статистики:', error);
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: 'Ошибка получения статистики' 
+                    }));
+                }
             }
             
             // ===== ПОЛУЧИТЬ ПОДОЗРИТЕЛЬНЫЕ (ТОЛЬКО ДЛЯ Dane4ka5) =====
@@ -431,7 +1164,7 @@ wss.on('connection', (ws, req) => {
                 
                 ws.send(JSON.stringify({
                     type: 'suspicious_list',
-                    messages: suspiciousMessages.slice(-100)
+                    messages: suspiciousMessages.slice(-100).reverse()
                 }));
                 
                 logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
@@ -469,29 +1202,36 @@ wss.on('connection', (ws, req) => {
                 
                 const { target } = data;
                 
-                if (userDatabase[target]) {
-                    userDatabase[target].banned = true;
-                    userDatabase[target].bannedAt = new Date().toISOString();
-                    
-                    // Кикаем если онлайн
-                    const targetWs = users.get(target);
-                    if (targetWs) {
-                        targetWs.send(JSON.stringify({ 
-                            type: 'you_are_banned' 
-                        }));
-                        targetWs.close();
-                        users.delete(target);
-                    }
-                    
-                    saveData();
-                    
+                if (!target || !userDatabase[target]) {
                     ws.send(JSON.stringify({ 
-                        type: 'user_banned', 
-                        target 
+                        type: 'error', 
+                        message: '❌ Пользователь не найден' 
                     }));
-                    
-                    logAction('admin_ban', data.username, target);
+                    return;
                 }
+                
+                userDatabase[target].banned = true;
+                userDatabase[target].bannedAt = new Date().toISOString();
+                
+                // Кикаем если онлайн
+                const targetWs = users.get(target);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({ 
+                        type: 'you_are_banned',
+                        reason: 'Нарушение правил'
+                    }));
+                    targetWs.close();
+                    users.delete(target);
+                }
+                
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'user_banned', 
+                    target 
+                }));
+                
+                logAction('admin_ban', data.username, target);
             }
             
             // ===== РАЗБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (ТОЛЬКО ДЛЯ Dane4ka5) =====
@@ -506,17 +1246,23 @@ wss.on('connection', (ws, req) => {
                 
                 const { target } = data;
                 
-                if (userDatabase[target]) {
-                    userDatabase[target].banned = false;
-                    saveData();
-                    
+                if (!target || !userDatabase[target]) {
                     ws.send(JSON.stringify({ 
-                        type: 'user_unbanned', 
-                        target 
+                        type: 'error', 
+                        message: '❌ Пользователь не найден' 
                     }));
-                    
-                    logAction('admin_unban', data.username, target);
+                    return;
                 }
+                
+                userDatabase[target].banned = false;
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'user_unbanned', 
+                    target 
+                }));
+                
+                logAction('admin_unban', data.username, target);
             }
             
             // ===== ПОЛУЧИТЬ ВСЕ СООБЩЕНИЯ (ТОЛЬКО ДЛЯ Dane4ka5) =====
@@ -536,361 +1282,73 @@ wss.on('connection', (ws, req) => {
                 
                 logAction('admin_all', data.username, 'Просмотр всех сообщений');
             }
-                        // ===== СОЗДАНИЕ ГРУППЫ =====
-            if (data.type === 'create_group') {
-                const { name, creator } = data;
-                
-                if (!name || !creator) {
+                        // ===== ПОЛУЧИТЬ ЛОГИ (ТОЛЬКО ДЛЯ Dane4ka5) =====
+            if (data.type === 'get_logs') {
+                if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
                         type: 'error', 
-                        message: '❌ Название обязательно' 
+                        message: '❌ Только для создателя' 
                     }));
                     return;
                 }
                 
-                const groupId = 'group_' + generateId();
-                
-                groups[groupId] = {
-                    id: groupId,
-                    name: name,
-                    creator: creator,
-                    admins: [creator],
-                    members: [creator],
-                    avatar: '👥',
-                    createdAt: new Date().toISOString(),
-                    messages: []
-                };
-                
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'group_created', 
-                    group: groups[groupId] 
-                }));
-                
-                logAction('create_group', creator, name);
-            }
-            
-            // ===== ДОБАВЛЕНИЕ В ГРУППУ =====
-            if (data.type === 'add_to_group') {
-                const { groupId, username, adder } = data;
-                
-                if (!groups[groupId]) {
+                try {
+                    const logs = fs.readFileSync('./users.log', 'utf8')
+                        .split('\n')
+                        .filter(l => l.length > 0)
+                        .slice(-100)
+                        .reverse();
+                    
+                    ws.send(JSON.stringify({
+                        type: 'logs',
+                        logs: logs
+                    }));
+                } catch (error) {
                     ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Группа не найдена' 
-                    }));
-                    return;
-                }
-                
-                if (!groups[groupId].admins.includes(adder)) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Нет прав' 
-                    }));
-                    return;
-                }
-                
-                if (!groups[groupId].members.includes(username)) {
-                    groups[groupId].members.push(username);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'group_updated', 
-                        group: groups[groupId] 
-                    }));
-                    
-                    logAction('add_to_group', adder, `${username} → ${groupId}`);
-                }
-            }
-            
-            // ===== СООБЩЕНИЕ В ГРУППЕ =====
-            if (data.type === 'group_message') {
-                const { groupId, from, text, time } = data;
-                
-                if (!groups[groupId] || !groups[groupId].members.includes(from)) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Нет доступа' 
-                    }));
-                    return;
-                }
-                
-                const messageObj = {
-                    id: generateId(),
-                    from,
-                    text,
-                    time,
-                    timestamp: Date.now(),
-                    groupId
-                };
-                
-                if (!groups[groupId].messages) groups[groupId].messages = [];
-                groups[groupId].messages.push(messageObj);
-                
-                // Сохраняем в общую базу
-                const chatKey = `group_${groupId}`;
-                if (!messages[chatKey]) messages[chatKey] = [];
-                messages[chatKey].push(messageObj);
-                
-                saveData();
-                saveMessages();
-                
-                // Рассылаем всем участникам
-                groups[groupId].members.forEach(member => {
-                    const memberWs = users.get(member);
-                    if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-                        memberWs.send(JSON.stringify({
-                            type: 'group_message',
-                            id: messageObj.id,
-                            groupId,
-                            from,
-                            text,
-                            time
-                        }));
-                    }
-                });
-                
-                logAction('group_message', from, `→ group:${groupId}`);
-            }
-            
-            // ===== ОТПРАВКА ФАЙЛА =====
-            if (data.type === 'send_file') {
-                const { from, to, fileName, fileData, time } = data;
-                
-                const fileId = generateId();
-                const filePath = `./uploads/${fileId}_${fileName}`;
-                
-                if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
-                
-                const buffer = Buffer.from(fileData, 'base64');
-                fs.writeFileSync(filePath, buffer);
-                
-                const chatKey = [from, to].sort().join('_');
-                if (!messages[chatKey]) messages[chatKey] = [];
-                
-                const fileObj = {
-                    id: fileId,
-                    type: 'file',
-                    from, to,
-                    fileName,
-                    fileSize: buffer.length,
-                    time,
-                    timestamp: Date.now(),
-                    filePath
-                };
-                
-                messages[chatKey].push(fileObj);
-                saveMessages();
-                
-                const targetWs = users.get(to);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'file',
-                        id: fileId,
-                        from,
-                        fileName,
-                        fileSize: buffer.length,
-                        time
+                        type: 'logs', 
+                        logs: [] 
                     }));
                 }
-                
-                ws.send(JSON.stringify({ 
-                    type: 'file_sent', 
-                    fileId 
-                }));
-                
-                logAction('send_file', from, `${fileName} → ${to}`);
-            }
-                        // ===== ОБНОВЛЕНИЕ СТАТУСА =====
-            if (data.type === 'update_status') {
-                const { username, status } = data;
-                
-                const userData = activeUsers.get(ws);
-                if (userData) {
-                    userData.status = status;
-                    activeUsers.set(ws, userData);
-                    
-                    // Оповещаем всех
-                    broadcastStatusUpdate(username, status);
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'status_updated', 
-                        status 
-                    }));
-                }
-            }
-            
-            // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
-            if (data.type === 'update_privacy') {
-                const { username, settings } = data;
-                
-                privacySettings[username] = { 
-                    ...privacySettings[username], 
-                    ...settings 
-                };
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'privacy_updated', 
-                    settings: privacySettings[username] 
-                }));
-                
-                logAction('update_privacy', username, JSON.stringify(settings));
-            }
-            
-            // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
-            if (data.type === 'block_user') {
-                const { username, target } = data;
-                
-                if (!blockedUsers[username]) {
-                    blockedUsers[username] = [];
-                }
-                
-                if (!blockedUsers[username].includes(target)) {
-                    blockedUsers[username].push(target);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
-                    logAction('block_user', username, target);
-                }
-            }
-            
-            // ===== РАЗБЛОКИРОВКА =====
-            if (data.type === 'unblock_user') {
-                const { username, target } = data;
-                
-                if (blockedUsers[username]) {
-                    blockedUsers[username] = blockedUsers[username]
-                        .filter(b => b !== target);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
-                    logAction('unblock_user', username, target);
-                }
-            }
-            
-            // ===== СТАТУС ПЕЧАТАЕТ =====
-            if (data.type === 'typing') {
-                const { from, to } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'typing',
-                        from
-                    }));
-                }
-            }
-            
-            // ===== ПРОЧТЕНО =====
-            if (data.type === 'read') {
-                const { from, to, messageId } = data;
-                
-                const targetWs = users.get(from === currentUser ? to : from);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'read',
-                        by: currentUser,
-                        messageId
-                    }));
-                }
-            }
-            
-            // ===== P2P СИГНАЛЫ =====
-            if (data.type === 'signal') {
-                const { to, from, signal } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'signal',
-                        from,
-                        signal
-                    }));
-                }
-            }
-            
-            if (data.type === 'signal_answer') {
-                const { to, from, answer } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'signal_answer',
-                        from,
-                        answer
-                    }));
-                }
-            }
-            
-            if (data.type === 'ice_candidate') {
-                const { to, from, candidate } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({
-                        type: 'ice_candidate',
-                        from,
-                        candidate
-                    }));
-                }
-            }
-            
-            // ===== P2P СООБЩЕНИЕ (сохраняем на сервере) =====
-            if (data.type === 'p2p_message') {
-                const { from, to, text, time, messageId } = data;
-                
-                const chatKey = [from, to].sort().join('_');
-                if (!messages[chatKey]) messages[chatKey] = [];
-                
-                messages[chatKey].push({
-                    id: messageId || generateId(),
-                    from, to, text, time,
-                    timestamp: Date.now(),
-                    via: 'p2p'
-                });
-                
-                saveMessages();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'p2p_message_saved',
-                    messageId 
-                }));
             }
 
         } catch (error) {
-            console.error('❌ Ошибка обработки:', error);
+            console.error('❌ Ошибка обработки сообщения:', error);
             logAction('error', 'SYSTEM', error.message);
             
             try {
                 ws.send(JSON.stringify({ 
                     type: 'error', 
-                    message: 'Внутренняя ошибка сервера' 
+                    message: '❌ Внутренняя ошибка сервера' 
                 }));
-            } catch (e) {}
+            } catch (sendError) {
+                // ws уже закрыт
+            }
         }
     });
-        ws.on('close', () => {
+
+    ws.on('close', () => {
         const userData = activeUsers.get(ws);
         if (userData) {
-            console.log(`👋 ${userData.username} отключился`);
+            console.log(`👋 ${userData.username} отключился (был онлайн ${Math.round((Date.now() - userData.joinedAt) / 1000)}с)`);
+            
             users.delete(userData.username);
             activeUsers.delete(ws);
             
-            // Обновляем список для всех
+            if (userDatabase[userData.username]) {
+                userDatabase[userData.username].lastSeen = new Date().toISOString();
+                saveData();
+            }
+            
             broadcastUserList();
+            broadcastStatusUpdate(userData.username, 'offline');
             
             logAction('disconnect', userData.username, userData.ip);
         }
+    });
+
+    ws.on('error', (error) => {
+        console.error('❌ Ошибка WebSocket:', error);
+        logAction('error', 'WEBSOCKET', error.message);
     });
 });
 
@@ -902,6 +1360,7 @@ function broadcastUserList() {
     const message = JSON.stringify({ 
         type: 'user_list', 
         users: userList,
+        online: userList.length,
         timestamp: Date.now()
     });
     
@@ -916,12 +1375,21 @@ function broadcastStatusUpdate(username, status) {
     const message = JSON.stringify({
         type: 'status_update',
         username,
-        status
+        status,
+        timestamp: Date.now()
     });
     
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(message);
+        }
+    });
+}
+
+function broadcastToAll(message) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
         }
     });
 }
@@ -960,7 +1428,7 @@ setInterval(() => {
             fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
         }
         
-        // Удаляем старые бэкапы (оставляем 50)
+        // Удаляем старые бэкапы (оставляем MAX_BACKUPS)
         const backups = fs.readdirSync('./backups')
             .filter(f => f.startsWith('data_'))
             .sort()
@@ -983,7 +1451,7 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 // ==============================================
-// ОЧИСТКА НЕАКТИВНЫХ
+// ОЧИСТКА НЕАКТИВНЫХ СОЕДИНЕНИЙ
 // ==============================================
 setInterval(() => {
     let cleaned = 0;
@@ -1000,41 +1468,77 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 // ==============================================
-// ЗАПУСК
+// ПРОВЕРКА ПРОСТОЯ
+// ==============================================
+setInterval(() => {
+    const now = Date.now();
+    let inactiveCount = 0;
+    
+    activeUsers.forEach((data, ws) => {
+        if (ws.readyState === WebSocket.OPEN && now - data.joinedAt > 30 * 60 * 1000) {
+            // 30 минут бездействия
+            ws.send(JSON.stringify({ 
+                type: 'ping', 
+                message: 'Проверка соединения' 
+            }));
+        }
+    });
+    
+    if (inactiveCount > 0) {
+        console.log(`🔍 Проверено ${inactiveCount} соединений`);
+    }
+}, 5 * 60 * 1000);
+
+// ==============================================
+// ЗАПУСК СЕРВЕРА
 // ==============================================
 loadAllData();
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - ИСПРАВЛЕННАЯ ВЕРСИЯ`);
+    console.log(`🚀 Nanogram ${VERSION} - ПОЛНАЯ ВЕРСИЯ 8 ЧАСТЕЙ`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
+    console.log(`👑 Создатель: ${CREATOR_USERNAME}`);
     console.log(`\n📊 СТАТИСТИКА:`);
     console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
-    console.log(`   🟢 Онлайн: ${users.size}`);
+    console.log(`   🟢 Онлайн сейчас: ${users.size}`);
     console.log(`   💬 Сообщений: ${Object.keys(messages).length}`);
+    console.log(`   👥 Групп: ${Object.keys(groups).length}`);
+    console.log(`   📢 Каналов: ${Object.keys(channels).length}`);
     console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
     console.log(`   🕵️ /admin - теневая панель`);
+    console.log(`   📜 /privacy - политика`);
+    console.log(`   🔍 /diagnostic - диагностика`);
     console.log('='.repeat(70) + '\n');
     
     logAction('system', 'SERVER', `Запуск ${VERSION}`);
 });
 
 // ==============================================
-// ЗАВЕРШЕНИЕ
+// ЗАВЕРШЕНИЕ РАБОТЫ
 // ==============================================
 process.on('SIGINT', () => {
-    console.log('\n📦 Сохранение...');
+    console.log('\n📦 Сохранение перед выходом...');
     saveData();
     saveMessages();
     logAction('system', 'SERVER', 'Остановка');
+    console.log('✅ Данные сохранены. Сервер остановлен.');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
+    console.log('\n📦 Сохранение перед выходом...');
     saveData();
     saveMessages();
     process.exit(0);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Непойманная ошибка:', err);
+    logAction('error', 'SYSTEM', err.message);
+    saveData();
+    saveMessages();
 });
