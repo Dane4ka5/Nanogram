@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.1 — полная версия</title>
+    <title>Nanogram v0.10.3 — плавные темы</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -11,9 +11,13 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            transition: background 5s ease,
+                        color 5s ease,
+                        border-color 5s ease,
+                        box-shadow 5s ease;
         }
 
-        /* ===== ТЁМНАЯ ТЕМА ===== */
+        /* ===== ТЁМНАЯ ТЕМА (ИСХОДНАЯ) ===== */
         :root {
             --bg-primary: #0a0c10;
             --bg-secondary: #161b22;
@@ -36,23 +40,57 @@
             --online-green: #2ea043;
             --away-yellow: #f0b400;
             --busy-red: #da3633;
+            
+            transition: background-color 5s ease,
+                        color 5s ease,
+                        border-color 5s ease,
+                        box-shadow 5s ease;
         }
 
-        /* ===== СВЕТЛАЯ ТЕМА ===== */
+        /* ===== СВЕТЛАЯ ТЕМА (СЛЕВА НАПРАВО) ===== */
         body.light-theme {
-            --bg-primary: #f6f8fa;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #f0f2f5;
-            --text-primary: #24292f;
-            --text-secondary: #57606a;
-            --text-muted: #6e7781;
+            --bg-primary: linear-gradient(135deg,
+                #0a0c10 0%,
+                #2d1b3a 20%,
+                #9f8be5 40%,
+                #d9c9ff 60%,
+                #f8f0ff 80%
+            );
+            --bg-secondary: rgba(255, 255, 255, 0.9);
+            --bg-tertiary: rgba(255, 255, 255, 0.95);
+            --text-primary: #2d2a3a;
+            --text-secondary: #5a4f7a;
+            --text-muted: #7a6b9a;
             --accent: #9f8be5;
             --accent-hover: #b09cff;
-            --border: #d0d7de;
-            --hover: #eaeef2;
+            --border: rgba(160, 140, 200, 0.3);
+            --hover: rgba(200, 180, 255, 0.3);
             --message-sent: #9f8be5;
-            --message-received: #eaeef2;
-            --shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --message-received: rgba(255, 255, 255, 0.9);
+            --shadow: 0 8px 24px rgba(120, 90, 180, 0.2);
+        }
+
+        /* ===== ТЁМНАЯ ТЕМА (СПРАВА НАЛЕВО) ===== */
+        body.dark-theme {
+            --bg-primary: linear-gradient(225deg,
+                #0a0c10 0%,
+                #2d1b3a 20%,
+                #9f8be5 40%,
+                #d9c9ff 60%,
+                #f8f0ff 80%
+            );
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3b8;
+            --text-muted: #8b949e;
+            --accent: #9f8be5;
+            --accent-hover: #b09cff;
+            --border: #30363d;
+            --hover: #2d333b;
+            --message-sent: #9f8be5;
+            --message-received: #2d333b;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
 
         body {
@@ -61,25 +99,28 @@
             font-size: 16px;
             height: 100vh;
             overflow: hidden;
-            transition: all 0.3s ease;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background 5s ease,
+                        color 5s ease,
+                        border-color 5s ease,
+                        box-shadow 5s ease;
         }
 
-        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
         .app-container, .chats-panel, .chat-panel, .modal, .login-card, 
         .panel-header, .profile-section, .chat-item, .message-input-area,
         .chat-header, .tab, .icon-btn, .donation-btn, .settings-btn {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
+            transition: all 5s ease;
         }
 
         .chat-item, .icon-btn, .tab, .send-btn, .message, .settings-btn {
-            transition: all 0.3s ease;
+            transition: all 5s ease;
         }
 
         .chat-item:hover {
@@ -162,6 +203,7 @@
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
             background: var(--bg-secondary);
+            transition: all 5s ease;
         }
 
         .panel-header h2 {
@@ -171,6 +213,7 @@
             align-items: center;
             gap: 8px;
             color: var(--text-primary);
+            transition: all 5s ease;
         }
 
         .header-buttons {
@@ -190,10 +233,17 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             cursor: pointer;
+            transition: all 5s ease;
         }
 
         .settings-btn {
             background: var(--bg-tertiary);
+        }
+
+        .icon-btn:hover, .settings-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+            background: var(--accent);
+            color: white;
         }
 
         .mobile-back-btn {
@@ -208,6 +258,7 @@
             color: var(--text-primary);
             cursor: pointer;
             margin-right: 12px;
+            transition: all 5s ease;
         }
 
         /* ===== СТАТУС СОЕДИНЕНИЯ ===== */
@@ -220,6 +271,7 @@
             background: var(--bg-tertiary);
             border-bottom: 1px solid var(--border);
             color: var(--text-secondary);
+            transition: all 5s ease;
         }
 
         .status-dot {
@@ -247,7 +299,7 @@
             margin: 12px 16px;
             border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
             position: relative;
         }
 
@@ -276,6 +328,7 @@
             overflow: hidden;
             flex-shrink: 0;
             position: relative;
+            transition: all 5s ease;
         }
 
         .avatar img {
@@ -292,6 +345,7 @@
             height: 12px;
             border-radius: 50%;
             border: 2px solid var(--bg-secondary);
+            transition: all 5s ease;
         }
 
         .avatar-status.online { background: var(--online-green); }
@@ -311,6 +365,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: all 5s ease;
         }
 
         .profile-status {
@@ -319,6 +374,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: all 5s ease;
         }
 
         .status-icon {
@@ -346,6 +402,7 @@
             border-radius: 20px;
             font-weight: bold;
             white-space: nowrap;
+            transition: all 5s ease;
         }
 
         .premium-badge {
@@ -355,6 +412,8 @@
             padding: 4px 10px;
             border-radius: 20px;
             font-weight: bold;
+            white-space: nowrap;
+            transition: all 5s ease;
         }
 
         /* ===== DONATION КНОПКА ===== */
@@ -373,11 +432,12 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
+            transition: all 5s ease;
         }
 
         .donation-btn:hover {
             transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
         }
 
         /* ===== ПОИСК ===== */
@@ -389,6 +449,7 @@
             align-items: center;
             gap: 10px;
             border: 1px solid var(--border);
+            transition: all 5s ease;
         }
 
         .search-box i {
@@ -402,6 +463,7 @@
             outline: none;
             color: var(--text-primary);
             font-size: 15px;
+            transition: all 5s ease;
         }
 
         .search-box input::placeholder {
@@ -434,7 +496,7 @@
             color: var(--text-secondary);
             border: 1px solid var(--border);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
             white-space: nowrap;
         }
 
@@ -468,6 +530,7 @@
             border-radius: 20px;
             cursor: pointer;
             position: relative;
+            transition: all 5s ease;
         }
 
         .chat-item.selected {
@@ -493,6 +556,7 @@
             margin-right: 16px;
             flex-shrink: 0;
             position: relative;
+            transition: all 5s ease;
         }
 
         .chat-avatar-status {
@@ -503,6 +567,7 @@
             height: 12px;
             border-radius: 50%;
             border: 2px solid var(--bg-secondary);
+            transition: all 5s ease;
         }
 
         .chat-avatar-status.online { background: var(--online-green); }
@@ -522,6 +587,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: all 5s ease;
         }
 
         .chat-preview {
@@ -530,6 +596,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            transition: all 5s ease;
         }
 
         .chat-badge {
@@ -540,6 +607,7 @@
             color: white;
             margin-left: 10px;
             white-space: nowrap;
+            transition: all 5s ease;
         }
 
         .group-badge {
@@ -565,6 +633,7 @@
             align-items: center;
             gap: 15px;
             border-bottom: 1px solid var(--border);
+            transition: all 5s ease;
         }
 
         .chat-header-avatar {
@@ -579,6 +648,7 @@
             color: white;
             flex-shrink: 0;
             position: relative;
+            transition: all 5s ease;
         }
 
         .chat-header-info {
@@ -594,6 +664,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: all 5s ease;
         }
 
         .chat-header-info p {
@@ -602,6 +673,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: all 5s ease;
         }
 
         .online-status {
@@ -660,6 +732,7 @@
             display: flex;
             flex-direction: column;
             background: var(--bg-secondary);
+            transition: all 5s ease;
         }
 
         .message {
@@ -672,6 +745,7 @@
             word-wrap: break-word;
             line-height: 1.4;
             border: 1px solid var(--border);
+            transition: all 5s ease;
         }
 
         @keyframes slideIn {
@@ -715,6 +789,7 @@
             padding: 8px 12px;
             border-radius: 12px;
             margin-top: 5px;
+            transition: all 5s ease;
         }
 
         .file-icon {
@@ -742,6 +817,7 @@
             overflow: hidden;
             margin-top: 5px;
             cursor: pointer;
+            transition: all 5s ease;
         }
 
         .youtube-thumb {
@@ -759,13 +835,16 @@
             padding: 8px 12px;
             font-weight: 600;
         }
-                /* ===== ПОЛЕ ВВОДА ===== */
+                /* ===== ПОЛЕ ВВОДА (ИСПРАВЛЕННОЕ) ===== */
         .message-input-area {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
             display: flex;
             gap: 8px;
             align-items: center;
+            position: relative;
+            z-index: 1;
+            transition: all 5s ease;
         }
 
         .attach-btn {
@@ -780,7 +859,7 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
             flex-shrink: 0;
         }
 
@@ -799,6 +878,7 @@
             outline: none;
             color: var(--text-primary);
             font-size: 15px;
+            transition: all 5s ease;
         }
 
         .message-input-area input:focus {
@@ -819,6 +899,7 @@
             justify-content: center;
             font-size: 18px;
             flex-shrink: 0;
+            transition: all 5s ease;
         }
 
         .send-btn:hover:not(:disabled) {
@@ -864,6 +945,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             color: var(--text-primary);
+            transition: all 5s ease;
         }
 
         .modal.active {
@@ -877,6 +959,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            transition: all 5s ease;
         }
 
         .modal h2 i {
@@ -893,6 +976,7 @@
             margin-bottom: 16px;
             outline: none;
             font-size: 15px;
+            transition: all 5s ease;
         }
 
         .modal input:focus, .modal textarea:focus, .modal select:focus {
@@ -909,7 +993,7 @@
             font-weight: 600;
             cursor: pointer;
             margin-right: 12px;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
             font-size: 15px;
         }
 
@@ -934,6 +1018,7 @@
             justify-content: center;
             padding: 0;
             font-size: 20px;
+            transition: all 5s ease;
         }
 
         .modal .close-btn:hover {
@@ -954,6 +1039,7 @@
             font-size: 42px;
             margin: 0 auto 20px;
             cursor: pointer;
+            transition: all 5s ease;
         }
 
         /* ===== НАСТРОЙКИ В МОДАЛКЕ ===== */
@@ -965,6 +1051,7 @@
             color: var(--accent);
             margin-bottom: 15px;
             font-size: 18px;
+            transition: all 5s ease;
         }
 
         .settings-item {
@@ -973,6 +1060,7 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid var(--border);
+            transition: all 5s ease;
         }
 
         .settings-item label {
@@ -998,6 +1086,7 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid var(--border);
+            transition: all 5s ease;
         }
 
         .privacy-option label {
@@ -1019,6 +1108,7 @@
             background: var(--bg-tertiary);
             border-radius: 12px;
             margin-bottom: 8px;
+            transition: all 5s ease;
         }
 
         .blocked-user button {
@@ -1035,6 +1125,7 @@
             padding: 20px;
             text-align: center;
             margin-bottom: 16px;
+            transition: all 5s ease;
         }
 
         .file-preview i {
@@ -1075,7 +1166,7 @@
             border-radius: 30px;
             border: 1px solid var(--border);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
         }
 
         .status-option.online { color: var(--online-green); }
@@ -1103,6 +1194,7 @@
             position: fixed;
             top: 0;
             left: 0;
+            transition: all 5s ease;
         }
 
         .login-card {
@@ -1113,6 +1205,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
+            transition: all 5s ease;
         }
 
         .login-card h1 {
@@ -1123,12 +1216,14 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
+            transition: all 5s ease;
         }
 
         .login-card p {
             color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 16px;
+            transition: all 5s ease;
         }
 
         .login-input {
@@ -1141,6 +1236,7 @@
             font-size: 16px;
             margin: 10px 0;
             outline: none;
+            transition: all 5s ease;
         }
 
         .login-input:focus {
@@ -1158,7 +1254,7 @@
             font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 5s ease;
             margin: 20px 0;
         }
 
@@ -1174,6 +1270,7 @@
             margin: 15px 0;
             justify-content: center;
             color: var(--text-secondary);
+            transition: all 5s ease;
         }
 
         .checkbox input[type="checkbox"] {
@@ -1193,11 +1290,12 @@
             color: var(--accent-hover);
         }
 
-        /* ===== ТЕМА ===== */
+        /* ===== КНОПКА ТЕМЫ (ИСПРАВЛЕННАЯ) ===== */
         .theme-toggle {
             position: fixed;
             bottom: 20px;
             right: 20px;
+            z-index: 1001;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 50px;
@@ -1206,13 +1304,13 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            z-index: 100;
             box-shadow: var(--shadow);
+            transition: all 5s ease;
         }
 
         .theme-toggle:hover {
-            background: var(--hover);
             transform: scale(1.05);
+            background: var(--hover);
         }
 
         .theme-toggle i {
@@ -1220,45 +1318,17 @@
             font-size: 18px;
         }
 
-        /* ===== АДМИН-ПАНЕЛЬ ===== */
-        .admin-panel {
-            display: flex;
-            gap: 10px;
-            margin: 10px 16px;
-        }
+        /* ===== АДМИН-ПАНЕЛЬ (ТОЛЬКО В ТЕНЕВОЙ, УБРАНО ИЗ ИНТЕРФЕЙСА) ===== */
+        /* КНОПКИ ПОДОЗРИТЕЛЬНЫХ И СТАТИСТИКИ УДАЛЕНЫ ИЗ ИНТЕРФЕЙСА */
 
-        .admin-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 30px;
-            border: 1px solid var(--border);
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .admin-btn.suspicious {
-            background: var(--danger-red);
-            color: white;
-        }
-
-        .admin-btn.stats {
-            background: var(--accent);
-            color: white;
-        }
-
-        .admin-btn:hover {
-            transform: scale(1.02);
-        }
-
-        /* ===== ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ ===== */
+        /* ===== ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ (ДЛЯ ТЕНЕВОЙ) ===== */
         .suspicious-item {
             background: var(--danger-red);
             padding: 15px;
             margin: 10px 0;
             border-radius: 10px;
             border-left: 4px solid var(--premium-gold);
+            transition: all 5s ease;
         }
 
         .suspicious-item small {
@@ -1266,7 +1336,7 @@
             font-size: 11px;
         }
 
-        /* ===== СТАТИСТИКА ===== */
+        /* ===== СТАТИСТИКА (ДЛЯ ТЕНЕВОЙ) ===== */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1279,6 +1349,7 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
+            transition: all 5s ease;
         }
 
         .stat-value {
@@ -1290,6 +1361,21 @@
         .stat-label {
             font-size: 12px;
             color: var(--text-secondary);
+        }
+
+        /* ===== МОДАЛКА ВЫДАЧИ ПРЕМИУМ ===== */
+        .premium-gold {
+            color: var(--premium-gold);
+        }
+
+        .premium-input {
+            margin: 15px 0;
+        }
+
+        /* ===== МОДАЛКА БАНА ===== */
+        .ban-reason {
+            color: var(--danger-red);
+            font-weight: bold;
         }
 
         /* ===== СКРОЛЛБАР ===== */
@@ -1325,6 +1411,13 @@
             .stats-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .theme-toggle {
+                bottom: 10px;
+                right: 10px;
+                padding: 8px 16px;
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -1336,8 +1429,7 @@
 
     <!-- МОДАЛКИ -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
-    
-    <!-- МОДАЛКА ПРОФИЛЯ -->
+        <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
@@ -1368,7 +1460,8 @@
             <div class="status-option busy" onclick="setStatus('busy')">🔴 Занят</div>
         </div>
     </div>
-        <!-- МОДАЛКА НАСТРОЕК -->
+    
+    <!-- МОДАЛКА НАСТРОЕК -->
     <div class="modal" id="settingsModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-cog"></i> Настройки</h2>
@@ -1449,25 +1542,6 @@
         </div>
     </div>
     
-    <!-- МОДАЛКА ПОДОЗРИТЕЛЬНЫХ (ТОЛЬКО ДЛЯ Dane4ka5) -->
-    <div class="modal" id="suspiciousModal">
-        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-exclamation-triangle" style="color: #da3633;"></i> Подозрительные</h2>
-        <div id="suspiciousList" style="max-height: 60vh; overflow-y: auto;"></div>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="loadSuspicious()">🔄 Обновить</button>
-            <button onclick="clearSuspicious()" style="background: #da3633;">🗑️ Очистить</button>
-        </div>
-    </div>
-    
-    <!-- МОДАЛКА СТАТИСТИКИ (ТОЛЬКО ДЛЯ Dane4ka5) -->
-    <div class="modal" id="statsModal">
-        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
-        <h2><i class="fas fa-chart-bar"></i> Статистика</h2>
-        <div id="statsContent" class="stats-grid"></div>
-        <button onclick="loadStats()">🔄 Обновить</button>
-    </div>
-    
     <!-- МОДАЛКА СОЗДАНИЯ ГРУППЫ -->
     <div class="modal" id="createGroupModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
@@ -1516,7 +1590,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.1 — полная версия</p>
+            <p>v0.10.3 — плавные темы</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1601,11 +1675,7 @@
             <!-- Список чатов -->
             <div class="chats-list" id="chatsList"></div>
             
-            <!-- Админ-панель (только для Dane4ka5) -->
-            <div id="adminPanel" class="admin-panel" style="display: none;">
-                <button class="admin-btn suspicious" onclick="openSuspiciousModal()">🚨 Подозрительные</button>
-                <button class="admin-btn stats" onclick="openStatsModal()">📊 Статистика</button>
-            </div>
+            <!-- КНОПКИ АДМИНА УБРАНЫ ИЗ ИНТЕРФЕЙСА (ТЕПЕРЬ ТОЛЬКО В ТЕНЕВОЙ) -->
             
             <button class="tab" onclick="openJoinModal()" style="margin: 16px;">
                 <i class="fas fa-link"></i> Присоединиться
@@ -1652,7 +1722,7 @@
         // КОНСТАНТЫ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.1';
+        const VERSION = 'v0.10.3';
         
         let socket = null;
         let currentUser = null;
@@ -1674,7 +1744,7 @@
         let blockedUsers = [];
         let privacySettings = { showOnline: 'all', showPhone: 'all' };
         let userStatus = 'online';
-        
+
         // ==============================================
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         // ==============================================
@@ -1682,18 +1752,26 @@
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         }
 
+        // ===== ПЛАВНОЕ ПЕРЕКЛЮЧЕНИЕ ТЕМ (5 СЕКУНД) =====
         function toggleTheme() {
-            document.body.classList.toggle('light-theme');
-            document.getElementById('themeText').textContent = 
-                document.body.classList.contains('light-theme') ? 'Светлая' : 'Тёмная';
+            if (document.body.classList.contains('light-theme')) {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
+                document.getElementById('themeText').textContent = 'Тёмная';
+            } else {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+                document.getElementById('themeText').textContent = 'Светлая';
+            }
         }
 
         function changeTheme(theme) {
+            document.body.classList.remove('light-theme', 'dark-theme');
             if (theme === 'light') {
                 document.body.classList.add('light-theme');
                 document.getElementById('themeText').textContent = 'Светлая';
             } else {
-                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
                 document.getElementById('themeText').textContent = 'Тёмная';
             }
         }
@@ -1855,51 +1933,6 @@
             }));
         }
 
-        function openSuspiciousModal() {
-            if (currentUser !== CREATOR_USERNAME) {
-                alert('❌ Только для создателя');
-                return;
-            }
-            loadSuspicious();
-            openModal('suspiciousModal');
-        }
-
-        function loadSuspicious() {
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'get_suspicious',
-                    username: currentUser
-                }));
-            }
-        }
-
-        function clearSuspicious() {
-            if (socket && currentUser === CREATOR_USERNAME) {
-                socket.send(JSON.stringify({
-                    type: 'clear_suspicious',
-                    username: currentUser
-                }));
-            }
-        }
-
-        function openStatsModal() {
-            if (currentUser !== CREATOR_USERNAME) {
-                alert('❌ Только для создателя');
-                return;
-            }
-            loadStats();
-            openModal('statsModal');
-        }
-
-        function loadStats() {
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'get_stats',
-                    username: currentUser
-                }));
-            }
-        }
-
         function openCreateMenu() {
             const choice = confirm('Создать:\nOK - группу\nОтмена - канал');
             if (choice) openModal('createGroupModal');
@@ -2025,7 +2058,6 @@
                     if (currentUser === CREATOR_USERNAME) {
                         isCreator = true;
                         document.getElementById('creatorIcon').style.display = 'inline';
-                        document.getElementById('adminPanel').style.display = 'flex';
                     }
                     
                     if (data.premium || isCreator) {
@@ -2073,21 +2105,13 @@
                     }, 2000);
                 }
                 
-                if (data.type === 'stats') {
-                    updateStatsModal(data.stats);
-                }
-                
-                if (data.type === 'suspicious_list') {
-                    updateSuspiciousList(data.messages);
-                }
-                
                 if (data.type === 'blocked_list') {
                     blockedUsers = data.blocked;
                     updateBlockedList();
                 }
                 
                 if (data.type === 'status_update') {
-                    updateUserStatus(data.username, data.status);
+                    // Обновление статуса
                 }
                 
                 updateChatsList(document.querySelector('.tab.active').innerText.toLowerCase());
@@ -2111,7 +2135,7 @@
         }
 
         // ==============================================
-        // ОБНОВЛЕНИЕ СПИСКОВ
+        // ТАБЫ И СПИСКИ
         // ==============================================
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -2146,11 +2170,6 @@
             const div = document.createElement('div');
             div.className = 'chat-item';
             div.onclick = () => selectChat(type, name, data);
-            
-            let status = '';
-            if (type === 'user') {
-                // Можно добавить статус онлайн
-            }
             
             div.innerHTML = `
                 <div class="chat-avatar">${icon}</div>
@@ -2360,36 +2379,6 @@
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
-        }
-
-        // ==============================================
-        // АДМИН-ФУНКЦИИ
-        // ==============================================
-        function updateStatsModal(stats) {
-            const content = document.getElementById('statsContent');
-            content.innerHTML = `
-                <div class="stat-item"><div class="stat-value">${stats.users}</div><div class="stat-label">Пользователей</div></div>
-                <div class="stat-item"><div class="stat-value">${stats.online}</div><div class="stat-label">Онлайн</div></div>
-                <div class="stat-item"><div class="stat-value">${stats.messages}</div><div class="stat-label">Сообщений</div></div>
-                <div class="stat-item"><div class="stat-value">${stats.groups}</div><div class="stat-label">Групп</div></div>
-                <div class="stat-item"><div class="stat-value">${stats.suspicious}</div><div class="stat-label">🚨</div></div>
-                <div class="stat-item"><div class="stat-value">${stats.uptime}</div><div class="stat-label">Секунд</div></div>
-            `;
-        }
-
-        function updateSuspiciousList(messages) {
-            const list = document.getElementById('suspiciousList');
-            list.innerHTML = messages.map(msg => `
-                <div class="suspicious-item">
-                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
-                    <div>${msg.message}</div>
-                    <small>${new Date(msg.timestamp).toLocaleString()} | IP: ${msg.ip}</small>
-                </div>
-            `).join('');
-        }
-
-        function updateUserStatus(username, status) {
-            // Обновление статуса в UI
         }
 
         // ==============================================

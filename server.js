@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.10.1';
+const VERSION = 'v0.10.3';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -18,11 +18,11 @@ const MAX_BACKUPS = 50;
 // ХРАНИЛИЩА ДАННЫХ
 // ==============================================
 const users = new Map(); // username -> WebSocket
-const activeUsers = new Map(); // ws -> { username, ip, status }
+const activeUsers = new Map(); // ws -> { username, ip, status, lastSeen }
 
 let userDatabase = {}; // username -> { password, phone, registered, banned }
 let messages = {}; // chatKey -> [messages]
-let groups = {}; // groupId -> { name, members, admins, messages }
+let groups = {}; // groupId -> { name, creator, admins, members, messages }
 let channels = {
     'NANOGRAM': {
         id: 'NANOGRAM',
@@ -39,7 +39,7 @@ let channels = {
 let privateRooms = {}; // roomId -> { name, creator, members, inviteLink }
 let userProfiles = {}; // username -> { avatar, bio }
 let userSettings = {}; // username -> { theme, fontSize, notifications }
-let premiumUsers = {}; // username -> { active, purchased }
+let premiumUsers = {}; // username -> { active, granted, expires }
 let blockedUsers = {}; // username -> [blockedUser1, blockedUser2]
 let privacySettings = {}; // username -> { showOnline, showPhone }
 let suspiciousMessages = []; // [{ from, to, message, ip, timestamp, word }]
@@ -77,7 +77,7 @@ function loadAllData() {
             
             console.log(`✅ data.json загружен: ${Object.keys(userDatabase).length} пользователей`);
             console.log(`   👥 Групп: ${Object.keys(groups).length}`);
-            console.log(`   📢 Каналов: ${Object.keys(channels).length}`);
+            console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
         }
     } catch (e) {
         console.error(`❌ Ошибка загрузки data.json:`, e.message);
@@ -114,8 +114,10 @@ function saveData() {
             lastSaved: new Date().toISOString()
         };
         fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+        console.log(`💾 Данные сохранены в ${new Date().toLocaleTimeString()}`);
         return true;
     } catch (e) {
+        console.error('❌ Ошибка сохранения:', e);
         return false;
     }
 }
@@ -145,7 +147,7 @@ function checkSuspicious(text, from, to, ip) {
             };
             suspiciousMessages.push(alert);
             fs.appendFile('./suspicious.log', JSON.stringify(alert) + '\n', () => {});
-            console.log('\x1b[31m%s\x1b[0m', `🚨 ПОДОЗРИТЕЛЬНО: ${from} → ${to}: "${text}"`);
+            console.log('\x1b[31m%s\x1b[0m', `🚨 ПОДОЗРИТЕЛЬНО: ${from} → ${to}: "${text.substring(0, 50)}..."`);
             return true;
         }
     }
@@ -176,7 +178,8 @@ const server = http.createServer((req, res) => {
                 groups: Object.keys(groups).length,
                 channels: Object.keys(channels).length,
                 messages: Object.keys(messages).length,
-                suspicious: suspiciousMessages.length
+                suspicious: suspiciousMessages.length,
+                premium: Object.keys(premiumUsers).length
             },
             files: {
                 dataJson: fs.existsSync('./data.json'),
@@ -258,7 +261,7 @@ const server = http.createServer((req, res) => {
     // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
     if (req.url.includes('admin')) {
         
-        // Проверка по IP или паролю (упрощённо)
+        // Простая проверка (можно добавить пароль позже)
         const clientIp = req.socket.remoteAddress;
         
         let data = {};
@@ -279,11 +282,74 @@ const server = http.createServer((req, res) => {
             msgs = {};
         }
         
-        // ===== СТАТИСТИКА =====
+        // ===== ОБРАБОТКА ДЕЙСТВИЙ =====
+        if (req.url.includes('action=')) {
+            const redirectUrl = '/admin';
+            
+            // БАН ПОЛЬЗОВАТЕЛЯ (ИСПРАВЛЕНО)
+            if (req.url.includes('action=ban_user')) {
+                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+                const username = urlParams.get('username');
+                
+                if (username && data.users && data.users[username]) {
+                    data.users[username].banned = true;
+                    data.users[username].bannedAt = new Date().toISOString();
+                    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+                    
+                    // Кикаем если онлайн
+                    const targetWs = users.get(username);
+                    if (targetWs) {
+                        targetWs.send(JSON.stringify({ type: 'you_are_banned' }));
+                        targetWs.close();
+                    }
+                    
+                    logAction('admin_ban', CREATOR_USERNAME, username);
+                }
+            }
+            
+            // РАЗБАН
+            if (req.url.includes('action=unban_user')) {
+                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+                const username = urlParams.get('username');
+                
+                if (username && data.users && data.users[username]) {
+                    data.users[username].banned = false;
+                    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+                    logAction('admin_unban', CREATOR_USERNAME, username);
+                }
+            }
+            
+            // ВЫДАТЬ ПРЕМИУМ
+            if (req.url.includes('action=give_premium')) {
+                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+                const username = urlParams.get('username');
+                const months = urlParams.get('months') || '1';
+                
+                if (username && data.users && data.users[username]) {
+                    if (!data.premiumUsers) data.premiumUsers = {};
+                    
+                    data.premiumUsers[username] = {
+                        active: true,
+                        granted: new Date().toISOString(),
+                        expires: new Date(Date.now() + parseInt(months) * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        grantedBy: CREATOR_USERNAME
+                    };
+                    
+                    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+                    logAction('admin_give_premium', CREATOR_USERNAME, `${username} (${months} мес)`);
+                }
+            }
+            
+            res.writeHead(302, { Location: redirectUrl });
+            res.end();
+            return;
+        }
+                // ===== СТАТИСТИКА ДЛЯ ТЕНЕВОЙ ПАНЕЛИ =====
         const usersCount = Object.keys(data.users || {}).length;
         const groupsCount = Object.keys(data.groups || {}).length;
         const channelsCount = Object.keys(data.channels || {}).length;
         const premiumCount = Object.keys(data.premiumUsers || {}).length;
+        const bannedCount = Object.values(data.users || {}).filter(u => u.banned).length;
         const onlineCount = users.size;
         
         let totalMessages = 0;
@@ -307,7 +373,7 @@ const server = http.createServer((req, res) => {
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
-        h1 { color: #9f8be5; font-size: 32px; margin-bottom: 20px; }
+        h1 { color: #9f8be5; font-size: 32px; margin-bottom: 10px; }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -330,6 +396,7 @@ const server = http.createServer((req, res) => {
             border: 1px solid #30363d;
         }
         .panel h2 { color: #9f8be5; margin-bottom: 20px; }
+        .panel h3 { color: #ffd700; margin: 15px 0; }
         .suspicious {
             background: #da3633;
             padding: 15px;
@@ -337,14 +404,42 @@ const server = http.createServer((req, res) => {
             border-radius: 8px;
             border-left: 4px solid #ffd700;
         }
+        .suspicious small { color: #ffd700; }
         table {
             width: 100%;
             border-collapse: collapse;
             background: #0a0c10;
+            border-radius: 10px;
+            overflow: hidden;
         }
         th { background: #21262d; padding: 12px; text-align: left; color: #9f8be5; }
         td { padding: 12px; border-bottom: 1px solid #30363d; }
         .banned { background: rgba(218, 54, 51, 0.2); }
+        .premium-row { background: rgba(255, 215, 0, 0.1); }
+        input, select, button {
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            background: #0a0c10;
+            color: white;
+        }
+        button {
+            background: #9f8be5;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover { background: #b09cff; }
+        .danger-btn { background: #da3633; }
+        .danger-btn:hover { background: #f85149; }
+        .success-btn { background: #2ea043; }
+        .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+        .admin-actions {
+            background: #21262d;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -353,31 +448,27 @@ const server = http.createServer((req, res) => {
         <p>Добро пожаловать, Создатель! 👑</p>
         
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-value">${usersCount}</div><div class="stat-label">Пользователей</div></div>
+            <div class="stat-card"><div class="stat-value">${usersCount}</div><div class="stat-label">Всего пользователей</div></div>
             <div class="stat-card"><div class="stat-value">${onlineCount}</div><div class="stat-label">🟢 Онлайн сейчас</div></div>
             <div class="stat-card"><div class="stat-value">${totalMessages}</div><div class="stat-label">Сообщений</div></div>
             <div class="stat-card"><div class="stat-value">${groupsCount}</div><div class="stat-label">Групп</div></div>
             <div class="stat-card"><div class="stat-value">${channelsCount}</div><div class="stat-label">Каналов</div></div>
-            <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">Премиум</div></div>
+            <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">👑 Премиум</div></div>
+            <div class="stat-card"><div class="stat-value">${bannedCount}</div><div class="stat-label">🔨 Забанено</div></div>
             <div class="stat-card"><div class="stat-value">${suspiciousMessages.length}</div><div class="stat-label">🚨 Подозрительных</div></div>
         </div>
         
-        <div class="panel">
-            <h2>🚨 ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ</h2>
-            ${suspiciousMessages.slice(-20).reverse().map(msg => `
-                <div class="suspicious">
-                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
-                    <div style="margin: 10px 0;">${msg.message}</div>
-                    <div style="font-size: 12px; color: #ffd700;">
-                        ${new Date(msg.timestamp).toLocaleString()} | IP: ${msg.ip} | Слово: "${msg.word}"
-                    </div>
-                </div>
-            `).join('')}
-            ${suspiciousMessages.length === 0 ? '<p>Нет подозрительных сообщений</p>' : ''}
+        <div class="admin-actions">
+            <h2>⚡ БЫСТРЫЕ ДЕЙСТВИЯ</h2>
+            <div class="flex">
+                <button onclick="location.href='/'">🏠 На главную</button>
+                <button onclick="location.href='/diagnostic'">🔍 Диагностика</button>
+                <button onclick="location.href='/privacy'">📜 Политика</button>
+            </div>
         </div>
         
         <div class="panel">
-            <h2>👥 ПОЛЬЗОВАТЕЛИ</h2>
+            <h2>👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ</h2>
             <table>
                 <tr>
                     <th>Имя</th>
@@ -386,37 +477,146 @@ const server = http.createServer((req, res) => {
                     <th>Премиум</th>
                     <th>Действия</th>
                 </tr>
-                ${Object.entries(data.users || {}).map(([name, info]) => `
-                    <tr class="${info.banned ? 'banned' : ''}">
-                        <td><strong>${name}</strong></td>
+                ${Object.entries(data.users || {}).sort().map(([name, info]) => `
+                    <tr class="${info.banned ? 'banned' : ''} ${data.premiumUsers?.[name]?.active ? 'premium-row' : ''}">
+                        <td><strong>${name}${name === CREATOR_USERNAME ? ' ⭐' : ''}</strong></td>
                         <td>${info.phone || '—'}</td>
                         <td>${info.banned ? '🔴 ЗАБЛОКИРОВАН' : '🟢 Активен'}</td>
                         <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
                         <td>
-                            ${info.banned ? `
-                                <button onclick="unban('${name}')" style="background:#2ea043;">✅ Разбанить</button>
-                            ` : `
-                                <button onclick="ban('${name}')" style="background:#da3633;">🔨 Забанить</button>
-                            `}
+                            <div class="flex" style="gap: 5px;">
+                                ${info.banned ? `
+                                    <form method="get" style="display:inline;">
+                                        <input type="hidden" name="action" value="unban_user">
+                                        <input type="hidden" name="username" value="${name}">
+                                        <button type="submit" class="success-btn" style="padding:5px 10px;">✅ Разбанить</button>
+                                    </form>
+                                ` : `
+                                    <form method="get" style="display:inline;">
+                                        <input type="hidden" name="action" value="ban_user">
+                                        <input type="hidden" name="username" value="${name}">
+                                        <button type="submit" class="danger-btn" style="padding:5px 10px;">🔨 Забанить</button>
+                                    </form>
+                                `}
+                                <form method="get" style="display:inline;">
+                                    <input type="hidden" name="action" value="give_premium">
+                                    <input type="hidden" name="username" value="${name}">
+                                    <select name="months" style="width:80px; padding:5px;">
+                                        <option value="1">1м</option>
+                                        <option value="3">3м</option>
+                                        <option value="6">6м</option>
+                                        <option value="12">12м</option>
+                                    </select>
+                                    <button type="submit" style="padding:5px 10px; background:#ffd700; color:#000;">👑</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 `).join('')}
             </table>
         </div>
+                <div class="panel">
+            <h2>🚨 ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ</h2>
+            ${suspiciousMessages.length === 0 ? '<p>Нет подозрительных сообщений</p>' : ''}
+            ${suspiciousMessages.slice(-20).reverse().map(msg => `
+                <div class="suspicious">
+                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
+                    <div style="margin: 10px 0;">${msg.message}</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                        <small>IP: ${msg.ip} | Слово: "${msg.word}"</small>
+                    </div>
+                </div>
+            `).join('')}
+            <div style="margin-top: 20px;">
+                <form method="get">
+                    <input type="hidden" name="action" value="clear_suspicious">
+                    <button type="submit" class="danger-btn">🗑️ Очистить все подозрительные</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>👑 УПРАВЛЕНИЕ ПРЕМИУМ</h2>
+            <div class="flex">
+                <div style="flex:1;">
+                    <h3>Выдать премиум вручную</h3>
+                    <form method="get" class="flex" style="align-items: center;">
+                        <input type="hidden" name="action" value="give_premium">
+                        <input type="text" name="username" placeholder="Имя пользователя" required>
+                        <select name="months">
+                            <option value="1">1 месяц</option>
+                            <option value="3">3 месяца</option>
+                            <option value="6">6 месяцев</option>
+                            <option value="12">12 месяцев</option>
+                        </select>
+                        <button type="submit" style="background:#ffd700; color:#000;">👑 Выдать</button>
+                    </form>
+                </div>
+                <div style="flex:1;">
+                    <h3>Статистика премиум</h3>
+                    <p>Всего премиум: ${premiumCount}</p>
+                    <p>Активных сегодня: ${Object.values(data.premiumUsers || {}).filter(p => {
+                        if (!p.expires) return false;
+                        return new Date(p.expires) > new Date();
+                    }).length}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>📊 ПОСЛЕДНИЕ СООБЩЕНИЯ</h2>
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${Object.entries(msgs).slice(-5).map(([chatId, chatMsgs]) => `
+                    <div style="margin-bottom: 20px; background: #21262d; padding: 15px; border-radius: 8px;">
+                        <h3 style="color: #ffd700; margin-bottom: 10px;">📁 ${chatId} (${chatMsgs.length})</h3>
+                        ${chatMsgs.slice(-5).reverse().map(msg => `
+                            <div style="border-left: 2px solid #9f8be5; padding: 10px; margin: 5px 0; background: #0a0c10;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong>${msg.from}</strong>
+                                    <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                                </div>
+                                <div style="margin: 5px 0;">${msg.text || '[файл]'}</div>
+                                ${msg.ip ? `<small>IP: ${msg.ip}</small>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>📝 ПОСЛЕДНИЕ ЛОГИ</h2>
+            <div style="background: #0a0c10; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 400px; overflow-y: auto;">
+                ${(() => {
+                    try {
+                        if (fs.existsSync('./users.log')) {
+                            const logs = fs.readFileSync('./users.log', 'utf8')
+                                .split('\n')
+                                .filter(l => l.length > 0)
+                                .slice(-50)
+                                .reverse();
+                            return logs.map(log => 
+                                `<div style="color: #b0b3b8; border-bottom: 1px solid #30363d; padding: 5px;">${log}</div>`
+                            ).join('');
+                        }
+                        return '<p>Нет логов</p>';
+                    } catch (e) {
+                        return '<p>Ошибка чтения логов</p>';
+                    }
+                })()}
+            </div>
+        </div>
+        
+        <div class="footer" style="margin-top: 40px; text-align: center; color: #8b949e;">
+            <p>Nanogram ${VERSION} | Теневая панель | Последнее обновление: ${new Date().toLocaleString()}</p>
+            <p style="margin-top: 10px;">
+                <a href="/" style="color: #9f8be5;">← На главную</a> | 
+                <a href="/diagnostic" style="color: #9f8be5;">🔍 Диагностика</a> | 
+                <a href="/privacy" style="color: #9f8be5;">📜 Политика</a>
+            </p>
+        </div>
     </div>
-    
-    <script>
-        function ban(username) {
-            if (confirm(\`Забанить \${username}?\`)) {
-                window.location.href = \`/admin?action=ban_user&username=\${username}\`;
-            }
-        }
-        function unban(username) {
-            if (confirm(\`Разбанить \${username}?\`)) {
-                window.location.href = \`/admin?action=unban_user&username=\${username}\`;
-            }
-        }
-    </script>
 </body>
 </html>
         `);
@@ -844,67 +1044,205 @@ wss.on('connection', (ws, req) => {
                 
                 logAction('group_message', from, `→ group:${groupId}`);
             }
-                        // ===== ОТПРАВКА ФАЙЛА =====
-            if (data.type === 'send_file') {
-                const { from, to, fileName, fileData, fileType, time } = data;
-                
-                try {
-                    const fileId = generateId();
-                    const filePath = `./uploads/${fileId}_${fileName}`;
-                    
-                    if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
-                    
-                    const buffer = Buffer.from(fileData, 'base64');
-                    fs.writeFileSync(filePath, buffer);
-                    
-                    const chatKey = [from, to].sort().join('_');
-                    if (!messages[chatKey]) messages[chatKey] = [];
-                    
-                    const fileObj = {
-                        id: fileId,
-                        type: 'file',
-                        from, to,
-                        fileName,
-                        fileSize: buffer.length,
-                        fileType,
-                        time,
-                        timestamp: Date.now(),
-                        filePath
-                    };
-                    
-                    messages[chatKey].push(fileObj);
-                    saveMessages();
-                    
-                    const targetWs = users.get(to);
-                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                        targetWs.send(JSON.stringify({
-                            type: 'file',
-                            id: fileId,
-                            from,
-                            fileName,
-                            fileSize: buffer.length,
-                            fileType,
-                            time
-                        }));
-                    }
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'file_sent', 
-                        fileId,
-                        fileName
-                    }));
-                    
-                    logAction('send_file', from, `${fileName} → ${to}`);
-                    
-                } catch (error) {
-                    console.error('❌ Ошибка отправки файла:', error);
+                        // ===== АДМИН-КОМАНДЫ (ТОЛЬКО ДЛЯ Dane4ka5) =====
+            
+            // СТАТИСТИКА
+            if (data.type === 'get_stats') {
+                if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
                         type: 'error', 
-                        message: '❌ Ошибка при отправке файла' 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                const stats = {
+                    users: Object.keys(userDatabase).length,
+                    online: users.size,
+                    messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
+                    groups: Object.keys(groups).length,
+                    channels: Object.keys(channels).length,
+                    rooms: Object.keys(privateRooms).length,
+                    premium: Object.keys(premiumUsers).length,
+                    suspicious: suspiciousMessages.length,
+                    uptime: process.uptime(),
+                    memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+                    version: VERSION
+                };
+                
+                ws.send(JSON.stringify({
+                    type: 'stats',
+                    stats: stats
+                }));
+                
+                logAction('admin_stats', data.username, 'Запрос статистики');
+            }
+            
+            // ПОДОЗРИТЕЛЬНЫЕ
+            if (data.type === 'get_suspicious') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                ws.send(JSON.stringify({
+                    type: 'suspicious_list',
+                    messages: suspiciousMessages.slice(-100).reverse()
+                }));
+                
+                logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
+            }
+            
+            // ОЧИСТИТЬ ПОДОЗРИТЕЛЬНЫЕ
+            if (data.type === 'clear_suspicious') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                suspiciousMessages = [];
+                fs.writeFileSync('./suspicious.log', '');
+                
+                ws.send(JSON.stringify({ 
+                    type: 'suspicious_cleared' 
+                }));
+                
+                logAction('admin_clear', data.username, 'Очистка подозрительных');
+            }
+            
+            // ЗАБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ
+            if (data.type === 'admin_ban') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                const { target, reason } = data;
+                
+                if (!target || !userDatabase[target]) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Пользователь не найден' 
+                    }));
+                    return;
+                }
+                
+                userDatabase[target].banned = true;
+                userDatabase[target].bannedAt = new Date().toISOString();
+                userDatabase[target].banReason = reason || 'Нарушение правил';
+                
+                // Кикаем если онлайн
+                const targetWs = users.get(target);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({ 
+                        type: 'you_are_banned',
+                        reason: userDatabase[target].banReason
+                    }));
+                    targetWs.close();
+                    users.delete(target);
+                }
+                
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'user_banned', 
+                    target,
+                    reason: userDatabase[target].banReason
+                }));
+                
+                logAction('admin_ban', data.username, `${target} (${reason})`);
+            }
+            
+            // РАЗБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ
+            if (data.type === 'admin_unban') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                const { target } = data;
+                
+                if (!target || !userDatabase[target]) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Пользователь не найден' 
+                    }));
+                    return;
+                }
+                
+                userDatabase[target].banned = false;
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'user_unbanned', 
+                    target 
+                }));
+                
+                logAction('admin_unban', data.username, target);
+            }
+            
+            // ВЫДАТЬ ПРЕМИУМ
+            if (data.type === 'admin_give_premium') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Только для создателя' 
+                    }));
+                    return;
+                }
+                
+                const { target, months } = data;
+                
+                if (!target || !userDatabase[target]) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Пользователь не найден' 
+                    }));
+                    return;
+                }
+                
+                const expires = months === 999 ? 'never' : 
+                    new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
+                
+                premiumUsers[target] = {
+                    active: true,
+                    granted: new Date().toISOString(),
+                    expires: expires,
+                    months: months,
+                    grantedBy: CREATOR_USERNAME
+                };
+                
+                saveData();
+                logAction('admin_give_premium', CREATOR_USERNAME, `${target} (${months} мес)`);
+                
+                ws.send(JSON.stringify({ 
+                    type: 'premium_granted', 
+                    target, 
+                    months 
+                }));
+                
+                // Уведомляем пользователя если онлайн
+                const targetWs = users.get(target);
+                if (targetWs) {
+                    targetWs.send(JSON.stringify({ 
+                        type: 'premium_activated',
+                        months
                     }));
                 }
             }
-
+            
             // ===== ОБНОВЛЕНИЕ СТАТУСА =====
             if (data.type === 'update_status') {
                 const { username, status } = data;
@@ -924,8 +1262,99 @@ wss.on('connection', (ws, req) => {
                     logAction('update_status', username, status);
                 }
             }
-
-            // ===== P2P СИГНАЛЫ (WebRTC) =====
+            
+            // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
+            if (data.type === 'update_privacy') {
+                const { username, settings } = data;
+                
+                privacySettings[username] = { 
+                    ...privacySettings[username], 
+                    ...settings 
+                };
+                saveData();
+                
+                ws.send(JSON.stringify({ 
+                    type: 'privacy_updated', 
+                    settings: privacySettings[username] 
+                }));
+                
+                logAction('update_privacy', username, JSON.stringify(settings));
+            }
+            
+            // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
+            if (data.type === 'block_user') {
+                const { username, target } = data;
+                
+                if (!username || !target) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Не указан пользователь' 
+                    }));
+                    return;
+                }
+                
+                if (!blockedUsers[username]) {
+                    blockedUsers[username] = [];
+                }
+                
+                if (!blockedUsers[username].includes(target)) {
+                    blockedUsers[username].push(target);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'blocked_list', 
+                        blocked: blockedUsers[username] 
+                    }));
+                    
+                    logAction('block_user', username, target);
+                }
+            }
+            
+            // ===== РАЗБЛОКИРОВКА =====
+            if (data.type === 'unblock_user') {
+                const { username, target } = data;
+                
+                if (blockedUsers[username]) {
+                    blockedUsers[username] = blockedUsers[username]
+                        .filter(b => b !== target);
+                    saveData();
+                    
+                    ws.send(JSON.stringify({ 
+                        type: 'blocked_list', 
+                        blocked: blockedUsers[username] 
+                    }));
+                    
+                    logAction('unblock_user', username, target);
+                }
+            }
+            
+            // ===== СТАТУС "ПЕЧАТАЕТ" =====
+            if (data.type === 'typing') {
+                const { from, to } = data;
+                
+                const targetWs = users.get(to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'typing',
+                        from
+                    }));
+                }
+            }
+            
+            // ===== ПРОЧТЕНО =====
+            if (data.type === 'read') {
+                const { from, to, messageId } = data;
+                
+                const targetWs = users.get(from === currentUser ? to : from);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({
+                        type: 'read',
+                        by: currentUser,
+                        messageId
+                    }));
+                }
+            }
+                        // ===== P2P СИГНАЛЫ (WebRTC) =====
             if (data.type === 'signal') {
                 const { to, from, signal } = data;
                 
@@ -986,330 +1415,6 @@ wss.on('connection', (ws, req) => {
                     messageId 
                 }));
             }
-                        // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
-            if (data.type === 'update_privacy') {
-                const { username, settings } = data;
-                
-                if (!privacySettings[username]) {
-                    privacySettings[username] = {};
-                }
-                
-                privacySettings[username] = { 
-                    ...privacySettings[username], 
-                    ...settings 
-                };
-                
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'privacy_updated', 
-                    settings: privacySettings[username] 
-                }));
-                
-                logAction('update_privacy', username, JSON.stringify(settings));
-            }
-
-            // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
-            if (data.type === 'block_user') {
-                const { username, target } = data;
-                
-                if (!username || !target) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Не указан пользователь' 
-                    }));
-                    return;
-                }
-                
-                if (!blockedUsers[username]) {
-                    blockedUsers[username] = [];
-                }
-                
-                if (!blockedUsers[username].includes(target)) {
-                    blockedUsers[username].push(target);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
-                    logAction('block_user', username, target);
-                }
-            }
-
-            // ===== РАЗБЛОКИРОВКА =====
-            if (data.type === 'unblock_user') {
-                const { username, target } = data;
-                
-                if (blockedUsers[username]) {
-                    blockedUsers[username] = blockedUsers[username]
-                        .filter(b => b !== target);
-                    saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
-                    logAction('unblock_user', username, target);
-                }
-            }
-
-            // ===== СТАТУС "ПЕЧАТАЕТ" =====
-            if (data.type === 'typing') {
-                const { from, to } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'typing',
-                        from
-                    }));
-                }
-            }
-
-            // ===== ПРОЧТЕНО =====
-            if (data.type === 'read') {
-                const { from, to, messageId } = data;
-                
-                const targetWs = users.get(from === currentUser ? to : from);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'read',
-                        by: currentUser,
-                        messageId
-                    }));
-                }
-            }
-
-            // ===== ПОЛУЧИТЬ ИСТОРИЮ =====
-            if (data.type === 'get_history') {
-                const { username, with: otherUser } = data;
-                
-                const chatKey = [username, otherUser].sort().join('_');
-                const history = messages[chatKey] || [];
-                
-                ws.send(JSON.stringify({
-                    type: 'history',
-                    with: otherUser,
-                    messages: history.slice(-100)
-                }));
-            }
-
-            // ===== ПОЛУЧИТЬ СТАТУС ПОЛЬЗОВАТЕЛЯ =====
-            if (data.type === 'get_user_status') {
-                const { username, target } = data;
-                
-                const userData = activeUsers.get(users.get(target));
-                
-                ws.send(JSON.stringify({
-                    type: 'user_status',
-                    username: target,
-                    online: !!userData,
-                    status: userData ? userData.status : 'offline',
-                    lastSeen: userDatabase[target]?.lastSeen || null
-                }));
-            }
-                        // ===== СТАТИСТИКА (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'get_stats') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                try {
-                    const stats = {
-                        users: Object.keys(userDatabase || {}).length,
-                        online: users ? users.size : 0,
-                        messages: Object.values(messages || {}).reduce((a, c) => a + (c ? c.length : 0), 0),
-                        groups: Object.keys(groups || {}).length,
-                        channels: Object.keys(channels || {}).length,
-                        rooms: Object.keys(privateRooms || {}).length,
-                        premium: Object.keys(premiumUsers || {}).length,
-                        suspicious: suspiciousMessages ? suspiciousMessages.length : 0,
-                        uptime: process.uptime(),
-                        memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
-                        version: VERSION
-                    };
-                    
-                    ws.send(JSON.stringify({
-                        type: 'stats',
-                        stats: stats
-                    }));
-                    
-                    logAction('admin_stats', data.username, 'Запрос статистики');
-                    
-                } catch (error) {
-                    console.error('❌ Ошибка статистики:', error);
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: 'Ошибка получения статистики' 
-                    }));
-                }
-            }
-            
-            // ===== ПОЛУЧИТЬ ПОДОЗРИТЕЛЬНЫЕ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'get_suspicious') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                ws.send(JSON.stringify({
-                    type: 'suspicious_list',
-                    messages: suspiciousMessages.slice(-100).reverse()
-                }));
-                
-                logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
-            }
-            
-            // ===== ОЧИСТИТЬ ПОДОЗРИТЕЛЬНЫЕ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'clear_suspicious') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                suspiciousMessages = [];
-                fs.writeFileSync('./suspicious.log', '');
-                
-                ws.send(JSON.stringify({ 
-                    type: 'suspicious_cleared' 
-                }));
-                
-                logAction('admin_clear', data.username, 'Очистка подозрительных');
-            }
-            
-            // ===== ЗАБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'admin_ban') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                const { target } = data;
-                
-                if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Пользователь не найден' 
-                    }));
-                    return;
-                }
-                
-                userDatabase[target].banned = true;
-                userDatabase[target].bannedAt = new Date().toISOString();
-                
-                // Кикаем если онлайн
-                const targetWs = users.get(target);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({ 
-                        type: 'you_are_banned',
-                        reason: 'Нарушение правил'
-                    }));
-                    targetWs.close();
-                    users.delete(target);
-                }
-                
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'user_banned', 
-                    target 
-                }));
-                
-                logAction('admin_ban', data.username, target);
-            }
-            
-            // ===== РАЗБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'admin_unban') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                const { target } = data;
-                
-                if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Пользователь не найден' 
-                    }));
-                    return;
-                }
-                
-                userDatabase[target].banned = false;
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'user_unbanned', 
-                    target 
-                }));
-                
-                logAction('admin_unban', data.username, target);
-            }
-            
-            // ===== ПОЛУЧИТЬ ВСЕ СООБЩЕНИЯ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'get_all_messages') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                ws.send(JSON.stringify({
-                    type: 'all_messages',
-                    messages: messages
-                }));
-                
-                logAction('admin_all', data.username, 'Просмотр всех сообщений');
-            }
-                        // ===== ПОЛУЧИТЬ ЛОГИ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            if (data.type === 'get_logs') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                try {
-                    const logs = fs.readFileSync('./users.log', 'utf8')
-                        .split('\n')
-                        .filter(l => l.length > 0)
-                        .slice(-100)
-                        .reverse();
-                    
-                    ws.send(JSON.stringify({
-                        type: 'logs',
-                        logs: logs
-                    }));
-                } catch (error) {
-                    ws.send(JSON.stringify({ 
-                        type: 'logs', 
-                        logs: [] 
-                    }));
-                }
-            }
 
         } catch (error) {
             console.error('❌ Ошибка обработки сообщения:', error);
@@ -1320,9 +1425,7 @@ wss.on('connection', (ws, req) => {
                     type: 'error', 
                     message: '❌ Внутренняя ошибка сервера' 
                 }));
-            } catch (sendError) {
-                // ws уже закрыт
-            }
+            } catch (sendError) {}
         }
     });
 
@@ -1468,35 +1571,13 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 // ==============================================
-// ПРОВЕРКА ПРОСТОЯ
-// ==============================================
-setInterval(() => {
-    const now = Date.now();
-    let inactiveCount = 0;
-    
-    activeUsers.forEach((data, ws) => {
-        if (ws.readyState === WebSocket.OPEN && now - data.joinedAt > 30 * 60 * 1000) {
-            // 30 минут бездействия
-            ws.send(JSON.stringify({ 
-                type: 'ping', 
-                message: 'Проверка соединения' 
-            }));
-        }
-    });
-    
-    if (inactiveCount > 0) {
-        console.log(`🔍 Проверено ${inactiveCount} соединений`);
-    }
-}, 5 * 60 * 1000);
-
-// ==============================================
 // ЗАПУСК СЕРВЕРА
 // ==============================================
 loadAllData();
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - ПОЛНАЯ ВЕРСИЯ 8 ЧАСТЕЙ`);
+    console.log(`🚀 Nanogram ${VERSION} - ИСПРАВЛЕННАЯ ВЕРСИЯ`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`👑 Создатель: ${CREATOR_USERNAME}`);
@@ -1506,10 +1587,11 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   💬 Сообщений: ${Object.keys(messages).length}`);
     console.log(`   👥 Групп: ${Object.keys(groups).length}`);
     console.log(`   📢 Каналов: ${Object.keys(channels).length}`);
+    console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
     console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
-    console.log(`   🕵️ /admin - теневая панель`);
+    console.log(`   🕵️ /admin - теневая панель (только для Dane4ka5)`);
     console.log(`   📜 /privacy - политика`);
     console.log(`   🔍 /diagnostic - диагностика`);
     console.log('='.repeat(70) + '\n');
