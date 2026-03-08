@@ -1744,6 +1744,16 @@
         let blockedUsers = [];
         let privacySettings = { showOnline: 'all', showPhone: 'all' };
         let userStatus = 'online';
+                // ==============================================
+        // ГЕНЕРАЦИЯ УНИКАЛЬНОГО ID
+        // ==============================================
+        function generateId() {
+            return Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + currentUser;
+        }
+                // ==============================================
+        // ПРОВЕРКА ДУБЛИКАТОВ СООБЩЕНИЙ
+        // ==============================================
+        const receivedMessages = new Set(); // хранит ID полученных сообщений
 
         // ==============================================
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -2226,9 +2236,8 @@
             document.getElementById('chatPanel').classList.add('hidden');
             document.getElementById('chatsPanel').classList.remove('hidden');
         }
-
-        // ==============================================
-        // СООБЩЕНИЯ
+                // ==============================================
+        // ОТПРАВКА СООБЩЕНИЯ (ИСПРАВЛЕНО - БЕЗ ДУБЛИКАТОВ)
         // ==============================================
         function sendMessage() {
             const input = document.getElementById('messageInput');
@@ -2236,18 +2245,22 @@
             if (!text) return;
             
             const time = new Date().toLocaleTimeString();
+            const messageId = generateId();
             
-            if (currentChatType === 'group') {
-                socket.send(JSON.stringify({
-                    type: 'group_message',
-                    groupId: currentGroupId,
-                    from: currentUser,
-                    text,
-                    time
-                }));
-            } else {
+            // Показываем сообщение сразу (только ОДИН раз)
+            displayMessage({ 
+                text, 
+                from: currentUser, 
+                time, 
+                type: 'sent',
+                id: messageId 
+            });
+            
+            // Отправляем через сервер (он сохранит и перешлёт)
+            if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
                     type: 'message',
+                    id: messageId,  // уникальный ID
                     to: currentChat,
                     from: currentUser,
                     text,
@@ -2255,31 +2268,27 @@
                 }));
             }
             
-            displayMessage({ text, from: currentUser, time, type: 'sent' });
-            input.value = '';
-            
-            socket.send(JSON.stringify({ 
-                type: 'typing', 
-                from: currentUser, 
-                to: currentChat 
-            }));
-        }
-
-        function displayMessage(msg) {
-            const container = document.getElementById('messagesContainer');
-            
-            if (container.children.length === 1 && container.children[0].querySelector('h3')) {
-                container.innerHTML = '';
+            // Отправляем через P2P если есть прямое соединение
+            const dataChannel = dataChannels.get(currentChat);
+            if (dataChannel && dataChannel.readyState === 'open') {
+                dataChannel.send(JSON.stringify({
+                    type: 'message',
+                    id: messageId,
+                    text,
+                    time
+                }));
             }
             
-            const div = document.createElement('div');
-            div.className = `message ${msg.type}`;
-            div.innerHTML = `
-                ${msg.text}
-                <div class="message-footer">${msg.time}</div>
-            `;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
+            input.value = '';
+            
+            // Отправляем статус "печатает"
+            if (socket) {
+                socket.send(JSON.stringify({ 
+                    type: 'typing', 
+                    from: currentUser, 
+                    to: currentChat 
+                }));
+            }
         }
 
         // ==============================================
