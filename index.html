@@ -1547,316 +1547,179 @@
             document.body.style.fontSize = size + 'px';
         }
         // ==============================================
-// 3D ЗАСТАВКА С КОЛБОЧКОЙ (7 секунд)
+// ФИНАЛЬНАЯ ЗАСТАВКА С ЗВЁЗДАМИ
 // ==============================================
 function showSplash() {
-    console.log('🎨 3D заставка с колбочкой');
+    console.log('🎨 Заставка со звёздами');
     
-    // Создаём canvas
-    const canvas = document.createElement('canvas');
-    canvas.id = 'splash-canvas';
-    canvas.style.cssText = `
+    const splash = document.createElement('div');
+    splash.id = 'splash-screen';
+    splash.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
+        background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
+        background-size: 400% 400%;
+        animation: gradientMove 7s ease infinite;
         z-index: 9999;
-        display: block;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        overflow: hidden;
     `;
-    document.body.appendChild(canvas);
     
-    // Загружаем Three.js
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-    script.onload = () => {
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0c10);
+    // Создаём контейнер для звёзд
+    const starsContainer = document.createElement('div');
+    starsContainer.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    `;
+    
+    // Генерируем 30 звёзд
+    for (let i = 0; i < 30; i++) {
+        const star = document.createElement('div');
+        const size = Math.random() * 4 + 2; // Размер от 2 до 6px
+        const left = Math.random() * 100; // %
+        const top = Math.random() * 100; // %
+        const delay = Math.random() * 5; // Задержка анимации
+        const duration = Math.random() * 3 + 2; // Длительность от 2 до 5 сек
         
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 8);
-        camera.lookAt(0, 1.5, 0);
-        
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.shadowMap.enabled = true;
-        
-        // ===== СВЕТ =====
-        // Основной свет
-        const ambientLight = new THREE.AmbientLight(0x404060);
-        scene.add(ambientLight);
-        
-        // Спереди
-        const light1 = new THREE.PointLight(0x9f8be5, 1, 10);
-        light1.position.set(2, 3, 5);
-        scene.add(light1);
-        
-        // Сзади
-        const light2 = new THREE.PointLight(0xffd700, 0.5, 10);
-        light2.position.set(-2, 2, -5);
-        scene.add(light2);
-        
-        // Сверху
-        const light3 = new THREE.DirectionalLight(0xffffff, 0.8);
-        light3.position.set(1, 5, 2);
-        scene.add(light3);
-        
-        // ===== ЗВЁЗДЫ (мерцающие) =====
-        const starsGeometry = new THREE.BufferGeometry();
-        const starsCount = 200;
-        const starsPositions = new Float32Array(starsCount * 3);
-        const starsColors = new Float32Array(starsCount * 3);
-        const starsSizes = new Float32Array(starsCount);
-        
-        for (let i = 0; i < starsCount; i++) {
-            // Позиции
-            starsPositions[i*3] = (Math.random() - 0.5) * 30;
-            starsPositions[i*3+1] = (Math.random() - 0.5) * 20;
-            starsPositions[i*3+2] = (Math.random() - 0.5) * 30 - 10;
-            
-            // Цвета (белые и чуть голубоватые/золотистые)
-            const color = new THREE.Color().setHSL(
-                0.6 + Math.random() * 0.2, 
-                0.5, 
-                0.7 + Math.random() * 0.3
-            );
-            starsColors[i*3] = color.r;
-            starsColors[i*3+1] = color.g;
-            starsColors[i*3+2] = color.b;
-            
-            // Размеры
-            starsSizes[i] = 0.1 + Math.random() * 0.3;
-        }
-        
-        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
-        starsGeometry.setAttribute('color', new THREE.BufferAttribute(starsColors, 3));
-        starsGeometry.setAttribute('size', new THREE.BufferAttribute(starsSizes, 1));
-        
-        const starsMaterial = new THREE.PointsMaterial({ 
-            size: 0.2, 
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-        
-        const stars = new THREE.Points(starsGeometry, starsMaterial);
-        scene.add(stars);
-        
-        // ===== КОЛБОЧКА =====
-        const flaskGroup = new THREE.Group();
-        
-        // Стекло колбы (прозрачное)
-        const glassMaterial = new THREE.MeshPhongMaterial({
-            color: 0x9f8be5,
-            transparent: true,
-            opacity: 0.25,
-            emissive: 0x221133,
-            shininess: 60,
-            side: THREE.DoubleSide
-        });
-        
-        // Основная часть (сфера)
-        const sphere = new THREE.Mesh(
-            new THREE.SphereGeometry(1.2, 32, 32),
-            glassMaterial
-        );
-        sphere.position.y = 1.2;
-        flaskGroup.add(sphere);
-        
-        // Горлышко (цилиндр)
-        const neck = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.4, 0.5, 1.5, 16),
-            glassMaterial
-        );
-        neck.position.y = 2.5;
-        flaskGroup.add(neck);
-        
-        // Верхушка (тор)
-        const top = new THREE.Mesh(
-            new THREE.TorusGeometry(0.3, 0.1, 8, 20, Math.PI),
-            new THREE.MeshPhongMaterial({ color: 0xffd700, emissive: 0x332200 })
-        );
-        top.rotation.x = Math.PI / 2;
-        top.position.y = 3.3;
-        flaskGroup.add(top);
-        
-        // Ободок
-        const rim = new THREE.Mesh(
-            new THREE.TorusGeometry(0.45, 0.05, 8, 20),
-            new THREE.MeshPhongMaterial({ color: 0xffd700, emissive: 0x332200 })
-        );
-        rim.rotation.x = Math.PI / 2;
-        rim.position.y = 1.9;
-        flaskGroup.add(rim);
-        
-        // Жидкость внутри
-        const liquidMaterial = new THREE.MeshPhongMaterial({
-            color: 0x9f8be5,
-            emissive: 0x331144,
-            transparent: true,
-            opacity: 0.6
-        });
-        
-        const liquid = new THREE.Mesh(
-            new THREE.SphereGeometry(1.0, 24, 24),
-            liquidMaterial
-        );
-        liquid.position.y = 1.2;
-        liquid.scale.set(1, 0.6, 1);
-        flaskGroup.add(liquid);
-        
-        scene.add(flaskGroup);
-        
-        // ===== ПУЗЫРЬКИ =====
-        const bubbles = [];
-        const bubbleCount = 30;
-        const bubbleMaterial = new THREE.MeshPhongMaterial({
-            color: 0xffffff,
-            emissive: 0x9f8be5,
-            transparent: true,
-            opacity: 0.7,
-            shininess: 100
-        });
-        
-        for (let i = 0; i < bubbleCount; i++) {
-            const size = 0.05 + Math.random() * 0.1;
-            const bubble = new THREE.Mesh(
-                new THREE.SphereGeometry(size, 8, 8),
-                bubbleMaterial
-            );
-            
-            // Начальная позиция (на дне колбы)
-            bubble.userData = {
-                speed: 0.005 + Math.random() * 0.015,
-                offset: Math.random() * Math.PI * 2,
-                startX: (Math.random() - 0.5) * 0.8,
-                startZ: (Math.random() - 0.5) * 0.8,
-                phase: Math.random() * Math.PI * 2
-            };
-            
-            bubble.position.set(
-                bubble.userData.startX,
-                0.2 + Math.random() * 0.5,
-                bubble.userData.startZ
-            );
-            
-            flaskGroup.add(bubble);
-            bubbles.push(bubble);
-        }
-        
-        // ===== ТЕКСТ ПОВЕРХ =====
-        const textDiv = document.createElement('div');
-        textDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            text-align: center;
-            color: white;
-            pointer-events: none;
-            text-shadow: 0 0 20px #9f8be5;
+        star.style.cssText = `
+            position: absolute;
+            left: ${left}%;
+            top: ${top}%;
+            width: ${size}px;
+            height: ${size}px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 ${size * 2}px rgba(255, 255, 255, 0.8);
+            opacity: 0;
+            animation: starTwinkle ${duration}s ease-in-out infinite;
+            animation-delay: ${delay}s;
         `;
-        textDiv.innerHTML = `
-            <h1 style="font-size: 64px; margin-bottom: 10px; background: linear-gradient(45deg, #ffd700, #9f8be5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🧪 Nanogram</h1>
-            <p style="font-size: 24px; color: #ffd700; margin-bottom: 20px;">3D загрузка...</p>
-            <div style="width: 300px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 4px; margin: 20px auto; overflow: hidden;">
-                <div class="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #9f8be5, #ffd700); border-radius: 4px; transition: width 0.1s linear;"></div>
-            </div>
-            <p style="font-size: 18px; margin-top: 20px;" id="splashTimer3D">7</p>
-        `;
-        document.body.appendChild(textDiv);
         
-        // ===== ТАЙМЕР =====
-        let timeLeft = 7;
-        const timer = document.getElementById('splashTimer3D');
-        const progressBar = document.querySelector('.progress-bar');
-        const timerInterval = setInterval(() => {
-            timeLeft--;
-            if (timer) timer.textContent = timeLeft;
-            if (progressBar) {
-                const percent = ((7 - timeLeft) / 7) * 100;
-                progressBar.style.width = percent + '%';
-            }
-            if (timeLeft <= 0) clearInterval(timerInterval);
-        }, 1000);
+        starsContainer.appendChild(star);
+    }
+    
+    splash.appendChild(starsContainer);
+    
+    // Колбочка с анимацией
+    splash.innerHTML += `
+        <div style="
+            font-size: 120px;
+            margin-bottom: 20px;
+            animation: floatAndRock 3s ease-in-out infinite;
+            transform-origin: center center;
+            filter: drop-shadow(0 0 20px rgba(159, 139, 229, 0.5));
+        ">🧪</div>
         
-        // ===== АНИМАЦИЯ =====
-        let clock = new THREE.Clock();
+        <h1 style="
+            font-size: 64px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd700, #9f8be5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(159, 139, 229, 0.3);
+        ">Nanogram</h1>
         
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            const delta = clock.getDelta();
-            const time = Date.now() / 1000;
-            
-            // Вращаем колбочку
-            flaskGroup.rotation.y += 0.005;
-            flaskGroup.rotation.x = Math.sin(time * 0.5) * 0.1;
-            
-            // Двигаем пузырьки
-            bubbles.forEach((bubble, index) => {
-                // Поднимаем вверх
-                bubble.position.y += bubble.userData.speed;
-                
-                // Добавляем небольшое покачивание
-                bubble.position.x = bubble.userData.startX + Math.sin(time * 2 + index) * 0.1;
-                bubble.position.z = bubble.userData.startZ + Math.cos(time * 2 + index) * 0.1;
-                
-                // Масштабируем (пузырьки растут)
-                const scale = 1 + Math.sin(time * 3 + index) * 0.2;
-                bubble.scale.set(scale, scale, scale);
-                
-                // Если пузырёк достиг верха, перемещаем вниз
-                if (bubble.position.y > 2.8) {
-                    bubble.position.y = 0.3;
-                    bubble.userData.startX = (Math.random() - 0.5) * 0.8;
-                    bubble.userData.startZ = (Math.random() - 0.5) * 0.8;
-                    bubble.position.x = bubble.userData.startX;
-                    bubble.position.z = bubble.userData.startZ;
-                }
-            });
-            
-            // Мерцание звёзд
-            const positions = stars.geometry.attributes.position.array;
-            const colors = stars.geometry.attributes.color.array;
-            
-            for (let i = 0; i < starsCount; i++) {
-                // Мерцание (меняем яркость)
-                const flicker = 0.5 + Math.sin(time * 3 + i) * 0.5;
-                
-                // Некоторые звёзды появляются/исчезают
-                if (Math.random() < 0.001) {
-                    // Перемещаем звезду в новое место
-                    positions[i*3] = (Math.random() - 0.5) * 30;
-                    positions[i*3+1] = (Math.random() - 0.5) * 20;
-                    positions[i*3+2] = (Math.random() - 0.5) * 30 - 10;
-                }
-                
-                // Меняем яркость через альфа (в material)
+        <p style="
+            font-size: 24px;
+            color: #b0b3b8;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        ">безопасный мессенджер</p>
+        
+        <p style="
+            font-size: 18px;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        ">⏳ Подождите немножко, идёт загрузка сервиса</p>
+        
+        <div style="
+            font-size: 72px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-top: 20px;
+            text-shadow: 0 0 30px #9f8be5;
+            animation: pulse 1s ease-in-out infinite;
+        " id="splashTimer">7</div>
+        
+        <style>
+            @keyframes gradientMove {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
             }
             
-            stars.material.opacity = 0.5 + Math.sin(time * 2) * 0.3;
+            @keyframes floatAndRock {
+                0% {
+                    transform: translateY(0px) rotate(0deg);
+                }
+                25% {
+                    transform: translateY(-15px) rotate(-5deg);
+                }
+                50% {
+                    transform: translateY(-25px) rotate(0deg);
+                }
+                75% {
+                    transform: translateY(-15px) rotate(5deg);
+                }
+                100% {
+                    transform: translateY(0px) rotate(0deg);
+                }
+            }
             
-            stars.geometry.attributes.position.needsUpdate = true;
+            @keyframes starTwinkle {
+                0% { opacity: 0; transform: scale(0.5); }
+                20% { opacity: 1; transform: scale(1.2); }
+                40% { opacity: 0.8; transform: scale(1); }
+                60% { opacity: 0.3; transform: scale(0.8); }
+                80% { opacity: 0; transform: scale(0.5); }
+                100% { opacity: 0; transform: scale(0.5); }
+            }
             
-            renderer.render(scene, camera);
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); text-shadow: 0 0 50px #ffd700; }
+                100% { transform: scale(1); }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(splash);
+    
+    // Таймер обратного отсчёта
+    let timeLeft = 7;
+    const timer = document.getElementById('splashTimer');
+    const interval = setInterval(() => {
+        timeLeft--;
+        if (timer) {
+            timer.textContent = timeLeft;
+            // Маленький эффект при смене цифры
+            timer.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                timer.style.transform = 'scale(1)';
+            }, 100);
         }
-        
-        animate();
-        
-        // ===== УДАЛЯЕМ ЧЕРЕЗ 7 СЕКУНД =====
-        setTimeout(() => {
-            canvas.remove();
-            textDiv.remove();
-            script.remove();
-            document.body.style.overflow = 'auto';
-        }, 7000);
-    };
-    document.head.appendChild(script);
+        if (timeLeft <= 0) clearInterval(interval);
+    }, 1000);
+    
+    // Удаляем заставку через 7 секунд
+    setTimeout(() => {
+        if (splash && splash.parentNode) {
+            splash.style.animation = 'fadeOut 0.5s ease forwards';
+            setTimeout(() => splash.remove(), 500);
+        }
+    }, 7000);
 }
 
         // ==============================================
