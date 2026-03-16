@@ -3,13 +3,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const path = require('path');
 
 // ==============================================
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.10.6';
+const VERSION = 'v0.10.7';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -257,12 +256,9 @@ const server = http.createServer((req, res) => {
 </html>`);
         return;
     }
-        // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
+    
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
     if (req.url.includes('admin')) {
-        
-        // Простая проверка (можно добавить пароль позже)
-        const clientIp = req.socket.remoteAddress;
-        
         let data = {};
         try {
             if (fs.existsSync('./data.json')) {
@@ -285,7 +281,6 @@ const server = http.createServer((req, res) => {
         if (req.url.includes('action=')) {
             const redirectUrl = '/admin';
             
-            // БАН ПОЛЬЗОВАТЕЛЯ
             if (req.url.includes('action=ban_user')) {
                 const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
@@ -295,7 +290,6 @@ const server = http.createServer((req, res) => {
                     data.users[username].bannedAt = new Date().toISOString();
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
-                    // Кикаем если онлайн
                     const targetWs = users.get(username);
                     if (targetWs) {
                         targetWs.send(JSON.stringify({ type: 'you_are_banned' }));
@@ -306,7 +300,6 @@ const server = http.createServer((req, res) => {
                 }
             }
             
-            // РАЗБАН
             if (req.url.includes('action=unban_user')) {
                 const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
@@ -318,7 +311,6 @@ const server = http.createServer((req, res) => {
                 }
             }
             
-            // ВЫДАТЬ ПРЕМИУМ
             if (req.url.includes('action=give_premium')) {
                 const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
@@ -344,7 +336,7 @@ const server = http.createServer((req, res) => {
             return;
         }
         
-        // ===== СТАТИСТИКА ДЛЯ ТЕНЕВОЙ ПАНЕЛИ =====
+        // ===== СТАТИСТИКА =====
         const usersCount = Object.keys(data.users || {}).length;
         const groupsCount = Object.keys(data.groups || {}).length;
         const channelsCount = Object.keys(data.channels || {}).length;
@@ -396,15 +388,6 @@ const server = http.createServer((req, res) => {
             border: 1px solid #30363d;
         }
         .panel h2 { color: #9f8be5; margin-bottom: 20px; }
-        .panel h3 { color: #ffd700; margin: 15px 0; }
-        .suspicious {
-            background: #da3633;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 4px solid #ffd700;
-        }
-        .suspicious small { color: #ffd700; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -431,15 +414,8 @@ const server = http.createServer((req, res) => {
         }
         button:hover { background: #b09cff; }
         .danger-btn { background: #da3633; }
-        .danger-btn:hover { background: #f85149; }
         .success-btn { background: #2ea043; }
         .flex { display: flex; gap: 10px; flex-wrap: wrap; }
-        .admin-actions {
-            background: #21262d;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 10px 0;
-        }
     </style>
 </head>
 <body>
@@ -456,15 +432,6 @@ const server = http.createServer((req, res) => {
             <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">👑 Премиум</div></div>
             <div class="stat-card"><div class="stat-value">${bannedCount}</div><div class="stat-label">🔨 Забанено</div></div>
             <div class="stat-card"><div class="stat-value">${suspiciousMessages.length}</div><div class="stat-label">🚨 Подозрительных</div></div>
-        </div>
-        
-        <div class="admin-actions">
-            <h2>⚡ БЫСТРЫЕ ДЕЙСТВИЯ</h2>
-            <div class="flex">
-                <button onclick="location.href='/'">🏠 На главную</button>
-                <button onclick="location.href='/diagnostic'">🔍 Диагностика</button>
-                <button onclick="location.href='/privacy'">📜 Политика</button>
-            </div>
         </div>
         
         <div class="panel">
@@ -526,7 +493,6 @@ const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
     if (filePath === './') filePath = './index.html';
     
-    // Определяем тип файла по расширению
     const extname = path.extname(filePath);
     const contentTypes = {
         '.html': 'text/html',
@@ -546,13 +512,10 @@ const server = http.createServer((req, res) => {
     };
     
     const contentType = contentTypes[extname] || 'text/plain';
-    
-    // Читаем файл (для текстовых файлов используем utf8, для бинарных - без кодировки)
     const encoding = ['.html', '.css', '.js', '.json', '.webmanifest'].includes(extname) ? 'utf8' : null;
     
     fs.readFile(filePath, encoding, (err, content) => {
         if (err) {
-            // Если файл не найден, пробуем отдать index.html (для SPA)
             if (err.code === 'ENOENT') {
                 fs.readFile('./index.html', 'utf8', (err2, content2) => {
                     if (err2) {
@@ -572,6 +535,7 @@ const server = http.createServer((req, res) => {
             res.end(content);
         }
     });
+});
 // ==============================================
 // WEB-SOCKET СЕРВЕР
 // ==============================================
@@ -768,7 +732,7 @@ wss.on('connection', (ws, req) => {
                 broadcastStatusUpdate(cleanUsername, 'online');
             }
 
-            // ===== ЗАПРОС ИСТОРИИ ЧАТА (ФИКС ПРОБЛЕМЫ) =====
+            // ===== ЗАПРОС ИСТОРИИ ЧАТА =====
             if (data.type === 'request_history') {
                 const { chatId, username } = data;
                 
@@ -782,26 +746,20 @@ wss.on('connection', (ws, req) => {
                 
                 console.log(`📜 Запрос истории: ${username} -> ${chatId}`);
                 
-                // Формируем ключ чата (сортируем имена для уникальности)
                 const chatKey = chatId.includes('_') ? chatId : [username, chatId].sort().join('_');
-                
-                // Получаем историю
                 const chatHistory = messages[chatKey] || [];
                 
-                // Отправляем историю (последние 500 сообщений)
                 ws.send(JSON.stringify({
                     type: 'chat_history',
                     chatId: chatId,
                     messages: chatHistory.slice(-500)
                 }));
                 
-                // Логируем
                 if (chatHistory.length > 0) {
                     logAction('request_history', username, `${chatId} (${chatHistory.length} сообщений)`);
                 }
             }
-
-            // ===== ОТПРАВКА СООБЩЕНИЯ =====
+                        // ===== ОТПРАВКА СООБЩЕНИЯ =====
             if (data.type === 'message') {
                 const { from, to, text, time, id } = data;
                 
@@ -813,7 +771,6 @@ wss.on('connection', (ws, req) => {
                     return;
                 }
                 
-                // Проверка на бан
                 if (userDatabase[from]?.banned) {
                     ws.send(JSON.stringify({ 
                         type: 'error', 
@@ -822,10 +779,8 @@ wss.on('connection', (ws, req) => {
                     return;
                 }
                 
-                // Проверка на подозрительное
                 const isSuspicious = checkSuspicious(text, from, to, clientIp);
                 
-                // Сохраняем сообщение
                 const chatKey = [from, to].sort().join('_');
                 if (!messages[chatKey]) messages[chatKey] = [];
                 
@@ -846,7 +801,6 @@ wss.on('connection', (ws, req) => {
                 
                 saveMessages();
                 
-                // Отправляем получателю
                 const targetWs = users.get(to);
                 let delivered = false;
                 
@@ -863,7 +817,6 @@ wss.on('connection', (ws, req) => {
                     messageObj.delivered = true;
                 }
                 
-                // Подтверждение отправителю
                 ws.send(JSON.stringify({
                     type: 'message_delivered',
                     messageId: messageObj.id,
@@ -875,7 +828,8 @@ wss.on('connection', (ws, req) => {
                 
                 logAction('message', from, `→ ${to}${isSuspicious ? ' 🚨' : ''}`);
             }
-                        // ===== СОЗДАНИЕ ГРУППЫ =====
+
+            // ===== СОЗДАНИЕ ГРУППЫ =====
             if (data.type === 'create_group') {
                 const { name, creator } = data;
                 
@@ -908,7 +862,6 @@ wss.on('connection', (ws, req) => {
                     group: groups[groupId] 
                 }));
                 
-                // Оповещаем создателя
                 ws.send(JSON.stringify({
                     type: 'groups_list',
                     groups: Object.values(groups).filter(g => 
@@ -942,7 +895,6 @@ wss.on('connection', (ws, req) => {
                     saveData();
                     logAction('add_to_group', adder, `${username} → ${groupId}`);
                     
-                    // Оповещаем всех участников
                     groups[groupId].members.forEach(member => {
                         const memberWs = users.get(member);
                         if (memberWs && memberWs.readyState === WebSocket.OPEN) {
@@ -953,7 +905,6 @@ wss.on('connection', (ws, req) => {
                         }
                     });
                     
-                    // Личное уведомление добавленному
                     const targetWs = users.get(username);
                     if (targetWs) {
                         targetWs.send(JSON.stringify({
@@ -986,7 +937,6 @@ wss.on('connection', (ws, req) => {
                 if (!groups[groupId].messages) groups[groupId].messages = [];
                 groups[groupId].messages.push(messageObj);
                 
-                // Сохраняем в общую базу
                 const chatKey = `group_${groupId}`;
                 if (!messages[chatKey]) messages[chatKey] = [];
                 messages[chatKey].push(messageObj);
@@ -994,7 +944,6 @@ wss.on('connection', (ws, req) => {
                 saveData();
                 saveMessages();
                 
-                // Рассылаем всем участникам
                 groups[groupId].members.forEach(member => {
                     const memberWs = users.get(member);
                     if (memberWs && memberWs.readyState === WebSocket.OPEN) {
@@ -1013,9 +962,7 @@ wss.on('connection', (ws, req) => {
                 logAction('group_message', from, `→ group:${groupId}`);
             }
 
-            // ===== АДМИН-КОМАНДЫ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-            
-            // СТАТИСТИКА
+            // ===== АДМИН-КОМАНДЫ =====
             if (data.type === 'get_stats') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1047,7 +994,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_stats', data.username, 'Запрос статистики');
             }
             
-            // ПОДОЗРИТЕЛЬНЫЕ
             if (data.type === 'get_suspicious') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1065,7 +1011,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
             }
             
-            // ОЧИСТИТЬ ПОДОЗРИТЕЛЬНЫЕ
             if (data.type === 'clear_suspicious') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1085,7 +1030,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_clear', data.username, 'Очистка подозрительных');
             }
             
-            // ЗАБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ
             if (data.type === 'admin_ban') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1109,7 +1053,6 @@ wss.on('connection', (ws, req) => {
                 userDatabase[target].bannedAt = new Date().toISOString();
                 userDatabase[target].banReason = reason || 'Нарушение правил';
                 
-                // Кикаем если онлайн
                 const targetWs = users.get(target);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     targetWs.send(JSON.stringify({ 
@@ -1131,7 +1074,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_ban', data.username, `${target} (${reason})`);
             }
             
-            // РАЗБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ
             if (data.type === 'admin_unban') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1162,7 +1104,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_unban', data.username, target);
             }
             
-            // ВЫДАТЬ ПРЕМИУМ
             if (data.type === 'admin_give_premium') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ 
@@ -1202,7 +1143,6 @@ wss.on('connection', (ws, req) => {
                     months 
                 }));
                 
-                // Уведомляем пользователя если онлайн
                 const targetWs = users.get(target);
                 if (targetWs) {
                     targetWs.send(JSON.stringify({ 
@@ -1211,8 +1151,7 @@ wss.on('connection', (ws, req) => {
                     }));
                 }
             }
-            
-            // ===== ОБНОВЛЕНИЕ СТАТУСА =====
+                        // ===== ОБНОВЛЕНИЕ СТАТУСА =====
             if (data.type === 'update_status') {
                 const { username, status } = data;
                 
@@ -1324,7 +1263,7 @@ wss.on('connection', (ws, req) => {
                 }
             }
             
-            // ===== P2P СИГНАЛЫ (WebRTC) =====
+            // ===== P2P СИГНАЛЫ =====
             if (data.type === 'signal') {
                 const { to, from, signal } = data;
                 
@@ -1364,7 +1303,7 @@ wss.on('connection', (ws, req) => {
                 }
             }
 
-            // ===== P2P СООБЩЕНИЕ (сохраняем на сервере) =====
+            // ===== P2P СООБЩЕНИЕ =====
             if (data.type === 'p2p_message') {
                 const { from, to, text, time, messageId } = data;
                 
@@ -1501,7 +1440,6 @@ setInterval(() => {
             fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
         }
         
-        // Удаляем старые бэкапы (оставляем MAX_BACKUPS)
         const backups = fs.readdirSync('./backups')
             .filter(f => f.startsWith('data_'))
             .sort()
@@ -1570,7 +1508,7 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 // ==============================================
-// ЗАВЕРШЕНИЕ РАБОТЫ
+// ОБРАБОТКА СИГНАЛОВ (ВЫНЕСЕНО ИЗ HTTP СЕРВЕРА)
 // ==============================================
 process.on('SIGINT', () => {
     console.log('\n📦 Сохранение перед выходом...');
