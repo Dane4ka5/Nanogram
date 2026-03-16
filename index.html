@@ -1547,7 +1547,7 @@
             document.body.style.fontSize = size + 'px';
         }
         // ==============================================
-// ФИНАЛЬНАЯ ЗАСТАВКА С ЗВЁЗДАМИ
+// ФИНАЛЬНАЯ ЗАСТАВКА (ПЛАВНАЯ КОЛБОЧКА)
 // ==============================================
 function showSplash() {
     console.log('🎨 Заставка со звёздами');
@@ -1584,13 +1584,13 @@ function showSplash() {
     `;
     
     // Генерируем 30 звёзд
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 100; i++) {
         const star = document.createElement('div');
-        const size = Math.random() * 4 + 2; // Размер от 2 до 6px
-        const left = Math.random() * 100; // %
-        const top = Math.random() * 100; // %
-        const delay = Math.random() * 5; // Задержка анимации
-        const duration = Math.random() * 3 + 2; // Длительность от 2 до 5 сек
+        const size = Math.random() * 4 + 2;
+        const left = Math.random() * 100;
+        const top = Math.random() * 100;
+        const delay = Math.random() * 5;
+        const duration = Math.random() * 3 + 2;
         
         star.style.cssText = `
             position: absolute;
@@ -1611,14 +1611,15 @@ function showSplash() {
     
     splash.appendChild(starsContainer);
     
-    // Колбочка с анимацией
+    // Колбочка с плавной анимацией
     splash.innerHTML += `
         <div style="
             font-size: 120px;
             margin-bottom: 20px;
-            animation: floatAndRock 3s ease-in-out infinite;
+            animation: smoothFloat 4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
             transform-origin: center center;
             filter: drop-shadow(0 0 20px rgba(159, 139, 229, 0.5));
+            will-change: transform;
         ">🧪</div>
         
         <h1 style="
@@ -1650,7 +1651,7 @@ function showSplash() {
             color: #ffd700;
             margin-top: 20px;
             text-shadow: 0 0 30px #9f8be5;
-            animation: pulse 1s ease-in-out infinite;
+            animation: smoothPulse 1s ease-in-out infinite;
         " id="splashTimer">7</div>
         
         <style>
@@ -1660,18 +1661,18 @@ function showSplash() {
                 100% { background-position: 0% 50%; }
             }
             
-            @keyframes floatAndRock {
+            @keyframes smoothFloat {
                 0% {
                     transform: translateY(0px) rotate(0deg);
                 }
                 25% {
-                    transform: translateY(-15px) rotate(-5deg);
+                    transform: translateY(-12px) rotate(-2deg);
                 }
                 50% {
-                    transform: translateY(-25px) rotate(0deg);
+                    transform: translateY(-20px) rotate(0deg);
                 }
                 75% {
-                    transform: translateY(-15px) rotate(5deg);
+                    transform: translateY(-12px) rotate(2deg);
                 }
                 100% {
                     transform: translateY(0px) rotate(0deg);
@@ -1687,9 +1688,9 @@ function showSplash() {
                 100% { opacity: 0; transform: scale(0.5); }
             }
             
-            @keyframes pulse {
+            @keyframes smoothPulse {
                 0% { transform: scale(1); }
-                50% { transform: scale(1.1); text-shadow: 0 0 50px #ffd700; }
+                50% { transform: scale(1.05); text-shadow: 0 0 40px #ffd700; }
                 100% { transform: scale(1); }
             }
         </style>
@@ -1704,8 +1705,8 @@ function showSplash() {
         timeLeft--;
         if (timer) {
             timer.textContent = timeLeft;
-            // Маленький эффект при смене цифры
-            timer.style.transform = 'scale(1.2)';
+            timer.style.transform = 'scale(1.1)';
+            timer.style.transition = 'transform 0.1s ease';
             setTimeout(() => {
                 timer.style.transform = 'scale(1)';
             }, 100);
@@ -1717,6 +1718,7 @@ function showSplash() {
     setTimeout(() => {
         if (splash && splash.parentNode) {
             splash.style.animation = 'fadeOut 0.5s ease forwards';
+            splash.style.opacity = '1';
             setTimeout(() => splash.remove(), 500);
         }
     }, 7000);
