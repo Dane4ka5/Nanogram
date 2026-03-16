@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.5 — заставка 17 сек</title>
+    <title>Nanogram v0.10.6 — заставка 17 сек</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -105,8 +105,7 @@
                         border-color 0.3s ease,
                         box-shadow 0.3s ease;
         }
-
-        .app-container {
+                .app-container {
             width: 100%;
             height: 100vh;
             display: flex;
@@ -168,7 +167,8 @@
                 display: none !important;
             }
         }
-                .panel-header {
+
+        .panel-header {
             padding: 16px 20px;
             display: flex;
             align-items: center;
@@ -418,8 +418,7 @@
             color: var(--text-primary);
             font-size: 15px;
         }
-
-        .tabs {
+                .tabs {
             display: flex;
             padding: 0 16px;
             gap: 10px;
@@ -560,7 +559,8 @@
             margin-left: 10px;
             white-space: nowrap;
         }
-                .chat-header {
+
+        .chat-header {
             padding: 14px 20px;
             display: flex;
             align-items: center;
@@ -1215,7 +1215,8 @@
     </div>
 
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
-        <!-- МОДАЛКА ПРОФИЛЯ -->
+    
+    <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
@@ -1378,12 +1379,11 @@
         <input type="text" id="youtubeLink" placeholder="Ссылка на YouTube">
         <button onclick="shareYoutube()">📤 Отправить</button>
     </div>
-
-    <!-- СТРАНИЦА ВХОДА -->
+        <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.5 — заставка 17 сек</p>
+            <p>v0.10.6 — заставка 17 сек</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1486,12 +1486,13 @@
             </div>
         </div>
     </div>
-        <script>
+
+    <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.5';
+        const VERSION = 'v0.10.6';
         
         let socket = null;
         let currentUser = null;
@@ -1521,8 +1522,7 @@
         function generateId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + (currentUser || 'anon');
         }
-
-        // ==============================================
+                // ==============================================
         // ТЕМЫ
         // ==============================================
         function toggleTheme() {
@@ -1546,83 +1546,84 @@
         function changeFontSize(size) {
             document.body.style.fontSize = size + 'px';
         }
+
         // ==============================================
-// КРАСИВАЯ ЗАСТАВКА 17 СЕКУНД
-// ==============================================
-function showSplash() {
-    console.log('🎨 Красивая заставка на 17 секунд');
-    
-    const splash = document.createElement('div');
-    splash.id = 'splash-video';
-    splash.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
-        background-size: 300% 300%;
-        animation: gradientShift 17s ease infinite;
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        color: white;
-    `;
-    
-    splash.innerHTML = `
-        <div style="font-size: 120px; margin-bottom: 20px; animation: float 3s ease-in-out infinite;">🧪</div>
-        <h1 style="font-size: 64px; margin-bottom: 10px; background: linear-gradient(45deg, #ffd700, #9f8be5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Nanogram</h1>
-        <p style="font-size: 24px; color: #b0b3b8; margin-bottom: 40px;">безопасный мессенджер</p>
-        
-        <p style="font-size: 18px; color: #ffd700; margin-bottom: 20px;">⏳ Подождите немножко, идёт загрузка сервиса</p>
-        
-        <div style="width: 300px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 4px; margin: 20px auto; overflow: hidden;">
-            <div class="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #9f8be5, #ffd700); border-radius: 4px;"></div>
-        </div>
-        
-        <div style="font-size: 48px; font-weight: bold; color: #ffd700; margin-top: 20px;" id="splashTimer">17</div>
-        <p style="color: #b0b3b8; margin-top: 10px;">секунд до старта</p>
-        
-        <style>
-            @keyframes gradientShift {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-            @keyframes float {
-                0% { transform: translateY(0px); }
-                50% { transform: translateY(-20px); }
-                100% { transform: translateY(0px); }
-            }
-            @keyframes progress {
-                from { width: 0%; }
-                to { width: 100%; }
-            }
-            .progress-bar {
-                animation: progress 17s linear forwards;
-            }
-        </style>
-    `;
-    
-    document.body.appendChild(splash);
-    
-    let timeLeft = 17;
-    const timer = document.getElementById('splashTimer');
-    const interval = setInterval(() => {
-        timeLeft--;
-        if (timer) timer.textContent = timeLeft;
-        if (timeLeft <= 0) clearInterval(interval);
-    }, 1000);
-    
-    setTimeout(() => {
-        if (splash && splash.parentNode) {
-            splash.remove();
-            console.log('✅ Заставка удалена');
+        // КРАСИВАЯ ЗАСТАВКА 17 СЕКУНД
+        // ==============================================
+        function showSplash() {
+            console.log('🎨 Красивая заставка на 17 секунд');
+            
+            const splash = document.createElement('div');
+            splash.id = 'splash-video';
+            splash.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
+                background-size: 300% 300%;
+                animation: gradientShift 17s ease infinite;
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                color: white;
+            `;
+            
+            splash.innerHTML = `
+                <div style="font-size: 120px; margin-bottom: 20px; animation: float 3s ease-in-out infinite;">🧪</div>
+                <h1 style="font-size: 64px; margin-bottom: 10px; background: linear-gradient(45deg, #ffd700, #9f8be5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Nanogram</h1>
+                <p style="font-size: 24px; color: #b0b3b8; margin-bottom: 40px;">безопасный мессенджер</p>
+                
+                <p style="font-size: 18px; color: #ffd700; margin-bottom: 20px;">⏳ Подождите немножко, идёт загрузка сервиса</p>
+                
+                <div style="width: 300px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 4px; margin: 20px auto; overflow: hidden;">
+                    <div class="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #9f8be5, #ffd700); border-radius: 4px;"></div>
+                </div>
+                
+                <div style="font-size: 48px; font-weight: bold; color: #ffd700; margin-top: 20px;" id="splashTimer">17</div>
+                <p style="color: #b0b3b8; margin-top: 10px;">секунд до старта</p>
+                
+                <style>
+                    @keyframes gradientShift {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    @keyframes float {
+                        0% { transform: translateY(0px); }
+                        50% { transform: translateY(-20px); }
+                        100% { transform: translateY(0px); }
+                    }
+                    @keyframes progress {
+                        from { width: 0%; }
+                        to { width: 100%; }
+                    }
+                    .progress-bar {
+                        animation: progress 17s linear forwards;
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(splash);
+            
+            let timeLeft = 17;
+            const timer = document.getElementById('splashTimer');
+            const interval = setInterval(() => {
+                timeLeft--;
+                if (timer) timer.textContent = timeLeft;
+                if (timeLeft <= 0) clearInterval(interval);
+            }, 1000);
+            
+            setTimeout(() => {
+                if (splash && splash.parentNode) {
+                    splash.remove();
+                    console.log('✅ Заставка удалена');
+                }
+            }, 17000);
         }
-    }, 17000);
-}
 
         // ==============================================
         // МОДАЛКИ
@@ -1777,8 +1778,9 @@ function showSplash() {
             
             connectWebSocket(password);
         }
-                // ==============================================
-        // WEBSOCKET - ПОЛНЫЙ КОД
+
+        // ==============================================
+        // WEBSOCKET
         // ==============================================
         function connectWebSocket(password) {
             socket = new WebSocket('wss://minegram.onrender.com');
@@ -1822,16 +1824,12 @@ function showSplash() {
                 if (data.type === 'login_success' || data.type === 'register_success') {
                     console.log('✅ Успешный вход');
                     
-                    // 1. Скрываем страницу входа
                     document.getElementById('loginPage').style.display = 'none';
-                    
-                    // 2. ПОКАЗЫВАЕМ ИНТЕРФЕЙС
                     document.getElementById('appPage').style.display = 'flex';
                     
-                    // 3. МОМЕНТАЛЬНО ПОВЕРХ НАКЛАДЫВАЕМ ЗАСТАВКУ
+                    // Показываем заставку
                     showSplash();
                     
-                    // Заполняем данные пользователя
                     document.getElementById('headerNameText').textContent = currentUser;
                     
                     if (currentUser === CREATOR_USERNAME) {
@@ -1854,6 +1852,23 @@ function showSplash() {
                 // ===== ИСТОРИЯ СООБЩЕНИЙ =====
                 if (data.type === 'history') {
                     messages = data.history || {};
+                }
+                
+                // ===== ИСТОРИЯ ЧАТА (НОВОЕ) =====
+                if (data.type === 'chat_history') {
+                    console.log(`📜 Получена история для ${data.chatId}: ${data.messages.length} сообщений`);
+                    
+                    if (data.chatId === currentChat) {
+                        document.getElementById('messagesContainer').innerHTML = '';
+                        data.messages.forEach(msg => {
+                            displayMessage({
+                                text: msg.text,
+                                from: msg.from,
+                                time: msg.time,
+                                type: msg.from === currentUser ? 'sent' : 'received'
+                            });
+                        });
+                    }
                 }
                 
                 // ===== СПИСКИ =====
@@ -1937,7 +1952,10 @@ function showSplash() {
                 
                 // ===== ОБНОВЛЕНИЕ СТАТУСА =====
                 if (data.type === 'status_update') {
-                    // Обновление статуса пользователя (можно добавить позже)
+                    const activeTab = document.querySelector('.tab.active');
+                    if (activeTab && activeTab.innerText.includes('Чаты')) {
+                        updateChatsList('chats');
+                    }
                 }
                 
                 // ===== ОБНОВЛЯЕМ СПИСОК ЧАТОВ =====
@@ -2023,16 +2041,13 @@ function showSplash() {
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesContainer').innerHTML = '';
             
-            const chatKey = [currentUser, name].sort().join('_');
-            if (messages[chatKey]) {
-                messages[chatKey].forEach(msg => {
-                    displayMessage({
-                        text: msg.text,
-                        from: msg.from,
-                        time: msg.time,
-                        type: msg.from === currentUser ? 'sent' : 'received'
-                    });
-                });
+            // Запрашиваем историю у сервера (НОВОЕ!)
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'request_history',
+                    chatId: name,
+                    username: currentUser
+                }));
             }
             
             if (window.innerWidth <= 768) showChatPanel();
@@ -2047,7 +2062,8 @@ function showSplash() {
             document.getElementById('chatPanel').classList.add('hidden');
             document.getElementById('chatsPanel').classList.remove('hidden');
         }
-                // ==============================================
+
+        // ==============================================
         // СООБЩЕНИЯ
         // ==============================================
         function sendMessage() {
@@ -2092,10 +2108,6 @@ function showSplash() {
             }
             
             const container = document.getElementById('messagesContainer');
-            
-            if (container.children.length === 1 && container.children[0].querySelector('h3')) {
-                container.innerHTML = '';
-            }
             
             const div = document.createElement('div');
             div.className = `message ${msg.type}`;

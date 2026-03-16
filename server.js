@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.10.3';
+const VERSION = 'v0.10.6';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -51,7 +51,6 @@ const SUSPICIOUS_WORDS = [
     'терракт', 'бомба', 'взрыв', 'оружие', 'наркотики',
     'убить', 'война', 'attack', 'bomb', 'kill', 'terror'
 ];
-
 // ==============================================
 // ЗАГРУЗКА ДАННЫХ
 // ==============================================
@@ -257,8 +256,7 @@ const server = http.createServer((req, res) => {
 </html>`);
         return;
     }
-    
-    // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
+        // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
     if (req.url.includes('admin')) {
         
         // Простая проверка (можно добавить пароль позже)
@@ -286,7 +284,7 @@ const server = http.createServer((req, res) => {
         if (req.url.includes('action=')) {
             const redirectUrl = '/admin';
             
-            // БАН ПОЛЬЗОВАТЕЛЯ (ИСПРАВЛЕНО)
+            // БАН ПОЛЬЗОВАТЕЛЯ
             if (req.url.includes('action=ban_user')) {
                 const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
@@ -344,7 +342,8 @@ const server = http.createServer((req, res) => {
             res.end();
             return;
         }
-                // ===== СТАТИСТИКА ДЛЯ ТЕНЕВОЙ ПАНЕЛИ =====
+        
+        // ===== СТАТИСТИКА ДЛЯ ТЕНЕВОЙ ПАНЕЛИ =====
         const usersCount = Object.keys(data.users || {}).length;
         const groupsCount = Object.keys(data.groups || {}).length;
         const channelsCount = Object.keys(data.channels || {}).length;
@@ -514,107 +513,6 @@ const server = http.createServer((req, res) => {
                     </tr>
                 `).join('')}
             </table>
-        </div>
-                <div class="panel">
-            <h2>🚨 ПОДОЗРИТЕЛЬНЫЕ СООБЩЕНИЯ</h2>
-            ${suspiciousMessages.length === 0 ? '<p>Нет подозрительных сообщений</p>' : ''}
-            ${suspiciousMessages.slice(-20).reverse().map(msg => `
-                <div class="suspicious">
-                    <div><strong>${msg.from}</strong> → ${msg.to}</div>
-                    <div style="margin: 10px 0;">${msg.message}</div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <small>${new Date(msg.timestamp).toLocaleString()}</small>
-                        <small>IP: ${msg.ip} | Слово: "${msg.word}"</small>
-                    </div>
-                </div>
-            `).join('')}
-            <div style="margin-top: 20px;">
-                <form method="get">
-                    <input type="hidden" name="action" value="clear_suspicious">
-                    <button type="submit" class="danger-btn">🗑️ Очистить все подозрительные</button>
-                </form>
-            </div>
-        </div>
-        
-        <div class="panel">
-            <h2>👑 УПРАВЛЕНИЕ ПРЕМИУМ</h2>
-            <div class="flex">
-                <div style="flex:1;">
-                    <h3>Выдать премиум вручную</h3>
-                    <form method="get" class="flex" style="align-items: center;">
-                        <input type="hidden" name="action" value="give_premium">
-                        <input type="text" name="username" placeholder="Имя пользователя" required>
-                        <select name="months">
-                            <option value="1">1 месяц</option>
-                            <option value="3">3 месяца</option>
-                            <option value="6">6 месяцев</option>
-                            <option value="12">12 месяцев</option>
-                        </select>
-                        <button type="submit" style="background:#ffd700; color:#000;">👑 Выдать</button>
-                    </form>
-                </div>
-                <div style="flex:1;">
-                    <h3>Статистика премиум</h3>
-                    <p>Всего премиум: ${premiumCount}</p>
-                    <p>Активных сегодня: ${Object.values(data.premiumUsers || {}).filter(p => {
-                        if (!p.expires) return false;
-                        return new Date(p.expires) > new Date();
-                    }).length}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="panel">
-            <h2>📊 ПОСЛЕДНИЕ СООБЩЕНИЯ</h2>
-            <div style="max-height: 400px; overflow-y: auto;">
-                ${Object.entries(msgs).slice(-5).map(([chatId, chatMsgs]) => `
-                    <div style="margin-bottom: 20px; background: #21262d; padding: 15px; border-radius: 8px;">
-                        <h3 style="color: #ffd700; margin-bottom: 10px;">📁 ${chatId} (${chatMsgs.length})</h3>
-                        ${chatMsgs.slice(-5).reverse().map(msg => `
-                            <div style="border-left: 2px solid #9f8be5; padding: 10px; margin: 5px 0; background: #0a0c10;">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <strong>${msg.from}</strong>
-                                    <small>${new Date(msg.timestamp).toLocaleString()}</small>
-                                </div>
-                                <div style="margin: 5px 0;">${msg.text || '[файл]'}</div>
-                                ${msg.ip ? `<small>IP: ${msg.ip}</small>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-        
-        <div class="panel">
-            <h2>📝 ПОСЛЕДНИЕ ЛОГИ</h2>
-            <div style="background: #0a0c10; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 400px; overflow-y: auto;">
-                ${(() => {
-                    try {
-                        if (fs.existsSync('./users.log')) {
-                            const logs = fs.readFileSync('./users.log', 'utf8')
-                                .split('\n')
-                                .filter(l => l.length > 0)
-                                .slice(-50)
-                                .reverse();
-                            return logs.map(log => 
-                                `<div style="color: #b0b3b8; border-bottom: 1px solid #30363d; padding: 5px;">${log}</div>`
-                            ).join('');
-                        }
-                        return '<p>Нет логов</p>';
-                    } catch (e) {
-                        return '<p>Ошибка чтения логов</p>';
-                    }
-                })()}
-            </div>
-        </div>
-        
-        <div class="footer" style="margin-top: 40px; text-align: center; color: #8b949e;">
-            <p>Nanogram ${VERSION} | Теневая панель | Последнее обновление: ${new Date().toLocaleString()}</p>
-            <p style="margin-top: 10px;">
-                <a href="/" style="color: #9f8be5;">← На главную</a> | 
-                <a href="/diagnostic" style="color: #9f8be5;">🔍 Диагностика</a> | 
-                <a href="/privacy" style="color: #9f8be5;">📜 Политика</a>
-            </p>
         </div>
     </div>
 </body>
@@ -832,9 +730,43 @@ wss.on('connection', (ws, req) => {
                 broadcastUserList();
                 broadcastStatusUpdate(cleanUsername, 'online');
             }
-                        // ===== ОТПРАВКА СООБЩЕНИЯ =====
+
+            // ===== ЗАПРОС ИСТОРИИ ЧАТА (ФИКС ПРОБЛЕМЫ) =====
+            if (data.type === 'request_history') {
+                const { chatId, username } = data;
+                
+                if (!chatId || !username) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: '❌ Не указан чат' 
+                    }));
+                    return;
+                }
+                
+                console.log(`📜 Запрос истории: ${username} -> ${chatId}`);
+                
+                // Формируем ключ чата (сортируем имена для уникальности)
+                const chatKey = chatId.includes('_') ? chatId : [username, chatId].sort().join('_');
+                
+                // Получаем историю
+                const chatHistory = messages[chatKey] || [];
+                
+                // Отправляем историю (последние 500 сообщений)
+                ws.send(JSON.stringify({
+                    type: 'chat_history',
+                    chatId: chatId,
+                    messages: chatHistory.slice(-500)
+                }));
+                
+                // Логируем
+                if (chatHistory.length > 0) {
+                    logAction('request_history', username, `${chatId} (${chatHistory.length} сообщений)`);
+                }
+            }
+
+            // ===== ОТПРАВКА СООБЩЕНИЯ =====
             if (data.type === 'message') {
-                const { from, to, text, time } = data;
+                const { from, to, text, time, id } = data;
                 
                 if (!from || !to || !text) {
                     ws.send(JSON.stringify({ 
@@ -861,7 +793,7 @@ wss.on('connection', (ws, req) => {
                 if (!messages[chatKey]) messages[chatKey] = [];
                 
                 const messageObj = {
-                    id: generateId(),
+                    id: id || generateId(),
                     from, to, text, time,
                     timestamp: Date.now(),
                     ip: clientIp,
@@ -906,8 +838,7 @@ wss.on('connection', (ws, req) => {
                 
                 logAction('message', from, `→ ${to}${isSuspicious ? ' 🚨' : ''}`);
             }
-
-            // ===== СОЗДАНИЕ ГРУППЫ =====
+                        // ===== СОЗДАНИЕ ГРУППЫ =====
             if (data.type === 'create_group') {
                 const { name, creator } = data;
                 
@@ -1044,7 +975,8 @@ wss.on('connection', (ws, req) => {
                 
                 logAction('group_message', from, `→ group:${groupId}`);
             }
-                        // ===== АДМИН-КОМАНДЫ (ТОЛЬКО ДЛЯ Dane4ka5) =====
+
+            // ===== АДМИН-КОМАНДЫ (ТОЛЬКО ДЛЯ Dane4ka5) =====
             
             // СТАТИСТИКА
             if (data.type === 'get_stats') {
@@ -1354,7 +1286,8 @@ wss.on('connection', (ws, req) => {
                     }));
                 }
             }
-                        // ===== P2P СИГНАЛЫ (WebRTC) =====
+            
+            // ===== P2P СИГНАЛЫ (WebRTC) =====
             if (data.type === 'signal') {
                 const { to, from, signal } = data;
                 
