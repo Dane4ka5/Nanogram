@@ -1,16 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <!-- PWA support -->
-<link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Nanogram">
-<link rel="apple-touch-icon" href="/icons/icon-152x152.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.7 - ДОСТУПНО НА ТЕЛЕФОН!</title>
+    <title>Nanogram v0.10.7 — ДОСТУПНО НА ТЕЛЕФОНЕ!</title>
+    
+    <!-- PWA support -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nanogram">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Звук уведомлений -->
+    <audio id="notificationSound" preload="auto" style="display: none;">
+        <source src="/sounds/msg.mp3" type="audio/mpeg">
+    </audio>
+    
     <style>
         * {
             margin: 0;
@@ -45,10 +54,6 @@
             --online-green: #2ea043;
             --away-yellow: #f0b400;
             --busy-red: #da3633;
-            transition: background-color 0.3s ease,
-                        color 0.3s ease,
-                        border-color 0.3s ease,
-                        box-shadow 0.3s ease;
         }
 
         body.light-theme {
@@ -1214,11 +1219,8 @@
             100% { opacity: 0; visibility: hidden; }
         }
     </style>
-    <audio id="notificationSound" preload="auto" style="display: none;">
-        <source src="/sounds/msg.mp3" type="audio/mpeg">
-    </audio>
 </head>
-<body>
+ <body>
     <div class="theme-toggle" onclick="toggleTheme()">
         <i class="fas fa-sun"></i> <span id="themeText">Тёмная</span>
     </div>
@@ -1392,7 +1394,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.6 — заставка 17 сек</p>
+            <p>v0.10.7 — ДОСТУПНО НА ТЕЛЕФОНЕ!</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1495,13 +1497,12 @@
             </div>
         </div>
     </div>
-
-         <script>
+        <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.6';
+        const VERSION = 'v0.10.7';
         
         let socket = null;
         let currentUser = null;
@@ -1525,11 +1526,11 @@
         let userStatus = 'online';
         let receivedMessages = new Set();
 
-    // ==============================================
-    // ЗВУКОВЫЕ НАСТРОЙКИ (ДОБАВЬ СЮДА)
-    // ==============================================
-    let soundEnabled = true;
-    let notificationSound = null;
+        // ==============================================
+        // ЗВУКОВЫЕ НАСТРОЙКИ
+        // ==============================================
+        let soundEnabled = true;
+        let notificationSound = null;
 
         // ==============================================
         // ГЕНЕРАЦИЯ ID
@@ -1537,37 +1538,36 @@
         function generateId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + (currentUser || 'anon');
         }
+
         // ==============================================
-// ЗВУКОВЫЕ УВЕДОМЛЕНИЯ
-// ==============================================
-function initSound() {
-    notificationSound = document.getElementById('notificationSound');
-    if (!notificationSound) return;
-    
-    // Загружаем настройку
-    const saved = localStorage.getItem('nanogram_sound');
-    if (saved !== null) soundEnabled = saved === 'true';
-    
-    // Синхронизируем чекбокс
-    const soundCheck = document.getElementById('soundCheck');
-    if (soundCheck) soundCheck.checked = soundEnabled;
-}
+        // ЗВУКОВЫЕ УВЕДОМЛЕНИЯ
+        // ==============================================
+        function initSound() {
+            notificationSound = document.getElementById('notificationSound');
+            if (!notificationSound) return;
+            
+            const saved = localStorage.getItem('nanogram_sound');
+            if (saved !== null) soundEnabled = saved === 'true';
+            
+            const soundCheck = document.getElementById('soundCheck');
+            if (soundCheck) soundCheck.checked = soundEnabled;
+        }
 
-function playNotification() {
-    if (!soundEnabled || !notificationSound) return;
-    
-    // Сбрасываем и играем
-    notificationSound.currentTime = 0;
-    notificationSound.play().catch(e => {
-        console.log('⚠️ Звук не воспроизвёлся:', e.message);
-    });
-}
+        function playNotification() {
+            if (!soundEnabled || !notificationSound) return;
+            
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(e => {
+                console.log('⚠️ Звук не воспроизвёлся:', e.message);
+            });
+        }
 
-function toggleSound(enabled) {
-    soundEnabled = enabled;
-    localStorage.setItem('nanogram_sound', enabled);
-}
-                // ==============================================
+        function toggleSound(enabled) {
+            soundEnabled = enabled;
+            localStorage.setItem('nanogram_sound', enabled);
+        }
+
+        // ==============================================
         // ТЕМЫ
         // ==============================================
         function toggleTheme() {
@@ -1591,183 +1591,138 @@ function toggleSound(enabled) {
         function changeFontSize(size) {
             document.body.style.fontSize = size + 'px';
         }
+
         // ==============================================
-// ФИНАЛЬНАЯ ЗАСТАВКА (ПЛАВНАЯ КОЛБОЧКА)
-// ==============================================
-function showSplash() {
-    console.log('🎨 Заставка со звёздами');
-    
-    const splash = document.createElement('div');
-    splash.id = 'splash-screen';
-    splash.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
-        background-size: 400% 400%;
-        animation: gradientMove 7s ease infinite;
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        color: white;
-        overflow: hidden;
-    `;
-    
-    // Создаём контейнер для звёзд
-    const starsContainer = document.createElement('div');
-    starsContainer.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-    `;
-    
-    // Генерируем 30 звёзд
-    for (let i = 0; i < 100; i++) {
-        const star = document.createElement('div');
-        const size = Math.random() * 4 + 2;
-        const left = Math.random() * 100;
-        const top = Math.random() * 100;
-        const delay = Math.random() * 5;
-        const duration = Math.random() * 3 + 2;
-        
-        star.style.cssText = `
-            position: absolute;
-            left: ${left}%;
-            top: ${top}%;
-            width: ${size}px;
-            height: ${size}px;
-            background: white;
-            border-radius: 50%;
-            box-shadow: 0 0 ${size * 2}px rgba(255, 255, 255, 0.8);
-            opacity: 0;
-            animation: starTwinkle ${duration}s ease-in-out infinite;
-            animation-delay: ${delay}s;
-        `;
-        
-        starsContainer.appendChild(star);
-    }
-    
-    splash.appendChild(starsContainer);
-    
-    // Колбочка с плавной анимацией
-    splash.innerHTML += `
-        <div style="
-            font-size: 120px;
-            margin-bottom: 20px;
-            animation: smoothFloat 4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-            transform-origin: center center;
-            filter: drop-shadow(0 0 20px rgba(159, 139, 229, 0.5));
-            will-change: transform;
-        ">🧪</div>
-        
-        <h1 style="
-            font-size: 64px;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #ffd700, #9f8be5);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(159, 139, 229, 0.3);
-        ">Nanogram</h1>
-        
-        <p style="
-            font-size: 24px;
-            color: #b0b3b8;
-            margin-bottom: 40px;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-        ">безопасный мессенджер</p>
-        
-        <p style="
-            font-size: 18px;
-            color: #ffd700;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-        ">⏳ Подождите немножко, идёт загрузка сервиса</p>
-        
-        <div style="
-            font-size: 72px;
-            font-weight: bold;
-            color: #ffd700;
-            margin-top: 20px;
-            text-shadow: 0 0 30px #9f8be5;
-            animation: smoothPulse 1s ease-in-out infinite;
-        " id="splashTimer">7</div>
-        
-        <style>
-            @keyframes gradientMove {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
+        // КРАСИВАЯ ЗАСТАВКА 7 СЕКУНД
+        // ==============================================
+        function showSplash() {
+            console.log('🎨 Заставка 7 секунд');
+            
+            const splash = document.createElement('div');
+            splash.id = 'splash-screen';
+            splash.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
+                background-size: 400% 400%;
+                animation: gradientMove 7s ease infinite;
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                color: white;
+                overflow: hidden;
+            `;
+            
+            // Звёзды
+            const starsContainer = document.createElement('div');
+            starsContainer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+            `;
+            
+            for (let i = 0; i < 30; i++) {
+                const star = document.createElement('div');
+                const size = Math.random() * 4 + 2;
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                const delay = Math.random() * 5;
+                const duration = Math.random() * 3 + 2;
+                
+                star.style.cssText = `
+                    position: absolute;
+                    left: ${left}%;
+                    top: ${top}%;
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: white;
+                    border-radius: 50%;
+                    box-shadow: 0 0 ${size * 2}px rgba(255, 255, 255, 0.8);
+                    opacity: 0;
+                    animation: starTwinkle ${duration}s ease-in-out infinite;
+                    animation-delay: ${delay}s;
+                `;
+                
+                starsContainer.appendChild(star);
             }
             
-            @keyframes smoothFloat {
-                0% {
-                    transform: translateY(0px) rotate(0deg);
-                }
-                25% {
-                    transform: translateY(-12px) rotate(-2deg);
-                }
-                50% {
-                    transform: translateY(-20px) rotate(0deg);
-                }
-                75% {
-                    transform: translateY(-12px) rotate(2deg);
-                }
-                100% {
-                    transform: translateY(0px) rotate(0deg);
-                }
-            }
+            splash.appendChild(starsContainer);
             
-            @keyframes starTwinkle {
-                0% { opacity: 0; transform: scale(0.5); }
-                20% { opacity: 1; transform: scale(1.2); }
-                40% { opacity: 0.8; transform: scale(1); }
-                60% { opacity: 0.3; transform: scale(0.8); }
-                80% { opacity: 0; transform: scale(0.5); }
-                100% { opacity: 0; transform: scale(0.5); }
-            }
+            splash.innerHTML += `
+                <div style="
+                    font-size: 120px;
+                    margin-bottom: 20px;
+                    animation: smoothFloat 4s ease-in-out infinite;
+                    transform-origin: center center;
+                    filter: drop-shadow(0 0 20px rgba(159, 139, 229, 0.5));
+                ">🧪</div>
+                
+                <h1 style="
+                    font-size: 64px;
+                    margin-bottom: 10px;
+                    background: linear-gradient(45deg, #ffd700, #9f8be5);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                ">Nanogram</h1>
+                
+                <p style="font-size: 24px; color: #b0b3b8; margin-bottom: 40px;">
+                    доступно на телефонах
+                </p>
+                
+                <p style="font-size: 18px; color: #ffd700; margin-bottom: 20px;">
+                    ⏳ Подождите немножко, идёт загрузка сервиса
+                </p>
+                
+                <div style="font-size: 72px; font-weight: bold; color: #ffd700; margin-top: 20px;" id="splashTimer">7</div>
+                
+                <style>
+                    @keyframes gradientMove {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    @keyframes smoothFloat {
+                        0% { transform: translateY(0px) rotate(0deg); }
+                        25% { transform: translateY(-12px) rotate(-2deg); }
+                        50% { transform: translateY(-20px) rotate(0deg); }
+                        75% { transform: translateY(-12px) rotate(2deg); }
+                        100% { transform: translateY(0px) rotate(0deg); }
+                    }
+                    @keyframes starTwinkle {
+                        0% { opacity: 0; transform: scale(0.5); }
+                        20% { opacity: 1; transform: scale(1.2); }
+                        40% { opacity: 0.8; transform: scale(1); }
+                        60% { opacity: 0.3; transform: scale(0.8); }
+                        80% { opacity: 0; transform: scale(0.5); }
+                        100% { opacity: 0; transform: scale(0.5); }
+                    }
+                </style>
+            `;
             
-            @keyframes smoothPulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); text-shadow: 0 0 40px #ffd700; }
-                100% { transform: scale(1); }
-            }
-        </style>
-    `;
-    
-    document.body.appendChild(splash);
-    
-    // Таймер обратного отсчёта
-    let timeLeft = 7;
-    const timer = document.getElementById('splashTimer');
-    const interval = setInterval(() => {
-        timeLeft--;
-        if (timer) {
-            timer.textContent = timeLeft;
-            timer.style.transform = 'scale(1.1)';
-            timer.style.transition = 'transform 0.1s ease';
+            document.body.appendChild(splash);
+            
+            let timeLeft = 7;
+            const timer = document.getElementById('splashTimer');
+            const interval = setInterval(() => {
+                timeLeft--;
+                if (timer) timer.textContent = timeLeft;
+                if (timeLeft <= 0) clearInterval(interval);
+            }, 1000);
+            
             setTimeout(() => {
-                timer.style.transform = 'scale(1)';
-            }, 100);
+                if (splash && splash.parentNode) {
+                    splash.remove();
+                }
+            }, 7000);
         }
-        if (timeLeft <= 0) clearInterval(interval);
-    }, 1000);
-    
-    // Удаляем заставку через 7 секунд
-    setTimeout(() => {
-        if (splash && splash.parentNode) {
-            splash.style.animation = 'fadeOut 0.5s ease forwards';
-            splash.style.opacity = '1';
-            setTimeout(() => splash.remove(), 500);
-        }
-    }, 7000);
-}
 
         // ==============================================
         // МОДАЛКИ
@@ -1825,8 +1780,11 @@ function showSplash() {
         function saveSettings() {
             const theme = document.getElementById('themeSelect').value;
             const fontSize = document.getElementById('fontSizeSelect').value;
+            const soundEnabled = document.getElementById('soundCheck').checked;
+            
             changeTheme(theme);
             changeFontSize(fontSize);
+            toggleSound(soundEnabled);
             
             localStorage.setItem('nanogram_settings', JSON.stringify({
                 theme, fontSize, sound: soundEnabled
@@ -1843,6 +1801,11 @@ function showSplash() {
                 changeFontSize(settings.fontSize);
                 document.getElementById('themeSelect').value = settings.theme;
                 document.getElementById('fontSizeSelect').value = settings.fontSize;
+                if (settings.sound !== undefined) {
+                    soundEnabled = settings.sound;
+                    const soundCheck = document.getElementById('soundCheck');
+                    if (soundCheck) soundCheck.checked = settings.sound;
+                }
             }
         }
 
@@ -1964,14 +1927,13 @@ function showSplash() {
                 
                 console.log('📩 Получен тип:', data.type);
                 
-                // ===== УСПЕШНЫЙ ВХОД / РЕГИСТРАЦИЯ =====
+                // ===== УСПЕШНЫЙ ВХОД =====
                 if (data.type === 'login_success' || data.type === 'register_success') {
                     console.log('✅ Успешный вход');
                     
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'flex';
                     
-                    // Показываем заставку
                     showSplash();
                     
                     document.getElementById('headerNameText').textContent = currentUser;
@@ -1993,14 +1955,9 @@ function showSplash() {
                     updateHeaderStatus();
                 }
                 
-                // ===== ИСТОРИЯ СООБЩЕНИЙ =====
-                if (data.type === 'history') {
-                    messages = data.history || {};
-                }
-                
-                // ===== ИСТОРИЯ ЧАТА (НОВОЕ) =====
+                // ===== ИСТОРИЯ ЧАТА =====
                 if (data.type === 'chat_history') {
-                    console.log(`📜 Получена история для ${data.chatId}: ${data.messages.length} сообщений`);
+                    console.log(`📜 История для ${data.chatId}: ${data.messages.length} сообщений`);
                     
                     if (data.chatId === currentChat) {
                         document.getElementById('messagesContainer').innerHTML = '';
@@ -2053,9 +2010,9 @@ function showSplash() {
                             time: data.time,
                             type: 'received'
                         });
-                        // 🔥 ЗВУК - добавить эту строку:
-                         if (data.from !== currentUser) {
-                         playNotification();
+                        if (data.from !== currentUser) {
+                            playNotification();
+                        }
                     }
                 }
                 
@@ -2068,9 +2025,9 @@ function showSplash() {
                             time: data.time,
                             type: data.from === currentUser ? 'sent' : 'received'
                         });
-                        // 🔥 ЗВУК - добавить эту строку:
-                         if (data.from !== currentUser) {
-                         playNotification();
+                        if (data.from !== currentUser) {
+                            playNotification();
+                        }
                     }
                 }
                 
@@ -2084,12 +2041,12 @@ function showSplash() {
                     }, 2000);
                 }
                 
-                // ===== СТАТИСТИКА (ДЛЯ Dane4ka5) =====
+                // ===== СТАТИСТИКА =====
                 if (data.type === 'stats') {
                     updateStatsModal(data.stats);
                 }
                 
-                // ===== ПОДОЗРИТЕЛЬНЫЕ (ДЛЯ Dane4ka5) =====
+                // ===== ПОДОЗРИТЕЛЬНЫЕ =====
                 if (data.type === 'suspicious_list') {
                     updateSuspiciousList(data.messages);
                 }
@@ -2108,7 +2065,6 @@ function showSplash() {
                     }
                 }
                 
-                // ===== ОБНОВЛЯЕМ СПИСОК ЧАТОВ =====
                 const activeTab = document.querySelector('.tab.active');
                 if (activeTab) {
                     updateChatsList(activeTab.innerText.toLowerCase());
@@ -2132,7 +2088,7 @@ function showSplash() {
                 console.error('❌ WebSocket ошибка:', error);
             };
         }
-    }
+
         // ==============================================
         // ТАБЫ И СПИСКИ
         // ==============================================
@@ -2191,7 +2147,6 @@ function showSplash() {
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesContainer').innerHTML = '';
             
-            // Запрашиваем историю у сервера (НОВОЕ!)
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
                     type: 'request_history',
@@ -2428,10 +2383,10 @@ function showSplash() {
             if (savedUser && savedPhone) {
                 document.getElementById('loginUsername').value = savedUser;
                 document.getElementById('loginPhone').value = savedPhone;
-            };
+            }
             
             console.log('🚀 Nanogram готов, версия', VERSION);
-        }
+        };
 
         // ==============================================
         // ГОРЯЧИЕ КЛАВИШИ
@@ -2440,14 +2395,17 @@ function showSplash() {
             if (e.ctrlKey && e.key === 'Enter') sendMessage();
             if (e.key === 'Escape') closeAllModals();
         });
-        // Регистрация PWA
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('✅ PWA установлен'))
-            .catch(err => console.log('❌ Ошибка PWA:', err));
-    });
-    }
+
+        // ==============================================
+        // PWA РЕГИСТРАЦИЯ
+        // ==============================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ PWA установлен'))
+                    .catch(err => console.log('❌ Ошибка PWA:', err));
+            });
+        }
     </script>
 </body>
 </html>
