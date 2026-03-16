@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <audio id="notificationSound" preload="auto" style="display: none;">
-    <source src="/sounds/msg.mp3" type="audio/mpeg">
-</audio>
+    <!-- PWA support -->
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nanogram">
+<link rel="apple-touch-icon" href="/icons/icon-152x152.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.6 — заставка 17 сек</title>
+    <title>Nanogram v0.10.6 - заставка 17 cek</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -1211,6 +1214,9 @@
             100% { opacity: 0; visibility: hidden; }
         }
     </style>
+    <audio id="notificationSound" preload="auto" style="display: none;">
+        <source src="/sounds/msg.mp3" type="audio/mpeg">
+    </audio>
 </head>
 <body>
     <div class="theme-toggle" onclick="toggleTheme()">
@@ -1490,7 +1496,7 @@
         </div>
     </div>
 
-    <script>
+         <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
@@ -2434,6 +2440,14 @@ function showSplash() {
             if (e.ctrlKey && e.key === 'Enter') sendMessage();
             if (e.key === 'Escape') closeAllModals();
         });
+        // Регистрация PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('✅ PWA установлен'))
+            .catch(err => console.log('❌ Ошибка PWA:', err));
+    });
+    }
     </script>
 </body>
 </html>

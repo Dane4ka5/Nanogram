@@ -3,6 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const path = require('path');
 
 // ==============================================
 // КОНФИГУРАЦИЯ
@@ -525,16 +526,52 @@ const server = http.createServer((req, res) => {
     let filePath = '.' + req.url;
     if (filePath === './') filePath = './index.html';
     
-    fs.readFile(filePath, 'utf8', (err, content) => {
+    // Определяем тип файла по расширению
+    const extname = path.extname(filePath);
+    const contentTypes = {
+        '.html': 'text/html',
+        '.css': 'text/css',
+        '.js': 'text/javascript',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.mp4': 'video/mp4',
+        '.webmanifest': 'application/manifest+json'
+    };
+    
+    const contentType = contentTypes[extname] || 'text/plain';
+    
+    // Читаем файл (для текстовых файлов используем utf8, для бинарных - без кодировки)
+    const encoding = ['.html', '.css', '.js', '.json', '.webmanifest'].includes(extname) ? 'utf8' : null;
+    
+    fs.readFile(filePath, encoding, (err, content) => {
         if (err) {
-            res.writeHead(404);
-            res.end('<h1>404 - Файл не найден</h1>');
+            // Если файл не найден, пробуем отдать index.html (для SPA)
+            if (err.code === 'ENOENT') {
+                fs.readFile('./index.html', 'utf8', (err2, content2) => {
+                    if (err2) {
+                        res.writeHead(404);
+                        res.end('<h1>404 - Файл не найден</h1>');
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                        res.end(content2);
+                    }
+                });
+            } else {
+                res.writeHead(500);
+                res.end('<h1>500 - Внутренняя ошибка сервера</h1>');
+            }
         } else {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.writeHead(200, { 'Content-Type': contentType });
             res.end(content);
         }
     });
-});
 // ==============================================
 // WEB-SOCKET СЕРВЕР
 // ==============================================

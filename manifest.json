@@ -1,0 +1,51 @@
+{
+    name Nanogram,
+    short_name Nanogram,
+    description Безопасный мессенджер,
+    start_url ,
+    display standalone,
+    background_color #0a0c10,
+    theme_color #9f8be5,
+    icons [
+        {
+            src iconsicon-72x72.png,
+            sizes 72x72,
+            type imagepng
+        },
+        {
+            src iconsicon-96x96.png,
+            sizes 96x96,
+            type imagepng
+        },
+        {
+            src iconsicon-128x128.png,
+            sizes 128x128,
+            type imagepng
+        },
+        {
+            src iconsicon-144x144.png,
+            sizes 144x144,
+            type imagepng
+        },
+        {
+            src iconsicon-152x152.png,
+            sizes 152x152,
+            type imagepng
+        },
+        {
+            src iconsicon-192x192.png,
+            sizes 192x192,
+            type imagepng
+        },
+        {
+            src iconsicon-384x384.png,
+            sizes 384x384,
+            type imagepng
+        },
+        {
+            src iconsicon-512x512.png,
+            sizes 512x512,
+            type imagepng
+        }
+    ]
+}
