@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <audio id="notificationSound" preload="auto" style="display: none;">
+    <source src="/sounds/msg.mp3" type="audio/mpeg">
+</audio>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Nanogram v0.10.6 — заставка 17 сек</title>
@@ -1516,12 +1519,48 @@
         let userStatus = 'online';
         let receivedMessages = new Set();
 
+    // ==============================================
+    // ЗВУКОВЫЕ НАСТРОЙКИ (ДОБАВЬ СЮДА)
+    // ==============================================
+    let soundEnabled = true;
+    let notificationSound = null;
+
         // ==============================================
         // ГЕНЕРАЦИЯ ID
         // ==============================================
         function generateId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + (currentUser || 'anon');
         }
+        // ==============================================
+// ЗВУКОВЫЕ УВЕДОМЛЕНИЯ
+// ==============================================
+function initSound() {
+    notificationSound = document.getElementById('notificationSound');
+    if (!notificationSound) return;
+    
+    // Загружаем настройку
+    const saved = localStorage.getItem('nanogram_sound');
+    if (saved !== null) soundEnabled = saved === 'true';
+    
+    // Синхронизируем чекбокс
+    const soundCheck = document.getElementById('soundCheck');
+    if (soundCheck) soundCheck.checked = soundEnabled;
+}
+
+function playNotification() {
+    if (!soundEnabled || !notificationSound) return;
+    
+    // Сбрасываем и играем
+    notificationSound.currentTime = 0;
+    notificationSound.play().catch(e => {
+        console.log('⚠️ Звук не воспроизвёлся:', e.message);
+    });
+}
+
+function toggleSound(enabled) {
+    soundEnabled = enabled;
+    localStorage.setItem('nanogram_sound', enabled);
+}
                 // ==============================================
         // ТЕМЫ
         // ==============================================
@@ -1784,7 +1823,7 @@ function showSplash() {
             changeFontSize(fontSize);
             
             localStorage.setItem('nanogram_settings', JSON.stringify({
-                theme, fontSize
+                theme, fontSize, sound: soundEnabled
             }));
             
             closeAllModals();
@@ -2008,6 +2047,9 @@ function showSplash() {
                             time: data.time,
                             type: 'received'
                         });
+                        // 🔥 ЗВУК - добавить эту строку:
+                         if (data.from !== currentUser) {
+                         playNotification();
                     }
                 }
                 
@@ -2020,6 +2062,9 @@ function showSplash() {
                             time: data.time,
                             type: data.from === currentUser ? 'sent' : 'received'
                         });
+                        // 🔥 ЗВУК - добавить эту строку:
+                         if (data.from !== currentUser) {
+                         playNotification();
                     }
                 }
                 
@@ -2370,6 +2415,7 @@ function showSplash() {
         // ==============================================
         window.onload = function() {
             loadSettings();
+            initSound();
             
             const savedUser = localStorage.getItem('nanogram_user');
             const savedPhone = localStorage.getItem('nanogram_phone');
