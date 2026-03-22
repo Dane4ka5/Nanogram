@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.10.8 — готовимся к Nexora';
+const VERSION = 'v0.10.9 — Nexora ready';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -20,7 +20,7 @@ const MAX_BACKUPS = 50;
 const users = new Map(); // username -> WebSocket
 const activeUsers = new Map(); // ws -> { username, ip, status, lastSeen }
 
-let userDatabase = {}; // username -> { password, phone, registered, banned, bannedAt, banReason }
+let userDatabase = {}; // username -> { password, phone, registered, lastSeen }
 let messages = {}; // chatKey -> [messages]
 let groups = {};
 let channels = {
@@ -43,6 +43,74 @@ let premiumUsers = {};
 let blockedUsers = {};
 let privacySettings = {};
 let suspiciousMessages = [];
+
+// ==============================================
+// БАН-ЛИСТ (отдельный файл)
+// ==============================================
+let banList = { banned: [] };
+
+function loadBanList() {
+    try {
+        if (fs.existsSync('./banlist.json')) {
+            const data = fs.readFileSync('./banlist.json', 'utf8');
+            banList = JSON.parse(data);
+            console.log(`✅ Бан-лист загружен: ${banList.banned.length} пользователей`);
+        } else {
+            console.log('📄 Файл banlist.json не найден, создаётся новый');
+            saveBanList();
+        }
+    } catch (e) {
+        console.error('❌ Ошибка загрузки banlist.json:', e);
+        banList = { banned: [] };
+    }
+}
+
+function saveBanList() {
+    try {
+        fs.writeFileSync('./banlist.json', JSON.stringify(banList, null, 2), 'utf8');
+        return true;
+    } catch (e) {
+        console.error('❌ Ошибка сохранения banlist.json:', e);
+        return false;
+    }
+}
+
+function isBanned(username, phone) {
+    return banList.banned.some(user => 
+        user.username === username || user.phone === phone
+    );
+}
+
+function addToBanList(username, phone, reason = 'Нарушение правил', admin = CREATOR_USERNAME) {
+    if (!isBanned(username, phone)) {
+        banList.banned.push({
+            username,
+            phone,
+            reason,
+            bannedAt: new Date().toISOString(),
+            bannedBy: admin
+        });
+        saveBanList();
+        console.log(`🚫 Добавлен в бан-лист: ${username} (${phone}) — ${reason}`);
+        return true;
+    }
+    return false;
+}
+
+function removeFromBanList(username) {
+    const initialLength = banList.banned.length;
+    banList.banned = banList.banned.filter(user => user.username !== username);
+    if (banList.banned.length !== initialLength) {
+        saveBanList();
+        console.log(`✅ Удалён из бан-листа: ${username}`);
+        return true;
+    }
+    return false;
+}
+
+function getBanInfo(username, phone) {
+    return banList.banned.find(user => user.username === username || user.phone === phone);
+}
 
 // ==============================================
 // ПОДОЗРИТЕЛЬНЫЕ СЛОВА
@@ -91,6 +159,9 @@ function loadAllData() {
     } catch (e) {
         messages = {};
     }
+    
+    // Загружаем бан-лист
+    loadBanList();
     
     console.log('='.repeat(60) + '\n');
 }
@@ -178,11 +249,13 @@ const server = http.createServer((req, res) => {
                 channels: Object.keys(channels).length,
                 messages: Object.keys(messages).length,
                 suspicious: suspiciousMessages.length,
-                premium: Object.keys(premiumUsers).length
+                premium: Object.keys(premiumUsers).length,
+                banned: banList.banned.length
             },
             files: {
                 dataJson: fs.existsSync('./data.json'),
                 messagesJson: fs.existsSync('./messages.json'),
+                banlistJson: fs.existsSync('./banlist.json'),
                 usersLog: fs.existsSync('./users.log'),
                 suspiciousLog: fs.existsSync('./suspicious.log')
             }
@@ -200,122 +273,95 @@ const server = http.createServer((req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📜 Политика Nanogram</title>
     <style>
-        body {
-            background: #0a0c10;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #161b22;
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid #30363d;
-        }
-        h1 { color: #9f8be5; font-size: 32px; }
-        h2 { color: #ffd700; margin-top: 30px; }
+        body { background: #0a0c10; color: #fff; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #161b22; padding: 40px; border-radius: 20px; }
+        h1 { color: #9f8be5; }
+        h2 { color: #ffd700; }
         p { color: #b0b3b8; }
-        .price { background: #21262d; padding: 10px; border-left: 4px solid #9f8be5; margin: 10px 0; }
-        .footer { margin-top: 40px; text-align: center; color: #8b949e; }
-        a { color: #9f8be5; text-decoration: none; }
+        a { color: #9f8be5; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📜 Политика конфиденциальности Nanogram</h1>
-        
         <h2>1. Какие данные мы собираем</h2>
         <p>• Имя пользователя</p>
         <p>• Номер телефона</p>
         <p>• Сообщения (в зашифрованном виде)</p>
-        
         <h2>2. Премиум за донаты</h2>
-        <div class="price">30 рублей - 1 месяц</div>
-        <div class="price">85 рублей - 3 месяца</div>
-        <div class="price">145 рублей - 6 месяцев</div>
-        <div class="price">285 рублей - 1 год</div>
-        
-        <h2>3. Бесплатный премиум за баги</h2>
-        <p>🐛 Незначительный баг — 1 месяц</p>
-        <p>🐞 Средний баг — 3 месяца</p>
-        <p>🦠 Критический баг — 6 месяцев</p>
-        <p>💎 Уникальная находка — 1 год + имя в списке</p>
-        
-        <h2>4. Контакты</h2>
+        <p>30₽ - 1 месяц | 85₽ - 3 месяца | 145₽ - 6 месяцев | 285₽ - 1 год</p>
+        <h2>3. Контакты</h2>
         <p>📧 <a href="mailto:nanogram.ru@yandex.ru">nanogram.ru@yandex.ru</a></p>
-        
-        <div class="footer">
-            <p>Версия ${VERSION} | Последнее обновление: ${new Date().toLocaleDateString()}</p>
-            <p><a href="/">← Вернуться на главную</a></p>
-        </div>
+        <div class="footer"><p>Версия ${VERSION}</p><a href="/">← На главную</a></div>
     </div>
 </body>
 </html>`);
         return;
     }
     
-    // ===== ТЕНЕВАЯ ПАНЕЛЬ (НОВЫЙ СЕКРЕТНЫЙ URL) =====
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ (НОВЫЙ URL) =====
     if (req.url.includes('/hu1_vzlomaesh')) {
         let data = {};
         try {
             if (fs.existsSync('./data.json')) {
                 data = JSON.parse(fs.readFileSync('./data.json', 'utf8'));
             }
-        } catch (e) {
-            data = {};
-        }
+        } catch (e) { data = {}; }
         
         let msgs = {};
         try {
             if (fs.existsSync('./messages.json')) {
                 msgs = JSON.parse(fs.readFileSync('./messages.json', 'utf8'));
             }
-        } catch (e) {
-            msgs = {};
-        }
+        } catch (e) { msgs = {}; }
         
-        // ===== ОБРАБОТКА ДЕЙСТВИЙ (HTTP) =====
+        // ===== ОБРАБОТКА ДЕЙСТВИЙ =====
         if (req.url.includes('action=')) {
             const redirectUrl = '/hu1_vzlomaesh';
+            const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
             
-            if (req.url.includes('action=ban_user')) {
-                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
-                const username = urlParams.get('username');
-                
-                if (username && data.users && data.users[username] && username !== CREATOR_USERNAME) {
-                    data.users[username].banned = true;
-                    data.users[username].bannedAt = new Date().toISOString();
-                    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
-                    
-                    const targetWs = users.get(username);
-                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                        targetWs.send(JSON.stringify({ type: 'you_are_banned', reason: data.users[username].banReason || 'Нарушение правил' }));
-                        targetWs.close();
-                        users.delete(username);
-                    }
-                    logAction('admin_ban', CREATOR_USERNAME, username);
-                }
-            }
-            
+            // РАЗБАН (удаление из бан-листа)
             if (req.url.includes('action=unban_user')) {
-                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
-                
-                if (username && data.users && data.users[username]) {
-                    data.users[username].banned = false;
-                    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+                if (username) {
+                    removeFromBanList(username);
+                    // Также снимаем флаг banned в data.json если есть
+                    if (data.users && data.users[username]) {
+                        data.users[username].banned = false;
+                        fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
+                    }
                     logAction('admin_unban', CREATOR_USERNAME, username);
                 }
             }
             
+            // ДОБАВЛЕНИЕ В БАН-ЛИСТ
+            if (req.url.includes('action=ban_user')) {
+                const username = urlParams.get('username');
+                const phone = urlParams.get('phone') || '';
+                const reason = urlParams.get('reason') || 'Нарушение правил';
+                
+                if (username && username !== CREATOR_USERNAME) {
+                    addToBanList(username, phone, reason, CREATOR_USERNAME);
+                    // Кикаем если онлайн
+                    const targetWs = users.get(username);
+                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                        const banInfo = getBanInfo(username, phone);
+                        targetWs.send(JSON.stringify({
+                            type: 'you_are_banned',
+                            reason: banInfo?.reason || reason,
+                            bannedAt: banInfo?.bannedAt || new Date().toISOString()
+                        }));
+                        targetWs.close();
+                        users.delete(username);
+                    }
+                    logAction('admin_ban', CREATOR_USERNAME, `${username} (${reason})`);
+                }
+            }
+            
+            // ВЫДАТЬ ПРЕМИУМ
             if (req.url.includes('action=give_premium')) {
-                const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
                 const months = urlParams.get('months') || '1';
-                
                 if (username && data.users && data.users[username]) {
                     if (!data.premiumUsers) data.premiumUsers = {};
                     data.premiumUsers[username] = {
@@ -339,7 +385,6 @@ const server = http.createServer((req, res) => {
         const groupsCount = Object.keys(data.groups || {}).length;
         const channelsCount = Object.keys(data.channels || {}).length;
         const premiumCount = Object.keys(data.premiumUsers || {}).length;
-        const bannedCount = Object.values(data.users || {}).filter(u => u.banned).length;
         const onlineCount = users.size;
         
         let totalMessages = 0;
@@ -356,64 +401,30 @@ const server = http.createServer((req, res) => {
     <title>🔐 Теневая панель ${VERSION}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0c10;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 20px;
-        }
+        body { background: #0a0c10; color: #fff; font-family: sans-serif; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #9f8be5; font-size: 32px; margin-bottom: 10px; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .stat-card {
-            background: #161b22;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #9f8be5;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #161b22; padding: 20px; border-radius: 10px; border-left: 4px solid #9f8be5; }
         .stat-value { font-size: 28px; font-weight: bold; color: #ffd700; }
         .stat-label { color: #b0b3b8; font-size: 14px; margin-top: 5px; }
-        .panel {
-            background: #161b22;
-            padding: 25px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border: 1px solid #30363d;
-        }
+        .panel { background: #161b22; padding: 25px; border-radius: 10px; margin: 20px 0; border: 1px solid #30363d; }
         .panel h2 { color: #9f8be5; margin-bottom: 20px; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #0a0c10;
-            border-radius: 10px;
-            overflow: hidden;
-        }
+        .panel h3 { color: #ffd700; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; background: #0a0c10; border-radius: 10px; overflow: hidden; }
         th { background: #21262d; padding: 12px; text-align: left; color: #9f8be5; }
         td { padding: 12px; border-bottom: 1px solid #30363d; }
-        .banned { background: rgba(218, 54, 51, 0.2); }
+        .banned-row { background: rgba(218, 54, 51, 0.2); }
         .premium-row { background: rgba(255, 215, 0, 0.1); }
-        input, select, button {
-            padding: 10px 15px;
-            margin: 5px;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            background: #0a0c10;
-            color: white;
-        }
-        button {
-            background: #9f8be5;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+        input, select, button { padding: 10px 15px; margin: 5px; border-radius: 8px; border: 1px solid #30363d; background: #0a0c10; color: white; }
+        button { background: #9f8be5; cursor: pointer; transition: all 0.3s; }
         button:hover { background: #b09cff; }
         .danger-btn { background: #da3633; }
+        .danger-btn:hover { background: #f85149; }
         .success-btn { background: #2ea043; }
         .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+        .admin-actions { background: #21262d; padding: 20px; border-radius: 10px; margin: 10px 0; }
+        .ban-form { background: #21262d; padding: 20px; border-radius: 10px; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -428,34 +439,53 @@ const server = http.createServer((req, res) => {
             <div class="stat-card"><div class="stat-value">${groupsCount}</div><div class="stat-label">Групп</div></div>
             <div class="stat-card"><div class="stat-value">${channelsCount}</div><div class="stat-label">Каналов</div></div>
             <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">👑 Премиум</div></div>
-            <div class="stat-card"><div class="stat-value">${bannedCount}</div><div class="stat-label">🔨 Забанено</div></div>
-            <div class="stat-card"><div class="stat-value">${suspiciousMessages.length}</div><div class="stat-label">🚨 Подозрительных</div></div>
+            <div class="stat-card"><div class="stat-value">${banList.banned.length}</div><div class="stat-label">🚫 В бан-листе</div></div>
+        </div>
+        
+        <div class="admin-actions">
+            <h2>⚡ БЫСТРЫЕ ДЕЙСТВИЯ</h2>
+            <div class="flex">
+                <button onclick="location.href='/'">🏠 На главную</button>
+                <button onclick="location.href='/diagnostic'">🔍 Диагностика</button>
+                <button onclick="location.href='/privacy'">📜 Политика</button>
+            </div>
+        </div>
+        
+        <div class="ban-form">
+            <h2>🚫 ДОБАВИТЬ В БАН-ЛИСТ</h2>
+            <form method="get" class="flex" style="align-items: center;">
+                <input type="hidden" name="action" value="ban_user">
+                <input type="text" name="username" placeholder="Имя пользователя" required>
+                <input type="text" name="phone" placeholder="Телефон (опционально)">
+                <input type="text" name="reason" placeholder="Причина">
+                <button type="submit" class="danger-btn">🚫 Забанить</button>
+            </form>
+            <p style="font-size: 12px; color: #8b949e; margin-top: 10px;">⚠️ Забаненный пользователь не сможет войти, а если он онлайн — будет отключён</p>
         </div>
         
         <div class="panel">
             <h2>👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ</h2>
+            <h3>📋 Активные пользователи</h3>
             <table>
                 <tr><th>Имя</th><th>Телефон</th><th>Статус</th><th>Премиум</th><th>Действия</th></tr>
-                ${Object.entries(data.users || {}).sort().map(([name, info]) => `
-                    <tr class="${info.banned ? 'banned' : ''} ${data.premiumUsers?.[name]?.active ? 'premium-row' : ''}">
+                ${Object.entries(data.users || {}).sort().map(([name, info]) => {
+                    const isBannedUser = banList.banned.some(b => b.username === name);
+                    return `
+                    <tr class="${isBannedUser ? 'banned-row' : ''} ${data.premiumUsers?.[name]?.active ? 'premium-row' : ''}">
                         <td><strong>${name}${name === CREATOR_USERNAME ? ' ⭐' : ''}</strong></td>
                         <td>${info.phone || '—'}</td>
-                        <td>${info.banned ? '🔴 ЗАБЛОКИРОВАН' : '🟢 Активен'}</td>
+                        <td>${isBannedUser ? '🔴 В БАН-ЛИСТЕ' : '🟢 Активен'}</td>
                         <td>${data.premiumUsers?.[name]?.active ? '👑' : '—'}</td>
                         <td>
                             <div class="flex" style="gap: 5px;">
-                                ${info.banned ? `
+                                ${isBannedUser ? `
                                     <form method="get" style="display:inline;">
                                         <input type="hidden" name="action" value="unban_user">
                                         <input type="hidden" name="username" value="${name}">
                                         <button type="submit" class="success-btn" style="padding:5px 10px;">✅ Разбанить</button>
                                     </form>
                                 ` : `
-                                    <form method="get" style="display:inline;">
-                                        <input type="hidden" name="action" value="ban_user">
-                                        <input type="hidden" name="username" value="${name}">
-                                        <button type="submit" class="danger-btn" style="padding:5px 10px;">🔨 Забанить</button>
-                                    </form>
+                                    <span style="color:#8b949e;">Для бана используйте форму выше</span>
                                 `}
                                 <form method="get" style="display:inline;">
                                     <input type="hidden" name="action" value="give_premium">
@@ -469,6 +499,27 @@ const server = http.createServer((req, res) => {
                                     <button type="submit" style="padding:5px 10px; background:#ffd700; color:#000;">👑</button>
                                 </form>
                             </div>
+                        </td>
+                    </tr>
+                `}).join('')}
+            </table>
+            
+            <h3 style="margin-top: 30px;">🚫 БАН-ЛИСТ (${banList.banned.length})</h3>
+            <table>
+                <tr><th>Имя</th><th>Телефон</th><th>Причина</th><th>Дата</th><th>Кем</th><th>Действие</th></tr>
+                ${banList.banned.map(ban => `
+                    <tr class="banned-row">
+                        <td><strong>${ban.username}</strong></td>
+                        <td>${ban.phone || '—'}</td>
+                        <td>${ban.reason || 'Нарушение правил'}</td>
+                        <td>${new Date(ban.bannedAt).toLocaleString()}</td>
+                        <td>${ban.bannedBy || 'админ'}</td>
+                        <td>
+                            <form method="get" style="display:inline;">
+                                <input type="hidden" name="action" value="unban_user">
+                                <input type="hidden" name="username" value="${ban.username}">
+                                <button type="submit" class="success-btn" style="padding:5px 10px;">✅ Разбанить</button>
+                            </form>
                         </td>
                     </tr>
                 `).join('')}
@@ -487,20 +538,11 @@ const server = http.createServer((req, res) => {
     
     const extname = path.extname(filePath);
     const contentTypes = {
-        '.html': 'text/html',
-        '.css': 'text/css',
-        '.js': 'text/javascript',
-        '.json': 'application/json',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.svg': 'image/svg+xml',
-        '.ico': 'image/x-icon',
-        '.mp3': 'audio/mpeg',
-        '.wav': 'audio/wav',
-        '.mp4': 'video/mp4',
-        '.webmanifest': 'application/manifest+json'
+        '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
+        '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+        '.mp4': 'video/mp4', '.webmanifest': 'application/manifest+json'
     };
     
     const contentType = contentTypes[extname] || 'text/plain';
@@ -510,22 +552,11 @@ const server = http.createServer((req, res) => {
         if (err) {
             if (err.code === 'ENOENT') {
                 fs.readFile('./index.html', 'utf8', (err2, content2) => {
-                    if (err2) {
-                        res.writeHead(404);
-                        res.end('<h1>404 - Файл не найден</h1>');
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                        res.end(content2);
-                    }
+                    if (err2) { res.writeHead(404); res.end('<h1>404</h1>'); }
+                    else { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(content2); }
                 });
-            } else {
-                res.writeHead(500);
-                res.end('<h1>500 - Внутренняя ошибка сервера</h1>');
-            }
-        } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content);
-        }
+            } else { res.writeHead(500); res.end('<h1>500</h1>'); }
+        } else { res.writeHead(200, { 'Content-Type': contentType }); res.end(content); }
     });
 });
 // ==============================================
@@ -567,27 +598,34 @@ wss.on('connection', (ws, req) => {
                 const { username, password, phone, privacyAccepted } = data;
                 
                 if (!username || !password || !phone) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Имя, пароль и телефон обязательны' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Имя, пароль и телефон обязательны' }));
                     return;
                 }
                 
                 if (!privacyAccepted) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Необходимо принять политику конфиденциальности' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Необходимо принять политику' }));
                     return;
                 }
                 
                 const cleanUsername = username.trim();
                 const cleanPhone = phone.trim().replace(/\s+/g, '');
                 
-                // Проверка на бан
+                // ===== ПРОВЕРКА ПО БАН-ЛИСТУ =====
+                if (isBanned(cleanUsername, cleanPhone)) {
+                    const banInfo = getBanInfo(cleanUsername, cleanPhone);
+                    ws.send(JSON.stringify({
+                        type: 'you_are_banned',
+                        reason: banInfo?.reason || 'Нарушение правил',
+                        bannedAt: banInfo?.bannedAt || new Date().toISOString()
+                    }));
+                    ws.close();
+                    console.log(`🚫 Заблокированный пользователь пытался войти: ${cleanUsername}`);
+                    return;
+                }
+                
+                // Проверка бана в старом формате (для совместимости)
                 if (userDatabase[cleanUsername]?.banned) {
-                    ws.send(JSON.stringify({ 
+                    ws.send(JSON.stringify({
                         type: 'you_are_banned',
                         reason: userDatabase[cleanUsername].banReason || 'Нарушение правил',
                         bannedAt: userDatabase[cleanUsername].bannedAt
@@ -599,18 +637,12 @@ wss.on('connection', (ws, req) => {
                 // Существующий пользователь
                 if (userDatabase[cleanUsername]) {
                     if (userDatabase[cleanUsername].password !== password) {
-                        ws.send(JSON.stringify({ 
-                            type: 'error', 
-                            message: '❌ Неверный пароль' 
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный пароль' }));
                         return;
                     }
                     
                     if (userDatabase[cleanUsername].phone !== cleanPhone) {
-                        ws.send(JSON.stringify({ 
-                            type: 'error', 
-                            message: '❌ Неверный номер для этого аккаунта' 
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный номер' }));
                         return;
                     }
                     
@@ -651,10 +683,7 @@ wss.on('connection', (ws, req) => {
                     }
                     
                     if (phoneExists) {
-                        ws.send(JSON.stringify({ 
-                            type: 'error', 
-                            message: '❌ Этот номер телефона уже используется' 
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Этот номер уже используется' }));
                         return;
                     }
                     
@@ -697,31 +726,11 @@ wss.on('connection', (ws, req) => {
                 }
                 
                 // Отправляем списки
-                ws.send(JSON.stringify({ 
-                    type: 'user_list', 
-                    users: Array.from(users.keys())
-                }));
+                ws.send(JSON.stringify({ type: 'user_list', users: Array.from(users.keys()) }));
+                ws.send(JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }));
+                ws.send(JSON.stringify({ type: 'groups_list', groups: Object.values(groups).filter(g => g.members && g.members.includes(cleanUsername)) }));
+                ws.send(JSON.stringify({ type: 'rooms_list', rooms: Object.values(privateRooms).filter(r => r.members && r.members.includes(cleanUsername)) }));
                 
-                ws.send(JSON.stringify({ 
-                    type: 'channels_list', 
-                    channels: Object.values(channels) 
-                }));
-                
-                ws.send(JSON.stringify({ 
-                    type: 'groups_list', 
-                    groups: Object.values(groups).filter(g => 
-                        g.members && g.members.includes(cleanUsername)
-                    )
-                }));
-                
-                ws.send(JSON.stringify({ 
-                    type: 'rooms_list', 
-                    rooms: Object.values(privateRooms).filter(r => 
-                        r.members && r.members.includes(cleanUsername)
-                    )
-                }));
-                
-                // Оповещаем всех о новом пользователе
                 broadcastUserList();
                 broadcastStatusUpdate(cleanUsername, 'online');
             }
@@ -729,46 +738,30 @@ wss.on('connection', (ws, req) => {
             // ===== ЗАПРОС ИСТОРИИ ЧАТА =====
             if (data.type === 'request_history') {
                 const { chatId, username } = data;
-                
                 if (!chatId || !username) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Не указан чат' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Не указан чат' }));
                     return;
                 }
-                
                 console.log(`📜 Запрос истории: ${username} -> ${chatId}`);
-                
                 const chatKey = chatId.includes('_') ? chatId : [username, chatId].sort().join('_');
                 const chatHistory = messages[chatKey] || [];
-                
-                ws.send(JSON.stringify({
-                    type: 'chat_history',
-                    chatId: chatId,
-                    messages: chatHistory.slice(-500)
-                }));
-                
-                if (chatHistory.length > 0) {
-                    logAction('request_history', username, `${chatId} (${chatHistory.length} сообщений)`);
-                }
+                ws.send(JSON.stringify({ type: 'chat_history', chatId: chatId, messages: chatHistory.slice(-500) }));
+                if (chatHistory.length > 0) logAction('request_history', username, `${chatId} (${chatHistory.length})`);
             }
                         // ===== ОТПРАВКА СООБЩЕНИЯ =====
             if (data.type === 'message') {
                 const { from, to, text, time, id } = data;
-                
                 if (!from || !to || !text) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Неполные данные сообщения' }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Неполные данные' }));
                     return;
                 }
                 
-                if (userDatabase[from]?.banned) {
+                if (isBanned(from, userDatabase[from]?.phone)) {
                     ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
                     return;
                 }
                 
                 const isSuspicious = checkSuspicious(text, from, to, clientIp);
-                
                 const chatKey = [from, to].sort().join('_');
                 if (!messages[chatKey]) messages[chatKey] = [];
                 
@@ -808,10 +801,9 @@ wss.on('connection', (ws, req) => {
             if (data.type === 'create_group') {
                 const { name, creator } = data;
                 if (!name || !creator) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Название группы обязательно' }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Название обязательно' }));
                     return;
                 }
-                
                 const groupId = 'group_' + generateId();
                 groups[groupId] = {
                     id: groupId, name, creator, admins: [creator], members: [creator],
@@ -870,36 +862,36 @@ wss.on('connection', (ws, req) => {
                 logAction('group_message', from, `→ group:${groupId}`);
             }
 
-            // ===== АДМИН-КОМАНДЫ ЧЕРЕЗ WEBSOCKET (МГНОВЕННЫЙ БАН) =====
+            // ===== АДМИН-КОМАНДЫ ЧЕРЕЗ WEBSOCKET =====
             if (data.type === 'admin_ban') {
                 if (data.username !== CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
                     return;
                 }
-                const { target, reason } = data;
-                if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Пользователь не найден' }));
+                const { target, reason, phone } = data;
+                if (!target) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Не указан пользователь' }));
                     return;
                 }
                 if (target === CREATOR_USERNAME) {
                     ws.send(JSON.stringify({ type: 'error', message: '❌ Нельзя забанить создателя' }));
                     return;
                 }
-                userDatabase[target].banned = true;
-                userDatabase[target].bannedAt = new Date().toISOString();
-                userDatabase[target].banReason = reason || 'Нарушение правил';
-                saveData();
+                
+                const userPhone = phone || userDatabase[target]?.phone || '';
+                addToBanList(target, userPhone, reason || 'Нарушение правил', CREATOR_USERNAME);
+                
                 const targetWs = users.get(target);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     targetWs.send(JSON.stringify({
                         type: 'you_are_banned',
-                        reason: userDatabase[target].banReason,
-                        bannedAt: userDatabase[target].bannedAt
+                        reason: reason || 'Нарушение правил',
+                        bannedAt: new Date().toISOString()
                     }));
                     targetWs.close();
                     users.delete(target);
                 }
-                ws.send(JSON.stringify({ type: 'user_banned', target, reason: userDatabase[target].banReason }));
+                ws.send(JSON.stringify({ type: 'user_banned', target, reason: reason || 'Нарушение правил' }));
                 logAction('admin_ban', data.username, `${target} (${reason})`);
                 broadcastUserList();
             }
@@ -910,11 +902,9 @@ wss.on('connection', (ws, req) => {
                     return;
                 }
                 const { target } = data;
-                if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Пользователь не найден' }));
-                    return;
-                }
-                userDatabase[target].banned = false;
+                if (!target) return;
+                removeFromBanList(target);
+                if (userDatabase[target]) userDatabase[target].banned = false;
                 saveData();
                 ws.send(JSON.stringify({ type: 'user_unbanned', target }));
                 logAction('admin_unban', data.username, target);
@@ -938,15 +928,13 @@ wss.on('connection', (ws, req) => {
             }
 
             if (data.type === 'get_stats') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
-                    return;
-                }
+                if (data.username !== CREATOR_USERNAME) return;
                 const stats = {
                     users: Object.keys(userDatabase).length, online: users.size,
                     messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
                     groups: Object.keys(groups).length, channels: Object.keys(channels).length,
                     premium: Object.keys(premiumUsers).length, suspicious: suspiciousMessages.length,
+                    banned: banList.banned.length,
                     uptime: process.uptime(), memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB', version: VERSION
                 };
                 ws.send(JSON.stringify({ type: 'stats', stats }));
@@ -1043,9 +1031,9 @@ wss.on('connection', (ws, req) => {
             }
 
         } catch (error) {
-            console.error('❌ Ошибка обработки сообщения:', error);
+            console.error('❌ Ошибка:', error);
             logAction('error', 'SYSTEM', error.message);
-            try { ws.send(JSON.stringify({ type: 'error', message: '❌ Внутренняя ошибка сервера' })); } catch (e) {}
+            try { ws.send(JSON.stringify({ type: 'error', message: '❌ Внутренняя ошибка' })); } catch (e) {}
         }
     });
 
@@ -1064,7 +1052,7 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('error', (error) => {
-        console.error('❌ Ошибка WebSocket:', error);
+        console.error('❌ WebSocket ошибка:', error);
         logAction('error', 'WEBSOCKET', error.message);
     });
 });
@@ -1113,12 +1101,13 @@ setInterval(() => {
         if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
         if (fs.existsSync('./users.log')) fs.copyFileSync('./users.log', `./backups/users_${timestamp}.log`);
         if (fs.existsSync('./suspicious.log')) fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
+        if (fs.existsSync('./banlist.json')) fs.copyFileSync('./banlist.json', `./backups/banlist_${timestamp}.json`);
         
         const backups = fs.readdirSync('./backups').filter(f => f.startsWith('data_')).sort().reverse();
         if (backups.length > MAX_BACKUPS) {
             backups.slice(MAX_BACKUPS).forEach(f => {
                 const base = f.replace('data_', '');
-                ['data_', 'messages_', 'users_', 'suspicious_'].forEach(prefix => {
+                ['data_', 'messages_', 'users_', 'suspicious_', 'banlist_'].forEach(prefix => {
                     const file = `./backups/${prefix}${base}`;
                     if (fs.existsSync(file)) fs.unlinkSync(file);
                 });
@@ -1159,6 +1148,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   👥 Групп: ${Object.keys(groups).length}`);
     console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
     console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
+    console.log(`   🚫 В бан-листе: ${banList.banned.length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
     console.log(`   📜 /privacy - политика`);
@@ -1175,6 +1165,7 @@ process.on('SIGINT', () => {
     console.log('\n📦 Сохранение перед выходом...');
     saveData();
     saveMessages();
+    saveBanList();
     logAction('system', 'SERVER', 'Остановка');
     console.log('✅ Данные сохранены. Сервер остановлен.');
     process.exit(0);
@@ -1184,6 +1175,7 @@ process.on('SIGTERM', () => {
     console.log('\n📦 Сохранение перед выходом...');
     saveData();
     saveMessages();
+    saveBanList();
     process.exit(0);
 });
 
@@ -1192,4 +1184,5 @@ process.on('uncaughtException', (err) => {
     logAction('error', 'SYSTEM', err.message);
     saveData();
     saveMessages();
+    saveBanList();
 });
