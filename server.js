@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.10.7';
+const VERSION = 'v0.10.8 — готовимся к Nexora';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -20,9 +20,9 @@ const MAX_BACKUPS = 50;
 const users = new Map(); // username -> WebSocket
 const activeUsers = new Map(); // ws -> { username, ip, status, lastSeen }
 
-let userDatabase = {}; // username -> { password, phone, registered, banned }
+let userDatabase = {}; // username -> { password, phone, registered, banned, bannedAt, banReason }
 let messages = {}; // chatKey -> [messages]
-let groups = {}; // groupId -> { name, creator, admins, members, messages }
+let groups = {};
 let channels = {
     'NANOGRAM': {
         id: 'NANOGRAM',
@@ -32,17 +32,17 @@ let channels = {
         admins: ['Dane4ka5'],
         subscribers: [],
         posts: [],
-        avatar: '📢',
+        avatar: '🧪',
         createdAt: new Date().toISOString()
     }
 };
-let privateRooms = {}; // roomId -> { name, creator, members, inviteLink }
-let userProfiles = {}; // username -> { avatar, bio }
-let userSettings = {}; // username -> { theme, fontSize, notifications }
-let premiumUsers = {}; // username -> { active, granted, expires }
-let blockedUsers = {}; // username -> [blockedUser1, blockedUser2]
-let privacySettings = {}; // username -> { showOnline, showPhone }
-let suspiciousMessages = []; // [{ from, to, message, ip, timestamp, word }]
+let privateRooms = {};
+let userProfiles = {};
+let userSettings = {};
+let premiumUsers = {};
+let blockedUsers = {};
+let privacySettings = {};
+let suspiciousMessages = [];
 
 // ==============================================
 // ПОДОЗРИТЕЛЬНЫЕ СЛОВА
@@ -257,8 +257,8 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // ===== ТЕНЕВАЯ ПАНЕЛЬ (ТОЛЬКО ДЛЯ Dane4ka5) =====
-    if (req.url.includes('admin')) {
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ (НОВЫЙ СЕКРЕТНЫЙ URL) =====
+    if (req.url.includes('/hu1_vzlomaesh')) {
         let data = {};
         try {
             if (fs.existsSync('./data.json')) {
@@ -277,25 +277,25 @@ const server = http.createServer((req, res) => {
             msgs = {};
         }
         
-        // ===== ОБРАБОТКА ДЕЙСТВИЙ =====
+        // ===== ОБРАБОТКА ДЕЙСТВИЙ (HTTP) =====
         if (req.url.includes('action=')) {
-            const redirectUrl = '/admin';
+            const redirectUrl = '/hu1_vzlomaesh';
             
             if (req.url.includes('action=ban_user')) {
                 const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
                 const username = urlParams.get('username');
                 
-                if (username && data.users && data.users[username]) {
+                if (username && data.users && data.users[username] && username !== CREATOR_USERNAME) {
                     data.users[username].banned = true;
                     data.users[username].bannedAt = new Date().toISOString();
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     
                     const targetWs = users.get(username);
-                    if (targetWs) {
-                        targetWs.send(JSON.stringify({ type: 'you_are_banned' }));
+                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                        targetWs.send(JSON.stringify({ type: 'you_are_banned', reason: data.users[username].banReason || 'Нарушение правил' }));
                         targetWs.close();
+                        users.delete(username);
                     }
-                    
                     logAction('admin_ban', CREATOR_USERNAME, username);
                 }
             }
@@ -318,14 +318,12 @@ const server = http.createServer((req, res) => {
                 
                 if (username && data.users && data.users[username]) {
                     if (!data.premiumUsers) data.premiumUsers = {};
-                    
                     data.premiumUsers[username] = {
                         active: true,
                         granted: new Date().toISOString(),
                         expires: new Date(Date.now() + parseInt(months) * 30 * 24 * 60 * 60 * 1000).toISOString(),
                         grantedBy: CREATOR_USERNAME
                     };
-                    
                     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
                     logAction('admin_give_premium', CREATOR_USERNAME, `${username} (${months} мес)`);
                 }
@@ -355,7 +353,7 @@ const server = http.createServer((req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 Теневая панель Nanogram ${VERSION}</title>
+    <title>🔐 Теневая панель ${VERSION}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -437,13 +435,7 @@ const server = http.createServer((req, res) => {
         <div class="panel">
             <h2>👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ</h2>
             <table>
-                <tr>
-                    <th>Имя</th>
-                    <th>Телефон</th>
-                    <th>Статус</th>
-                    <th>Премиум</th>
-                    <th>Действия</th>
-                </tr>
+                <tr><th>Имя</th><th>Телефон</th><th>Статус</th><th>Премиум</th><th>Действия</th></tr>
                 ${Object.entries(data.users || {}).sort().map(([name, info]) => `
                     <tr class="${info.banned ? 'banned' : ''} ${data.premiumUsers?.[name]?.active ? 'premium-row' : ''}">
                         <td><strong>${name}${name === CREATOR_USERNAME ? ' ⭐' : ''}</strong></td>
@@ -596,9 +588,11 @@ wss.on('connection', (ws, req) => {
                 // Проверка на бан
                 if (userDatabase[cleanUsername]?.banned) {
                     ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Вы заблокированы' 
+                        type: 'you_are_banned',
+                        reason: userDatabase[cleanUsername].banReason || 'Нарушение правил',
+                        bannedAt: userDatabase[cleanUsername].bannedAt
                     }));
+                    ws.close();
                     return;
                 }
                 
@@ -764,18 +758,12 @@ wss.on('connection', (ws, req) => {
                 const { from, to, text, time, id } = data;
                 
                 if (!from || !to || !text) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Неполные данные сообщения' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Неполные данные сообщения' }));
                     return;
                 }
                 
                 if (userDatabase[from]?.banned) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Вы заблокированы' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
                     return;
                 }
                 
@@ -794,11 +782,9 @@ wss.on('connection', (ws, req) => {
                 };
                 
                 messages[chatKey].push(messageObj);
-                
                 if (messages[chatKey].length > MAX_MESSAGES_PER_CHAT) {
                     messages[chatKey] = messages[chatKey].slice(-MAX_MESSAGES_PER_CHAT);
                 }
-                
                 saveMessages();
                 
                 const targetWs = users.get(to);
@@ -806,554 +792,273 @@ wss.on('connection', (ws, req) => {
                 
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     targetWs.send(JSON.stringify({
-                        type: 'message',
-                        id: messageObj.id,
-                        from,
-                        text,
-                        time,
-                        serverTime: Date.now()
+                        type: 'message', id: messageObj.id, from, text, time, serverTime: Date.now()
                     }));
                     delivered = true;
                     messageObj.delivered = true;
                 }
                 
                 ws.send(JSON.stringify({
-                    type: 'message_delivered',
-                    messageId: messageObj.id,
-                    to,
-                    time,
-                    delivered,
-                    suspicious: isSuspicious
+                    type: 'message_delivered', messageId: messageObj.id, to, time, delivered, suspicious: isSuspicious
                 }));
-                
                 logAction('message', from, `→ ${to}${isSuspicious ? ' 🚨' : ''}`);
             }
 
             // ===== СОЗДАНИЕ ГРУППЫ =====
             if (data.type === 'create_group') {
                 const { name, creator } = data;
-                
                 if (!name || !creator) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Название группы обязательно' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Название группы обязательно' }));
                     return;
                 }
                 
                 const groupId = 'group_' + generateId();
-                
                 groups[groupId] = {
-                    id: groupId,
-                    name: name,
-                    creator: creator,
-                    admins: [creator],
-                    members: [creator],
-                    avatar: '👥',
-                    createdAt: new Date().toISOString(),
-                    messages: []
+                    id: groupId, name, creator, admins: [creator], members: [creator],
+                    avatar: '👥', createdAt: new Date().toISOString(), messages: []
                 };
-                
                 saveData();
                 logAction('create_group', creator, name);
-                
-                ws.send(JSON.stringify({ 
-                    type: 'group_created', 
-                    group: groups[groupId] 
-                }));
-                
+                ws.send(JSON.stringify({ type: 'group_created', group: groups[groupId] }));
                 ws.send(JSON.stringify({
                     type: 'groups_list',
-                    groups: Object.values(groups).filter(g => 
-                        g.members && g.members.includes(creator)
-                    )
+                    groups: Object.values(groups).filter(g => g.members && g.members.includes(creator))
                 }));
             }
 
             // ===== ДОБАВЛЕНИЕ В ГРУППУ =====
             if (data.type === 'add_to_group') {
                 const { groupId, username, adder } = data;
-                
-                if (!groups[groupId]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Группа не найдена' 
-                    }));
+                if (!groups[groupId] || !groups[groupId].admins.includes(adder)) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Нет прав' }));
                     return;
                 }
-                
-                if (!groups[groupId].admins.includes(adder)) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Нет прав администратора' 
-                    }));
-                    return;
-                }
-                
                 if (!groups[groupId].members.includes(username)) {
                     groups[groupId].members.push(username);
                     saveData();
                     logAction('add_to_group', adder, `${username} → ${groupId}`);
-                    
                     groups[groupId].members.forEach(member => {
                         const memberWs = users.get(member);
-                        if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-                            memberWs.send(JSON.stringify({
-                                type: 'group_updated',
-                                group: groups[groupId]
-                            }));
-                        }
+                        if (memberWs) memberWs.send(JSON.stringify({ type: 'group_updated', group: groups[groupId] }));
                     });
-                    
                     const targetWs = users.get(username);
-                    if (targetWs) {
-                        targetWs.send(JSON.stringify({
-                            type: 'added_to_group',
-                            group: groups[groupId]
-                        }));
-                    }
+                    if (targetWs) targetWs.send(JSON.stringify({ type: 'added_to_group', group: groups[groupId] }));
                 }
             }
 
             // ===== СООБЩЕНИЕ В ГРУППЕ =====
             if (data.type === 'group_message') {
                 const { groupId, from, text, time } = data;
-                
                 if (!groups[groupId] || !groups[groupId].members.includes(from)) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Нет доступа к группе' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Нет доступа' }));
                     return;
                 }
-                
-                const messageObj = {
-                    id: generateId(),
-                    from, text, time,
-                    timestamp: Date.now(),
-                    groupId
-                };
-                
+                const messageObj = { id: generateId(), from, text, time, timestamp: Date.now(), groupId };
                 if (!groups[groupId].messages) groups[groupId].messages = [];
                 groups[groupId].messages.push(messageObj);
-                
                 const chatKey = `group_${groupId}`;
                 if (!messages[chatKey]) messages[chatKey] = [];
                 messages[chatKey].push(messageObj);
-                
                 saveData();
                 saveMessages();
-                
                 groups[groupId].members.forEach(member => {
                     const memberWs = users.get(member);
-                    if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-                        memberWs.send(JSON.stringify({
-                            type: 'group_message',
-                            id: messageObj.id,
-                            groupId,
-                            from,
-                            text,
-                            time,
-                            serverTime: Date.now()
-                        }));
-                    }
+                    if (memberWs) memberWs.send(JSON.stringify({
+                        type: 'group_message', id: messageObj.id, groupId, from, text, time, serverTime: Date.now()
+                    }));
                 });
-                
                 logAction('group_message', from, `→ group:${groupId}`);
             }
 
-            // ===== АДМИН-КОМАНДЫ =====
-            if (data.type === 'get_stats') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                const stats = {
-                    users: Object.keys(userDatabase).length,
-                    online: users.size,
-                    messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
-                    groups: Object.keys(groups).length,
-                    channels: Object.keys(channels).length,
-                    rooms: Object.keys(privateRooms).length,
-                    premium: Object.keys(premiumUsers).length,
-                    suspicious: suspiciousMessages.length,
-                    uptime: process.uptime(),
-                    memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
-                    version: VERSION
-                };
-                
-                ws.send(JSON.stringify({
-                    type: 'stats',
-                    stats: stats
-                }));
-                
-                logAction('admin_stats', data.username, 'Запрос статистики');
-            }
-            
-            if (data.type === 'get_suspicious') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                ws.send(JSON.stringify({
-                    type: 'suspicious_list',
-                    messages: suspiciousMessages.slice(-100).reverse()
-                }));
-                
-                logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
-            }
-            
-            if (data.type === 'clear_suspicious') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
-                    return;
-                }
-                
-                suspiciousMessages = [];
-                fs.writeFileSync('./suspicious.log', '');
-                
-                ws.send(JSON.stringify({ 
-                    type: 'suspicious_cleared' 
-                }));
-                
-                logAction('admin_clear', data.username, 'Очистка подозрительных');
-            }
-            
+            // ===== АДМИН-КОМАНДЫ ЧЕРЕЗ WEBSOCKET (МГНОВЕННЫЙ БАН) =====
             if (data.type === 'admin_ban') {
                 if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
                     return;
                 }
-                
                 const { target, reason } = data;
-                
                 if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Пользователь не найден' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Пользователь не найден' }));
                     return;
                 }
-                
+                if (target === CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Нельзя забанить создателя' }));
+                    return;
+                }
                 userDatabase[target].banned = true;
                 userDatabase[target].bannedAt = new Date().toISOString();
                 userDatabase[target].banReason = reason || 'Нарушение правил';
-                
+                saveData();
                 const targetWs = users.get(target);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({ 
+                    targetWs.send(JSON.stringify({
                         type: 'you_are_banned',
-                        reason: userDatabase[target].banReason
+                        reason: userDatabase[target].banReason,
+                        bannedAt: userDatabase[target].bannedAt
                     }));
                     targetWs.close();
                     users.delete(target);
                 }
-                
-                saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'user_banned', 
-                    target,
-                    reason: userDatabase[target].banReason
-                }));
-                
+                ws.send(JSON.stringify({ type: 'user_banned', target, reason: userDatabase[target].banReason }));
                 logAction('admin_ban', data.username, `${target} (${reason})`);
+                broadcastUserList();
             }
-            
+
             if (data.type === 'admin_unban') {
                 if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
                     return;
                 }
-                
                 const { target } = data;
-                
                 if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Пользователь не найден' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Пользователь не найден' }));
                     return;
                 }
-                
                 userDatabase[target].banned = false;
                 saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'user_unbanned', 
-                    target 
-                }));
-                
+                ws.send(JSON.stringify({ type: 'user_unbanned', target }));
                 logAction('admin_unban', data.username, target);
+                broadcastUserList();
             }
-            
+
             if (data.type === 'admin_give_premium') {
                 if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Только для создателя' 
-                    }));
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
                     return;
                 }
-                
                 const { target, months } = data;
-                
-                if (!target || !userDatabase[target]) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Пользователь не найден' 
-                    }));
+                if (!target || !userDatabase[target]) return;
+                const expires = months === 999 ? 'never' : new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
+                premiumUsers[target] = { active: true, granted: new Date().toISOString(), expires, months, grantedBy: CREATOR_USERNAME };
+                saveData();
+                ws.send(JSON.stringify({ type: 'premium_granted', target, months }));
+                const targetWs = users.get(target);
+                if (targetWs) targetWs.send(JSON.stringify({ type: 'premium_activated', months }));
+                logAction('admin_give_premium', CREATOR_USERNAME, `${target} (${months} мес)`);
+            }
+
+            if (data.type === 'get_stats') {
+                if (data.username !== CREATOR_USERNAME) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
                     return;
                 }
-                
-                const expires = months === 999 ? 'never' : 
-                    new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
-                
-                premiumUsers[target] = {
-                    active: true,
-                    granted: new Date().toISOString(),
-                    expires: expires,
-                    months: months,
-                    grantedBy: CREATOR_USERNAME
+                const stats = {
+                    users: Object.keys(userDatabase).length, online: users.size,
+                    messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
+                    groups: Object.keys(groups).length, channels: Object.keys(channels).length,
+                    premium: Object.keys(premiumUsers).length, suspicious: suspiciousMessages.length,
+                    uptime: process.uptime(), memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB', version: VERSION
                 };
-                
-                saveData();
-                logAction('admin_give_premium', CREATOR_USERNAME, `${target} (${months} мес)`);
-                
-                ws.send(JSON.stringify({ 
-                    type: 'premium_granted', 
-                    target, 
-                    months 
-                }));
-                
-                const targetWs = users.get(target);
-                if (targetWs) {
-                    targetWs.send(JSON.stringify({ 
-                        type: 'premium_activated',
-                        months
-                    }));
-                }
+                ws.send(JSON.stringify({ type: 'stats', stats }));
+                logAction('admin_stats', data.username, 'Запрос статистики');
             }
-                        // ===== ОБНОВЛЕНИЕ СТАТУСА =====
+
+            if (data.type === 'get_suspicious') {
+                if (data.username !== CREATOR_USERNAME) return;
+                ws.send(JSON.stringify({ type: 'suspicious_list', messages: suspiciousMessages.slice(-100).reverse() }));
+                logAction('admin_suspicious', data.username, 'Просмотр подозрительных');
+            }
+
+            if (data.type === 'clear_suspicious') {
+                if (data.username !== CREATOR_USERNAME) return;
+                suspiciousMessages = [];
+                fs.writeFileSync('./suspicious.log', '');
+                ws.send(JSON.stringify({ type: 'suspicious_cleared' }));
+                logAction('admin_clear', data.username, 'Очистка подозрительных');
+            }
+
+            // ===== ОБНОВЛЕНИЕ СТАТУСА =====
             if (data.type === 'update_status') {
                 const { username, status } = data;
-                
                 const userData = activeUsers.get(ws);
                 if (userData && userData.username === username) {
                     userData.status = status;
                     activeUsers.set(ws, userData);
-                    
                     broadcastStatusUpdate(username, status);
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'status_updated', 
-                        status 
-                    }));
-                    
+                    ws.send(JSON.stringify({ type: 'status_updated', status }));
                     logAction('update_status', username, status);
                 }
             }
-            
+
             // ===== НАСТРОЙКИ ПРИВАТНОСТИ =====
             if (data.type === 'update_privacy') {
                 const { username, settings } = data;
-                
-                privacySettings[username] = { 
-                    ...privacySettings[username], 
-                    ...settings 
-                };
+                privacySettings[username] = { ...privacySettings[username], ...settings };
                 saveData();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'privacy_updated', 
-                    settings: privacySettings[username] 
-                }));
-                
+                ws.send(JSON.stringify({ type: 'privacy_updated', settings: privacySettings[username] }));
                 logAction('update_privacy', username, JSON.stringify(settings));
             }
-            
+
             // ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЯ =====
             if (data.type === 'block_user') {
                 const { username, target } = data;
-                
-                if (!username || !target) {
-                    ws.send(JSON.stringify({ 
-                        type: 'error', 
-                        message: '❌ Не указан пользователь' 
-                    }));
-                    return;
-                }
-                
-                if (!blockedUsers[username]) {
-                    blockedUsers[username] = [];
-                }
-                
+                if (!username || !target) return;
+                if (!blockedUsers[username]) blockedUsers[username] = [];
                 if (!blockedUsers[username].includes(target)) {
                     blockedUsers[username].push(target);
                     saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
+                    ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] }));
                     logAction('block_user', username, target);
                 }
             }
-            
-            // ===== РАЗБЛОКИРОВКА =====
+
             if (data.type === 'unblock_user') {
                 const { username, target } = data;
-                
                 if (blockedUsers[username]) {
-                    blockedUsers[username] = blockedUsers[username]
-                        .filter(b => b !== target);
+                    blockedUsers[username] = blockedUsers[username].filter(b => b !== target);
                     saveData();
-                    
-                    ws.send(JSON.stringify({ 
-                        type: 'blocked_list', 
-                        blocked: blockedUsers[username] 
-                    }));
-                    
+                    ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] }));
                     logAction('unblock_user', username, target);
                 }
             }
-            
+
             // ===== СТАТУС "ПЕЧАТАЕТ" =====
             if (data.type === 'typing') {
                 const { from, to } = data;
-                
                 const targetWs = users.get(to);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'typing',
-                        from
-                    }));
-                }
+                if (targetWs) targetWs.send(JSON.stringify({ type: 'typing', from }));
             }
-            
-            // ===== ПРОЧТЕНО =====
-            if (data.type === 'read') {
-                const { from, to, messageId } = data;
-                
-                const targetWs = users.get(from === currentUser ? to : from);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'read',
-                        by: currentUser,
-                        messageId
-                    }));
-                }
-            }
-            
+
             // ===== P2P СИГНАЛЫ =====
             if (data.type === 'signal') {
-                const { to, from, signal } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'signal',
-                        from,
-                        signal
-                    }));
-                }
+                const targetWs = users.get(data.to);
+                if (targetWs) targetWs.send(JSON.stringify({ type: 'signal', from: data.from, signal: data.signal }));
             }
-
             if (data.type === 'signal_answer') {
-                const { to, from, answer } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'signal_answer',
-                        from,
-                        answer
-                    }));
-                }
+                const targetWs = users.get(data.to);
+                if (targetWs) targetWs.send(JSON.stringify({ type: 'signal_answer', from: data.from, answer: data.answer }));
             }
-
             if (data.type === 'ice_candidate') {
-                const { to, from, candidate } = data;
-                
-                const targetWs = users.get(to);
-                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'ice_candidate',
-                        from,
-                        candidate
-                    }));
-                }
+                const targetWs = users.get(data.to);
+                if (targetWs) targetWs.send(JSON.stringify({ type: 'ice_candidate', from: data.from, candidate: data.candidate }));
             }
 
-            // ===== P2P СООБЩЕНИЕ =====
             if (data.type === 'p2p_message') {
                 const { from, to, text, time, messageId } = data;
-                
                 const chatKey = [from, to].sort().join('_');
                 if (!messages[chatKey]) messages[chatKey] = [];
-                
-                messages[chatKey].push({
-                    id: messageId || generateId(),
-                    from, to, text, time,
-                    timestamp: Date.now(),
-                    via: 'p2p'
-                });
-                
+                messages[chatKey].push({ id: messageId || generateId(), from, to, text, time, timestamp: Date.now(), via: 'p2p' });
                 saveMessages();
-                
-                ws.send(JSON.stringify({ 
-                    type: 'p2p_message_saved',
-                    messageId 
-                }));
+                ws.send(JSON.stringify({ type: 'p2p_message_saved', messageId }));
             }
 
         } catch (error) {
             console.error('❌ Ошибка обработки сообщения:', error);
             logAction('error', 'SYSTEM', error.message);
-            
-            try {
-                ws.send(JSON.stringify({ 
-                    type: 'error', 
-                    message: '❌ Внутренняя ошибка сервера' 
-                }));
-            } catch (sendError) {}
+            try { ws.send(JSON.stringify({ type: 'error', message: '❌ Внутренняя ошибка сервера' })); } catch (e) {}
         }
     });
 
     ws.on('close', () => {
         const userData = activeUsers.get(ws);
         if (userData) {
-            console.log(`👋 ${userData.username} отключился (был онлайн ${Math.round((Date.now() - userData.joinedAt) / 1000)}с)`);
-            
+            console.log(`👋 ${userData.username} отключился`);
             users.delete(userData.username);
             activeUsers.delete(ws);
-            
-            if (userDatabase[userData.username]) {
-                userDatabase[userData.username].lastSeen = new Date().toISOString();
-                saveData();
-            }
-            
+            if (userDatabase[userData.username]) userDatabase[userData.username].lastSeen = new Date().toISOString();
+            saveData();
             broadcastUserList();
             broadcastStatusUpdate(userData.username, 'offline');
-            
             logAction('disconnect', userData.username, userData.ip);
         }
     });
@@ -1363,46 +1068,27 @@ wss.on('connection', (ws, req) => {
         logAction('error', 'WEBSOCKET', error.message);
     });
 });
-
 // ==============================================
 // ФУНКЦИИ РАССЫЛКИ
 // ==============================================
 function broadcastUserList() {
     const userList = Array.from(users.keys());
-    const message = JSON.stringify({ 
-        type: 'user_list', 
-        users: userList,
-        online: userList.length,
-        timestamp: Date.now()
-    });
-    
+    const message = JSON.stringify({ type: 'user_list', users: userList, online: userList.length, timestamp: Date.now() });
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
+        if (client.readyState === WebSocket.OPEN) client.send(message);
     });
 }
 
 function broadcastStatusUpdate(username, status) {
-    const message = JSON.stringify({
-        type: 'status_update',
-        username,
-        status,
-        timestamp: Date.now()
-    });
-    
+    const message = JSON.stringify({ type: 'status_update', username, status, timestamp: Date.now() });
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
+        if (client.readyState === WebSocket.OPEN) client.send(message);
     });
 }
 
 function broadcastToAll(message) {
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-        }
+        if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(message));
     });
 }
 
@@ -1421,30 +1107,14 @@ setInterval(() => {
 setInterval(() => {
     try {
         if (!fs.existsSync('./backups')) fs.mkdirSync('./backups');
-        
         const timestamp = Date.now();
         
-        if (fs.existsSync('./data.json')) {
-            fs.copyFileSync('./data.json', `./backups/data_${timestamp}.json`);
-        }
+        if (fs.existsSync('./data.json')) fs.copyFileSync('./data.json', `./backups/data_${timestamp}.json`);
+        if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
+        if (fs.existsSync('./users.log')) fs.copyFileSync('./users.log', `./backups/users_${timestamp}.log`);
+        if (fs.existsSync('./suspicious.log')) fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
         
-        if (fs.existsSync('./messages.json')) {
-            fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
-        }
-        
-        if (fs.existsSync('./users.log')) {
-            fs.copyFileSync('./users.log', `./backups/users_${timestamp}.log`);
-        }
-        
-        if (fs.existsSync('./suspicious.log')) {
-            fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
-        }
-        
-        const backups = fs.readdirSync('./backups')
-            .filter(f => f.startsWith('data_'))
-            .sort()
-            .reverse();
-        
+        const backups = fs.readdirSync('./backups').filter(f => f.startsWith('data_')).sort().reverse();
         if (backups.length > MAX_BACKUPS) {
             backups.slice(MAX_BACKUPS).forEach(f => {
                 const base = f.replace('data_', '');
@@ -1454,7 +1124,6 @@ setInterval(() => {
                 });
             });
         }
-        
         console.log(`💾 Бэкап создан: ${timestamp}`);
     } catch (e) {
         console.error('❌ Ошибка бэкапа:', e);
@@ -1466,16 +1135,10 @@ setInterval(() => {
 // ==============================================
 setInterval(() => {
     let cleaned = 0;
-    
     wss.clients.forEach(ws => {
-        if (ws.readyState !== WebSocket.OPEN) {
-            cleaned++;
-        }
+        if (ws.readyState !== WebSocket.OPEN) cleaned++;
     });
-    
-    if (cleaned > 0) {
-        console.log(`🧹 Очищено ${cleaned} неактивных соединений`);
-    }
+    if (cleaned > 0) console.log(`🧹 Очищено ${cleaned} неактивных соединений`);
 }, 5 * 60 * 1000);
 
 // ==============================================
@@ -1485,21 +1148,19 @@ loadAllData();
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION} - ИСПРАВЛЕННАЯ ВЕРСИЯ`);
+    console.log(`🚀 Nanogram ${VERSION}`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`👑 Создатель: ${CREATOR_USERNAME}`);
     console.log(`\n📊 СТАТИСТИКА:`);
     console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
     console.log(`   🟢 Онлайн сейчас: ${users.size}`);
-    console.log(`   💬 Сообщений: ${Object.keys(messages).length}`);
+    console.log(`   💬 Чатов: ${Object.keys(messages).length}`);
     console.log(`   👥 Групп: ${Object.keys(groups).length}`);
-    console.log(`   📢 Каналов: ${Object.keys(channels).length}`);
     console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
     console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
-    console.log(`   🕵️ /admin - теневая панель (только для Dane4ka5)`);
     console.log(`   📜 /privacy - политика`);
     console.log(`   🔍 /diagnostic - диагностика`);
     console.log('='.repeat(70) + '\n');
@@ -1508,7 +1169,7 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 // ==============================================
-// ОБРАБОТКА СИГНАЛОВ (ВЫНЕСЕНО ИЗ HTTP СЕРВЕРА)
+// ОБРАБОТКА СИГНАЛОВ
 // ==============================================
 process.on('SIGINT', () => {
     console.log('\n📦 Сохранение перед выходом...');

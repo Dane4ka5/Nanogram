@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.7 — ДОСТУПНО НА ТЕЛЕФОНЕ!</title>
+    <title>Nanogram v0.10.8 — готовимся к Nexora</title>
     
-    <!-- PWA support -->
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nanogram">
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- Звук уведомлений -->
     <audio id="notificationSound" preload="auto" style="display: none;">
         <source src="/sounds/msg.mp3" type="audio/mpeg">
     </audio>
@@ -26,10 +23,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            transition: background 0.3s ease,
-                        color 0.3s ease,
-                        border-color 0.3s ease,
-                        box-shadow 0.3s ease;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         :root {
@@ -57,13 +51,7 @@
         }
 
         body.light-theme {
-            --bg-primary: linear-gradient(135deg,
-                #0a0c10 0%,
-                #2d1b3a 20%,
-                #9f8be5 40%,
-                #d9c9ff 60%,
-                #f8f0ff 80%
-            );
+            --bg-primary: linear-gradient(135deg, #0a0c10 0%, #2d1b3a 20%, #9f8be5 40%, #d9c9ff 60%, #f8f0ff 80%);
             --bg-secondary: rgba(255, 255, 255, 0.9);
             --bg-tertiary: rgba(255, 255, 255, 0.95);
             --text-primary: #2d2a3a;
@@ -79,13 +67,7 @@
         }
 
         body.dark-theme {
-            --bg-primary: linear-gradient(225deg,
-                #0a0c10 0%,
-                #2d1b3a 20%,
-                #9f8be5 40%,
-                #d9c9ff 60%,
-                #f8f0ff 80%
-            );
+            --bg-primary: linear-gradient(225deg, #0a0c10 0%, #2d1b3a 20%, #9f8be5 40%, #d9c9ff 60%, #f8f0ff 80%);
             --bg-secondary: #161b22;
             --bg-tertiary: #21262d;
             --text-primary: #ffffff;
@@ -111,12 +93,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: background 0.3s ease,
-                        color 0.3s ease,
-                        border-color 0.3s ease,
-                        box-shadow 0.3s ease;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
-                .app-container {
+
+        .app-container {
             width: 100%;
             height: 100vh;
             display: flex;
@@ -429,7 +409,8 @@
             color: var(--text-primary);
             font-size: 15px;
         }
-                .tabs {
+
+        .tabs {
             display: flex;
             padding: 0 16px;
             gap: 10px;
@@ -837,7 +818,8 @@
             padding: 8px 12px;
             font-weight: 600;
         }
-                .modal-overlay {
+
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -1218,29 +1200,80 @@
             70% { opacity: 1; }
             100% { opacity: 0; visibility: hidden; }
         }
+
+        /* Анимация отправки */
+        .flying-flask {
+            position: fixed;
+            width: 44px;
+            height: 44px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10000;
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+
+        .message-pop {
+            animation: popIn 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
- <body>
+<body>
     <div class="theme-toggle" onclick="toggleTheme()">
         <i class="fas fa-sun"></i> <span id="themeText">Тёмная</span>
     </div>
 
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
     
+    <!-- СТРАНИЦА БАНА (403) -->
+    <div id="banPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 30px; max-width: 600px; padding: 40px;">
+            <div style="position: relative;">
+                <video id="banVideo" autoplay loop muted style="max-width: 280px; border-radius: 30px; box-shadow: 0 0 40px rgba(159,139,229,0.5);">
+                    <source src="/videos/phone_meme.mp4" type="video/mp4">
+                </video>
+                <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 8px 16px; border-radius: 40px; font-size: 14px; white-space: nowrap;">
+                    📞 возьми трубку
+                </div>
+            </div>
+            <div>
+                <h1 style="font-size: 72px; color: var(--danger-red); margin-bottom: 10px;">🚫 403</h1>
+                <h2 style="margin-bottom: 20px;">Доступ заблокирован</h2>
+                <p style="font-size: 20px; margin-bottom: 15px;">
+                    📞 <strong>Возьми телефон, детка,</strong><br>
+                    и позвони в службу поддержки:
+                </p>
+                <p style="font-size: 18px; background: var(--bg-tertiary); display: inline-block; padding: 12px 24px; border-radius: 40px;">
+                    support@nanogram.ru
+                </p>
+                <div style="margin-top: 30px; font-size: 14px; color: var(--text-muted);">
+                    <p>Причина блокировки: <strong id="banReasonText"></strong></p>
+                    <p>Дата: <span id="banDateText"></span></p>
+                </div>
+                <button onclick="logoutAndRetry()" style="margin-top: 30px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">🔄 Попробовать снова</button>
+            </div>
+        </div>
+    </div>
+
     <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
-        
         <div class="profile-edit">
             <div class="avatar" id="modalAvatar" onclick="document.getElementById('avatarInput').click()">👤</div>
             <input type="file" id="avatarInput" accept="image/*" style="display: none;">
             <p style="color: var(--text-secondary);">Нажми на аватарку</p>
         </div>
-        
         <input type="text" id="profileName" placeholder="Имя" value="">
         <textarea id="profileBio" placeholder="О себе" rows="3"></textarea>
-        
         <div style="display: flex; gap: 10px;">
             <button onclick="saveProfile()">💾 Сохранить</button>
             <button onclick="openStatusModal()" style="background: var(--bg-tertiary);">📊 Статус</button>
@@ -1251,7 +1284,6 @@
     <div class="modal" id="statusModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-circle"></i> Мой статус</h2>
-        
         <div class="status-selector">
             <div class="status-option online" onclick="setStatus('online')">🟢 Онлайн</div>
             <div class="status-option away" onclick="setStatus('away')">🟡 Отошёл</div>
@@ -1263,7 +1295,6 @@
     <div class="modal" id="settingsModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-cog"></i> Настройки</h2>
-        
         <div class="settings-section">
             <h3>Оформление</h3>
             <div class="settings-item">
@@ -1282,7 +1313,6 @@
                 </select>
             </div>
         </div>
-        
         <div class="settings-section">
             <h3>Уведомления</h3>
             <div class="settings-item">
@@ -1294,7 +1324,6 @@
                 <input type="checkbox" id="notifyCheck" checked>
             </div>
         </div>
-        
         <div style="display: flex; gap: 10px;">
             <button onclick="saveSettings()">💾 Сохранить</button>
             <button onclick="openPrivacyModal()" style="background: var(--bg-tertiary);">🔒 Приватность</button>
@@ -1305,7 +1334,6 @@
     <div class="modal" id="privacyModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-lock"></i> Приватность</h2>
-        
         <div class="privacy-option">
             <label>Кто видит мой онлайн</label>
             <select id="privacyOnline">
@@ -1314,7 +1342,6 @@
                 <option value="none">Никто</option>
             </select>
         </div>
-        
         <div class="privacy-option">
             <label>Кто видит мой номер</label>
             <select id="privacyPhone">
@@ -1323,7 +1350,6 @@
                 <option value="none">Никто</option>
             </select>
         </div>
-        
         <button onclick="savePrivacy()">💾 Сохранить</button>
     </div>
     
@@ -1331,9 +1357,7 @@
     <div class="modal" id="blockModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-ban"></i> Блокировки</h2>
-        
         <div id="blockedList" style="margin-bottom: 20px;"></div>
-        
         <div style="display: flex; gap: 10px;">
             <input type="text" id="blockUsername" placeholder="Имя пользователя">
             <button onclick="blockUser()">🔨 Заблокировать</button>
@@ -1372,12 +1396,10 @@
     <div class="modal" id="fileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-file"></i> Отправить файл</h2>
-        
         <div class="file-preview" id="filePreview">
             <i class="fas fa-cloud-upload-alt"></i>
             <p>Выберите файл</p>
         </div>
-        
         <input type="file" id="fileInput" style="display: none;">
         <button onclick="document.getElementById('fileInput').click()">📁 Выбрать файл</button>
         <button onclick="sendFile()" id="sendFileBtn" disabled>📤 Отправить</button>
@@ -1390,11 +1412,12 @@
         <input type="text" id="youtubeLink" placeholder="Ссылка на YouTube">
         <button onclick="shareYoutube()">📤 Отправить</button>
     </div>
-        <!-- СТРАНИЦА ВХОДА -->
+
+    <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.7 — ДОСТУПНО НА ТЕЛЕФОНЕ!</p>
+            <p>v0.10.8 — готовимся к Nexora</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1442,6 +1465,7 @@
                             <span id="headerNameText"></span>
                             <span id="premiumIcon" style="display: none;"><i class="fas fa-crown"></i></span>
                             <span id="creatorIcon" style="display: none;"><i class="fas fa-star"></i></span>
+                            <span id="betaIcon" style="display: none;" title="Я в бета-тестировании"><i class="fas fa-cog"></i></span>
                         </div>
                         <div class="profile-status" id="headerStatus">
                             <span class="status-icon online" id="headerStatusDot"></span>
@@ -1497,12 +1521,13 @@
             </div>
         </div>
     </div>
-        <script>
+
+    <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.7';
+        const VERSION = 'v0.10.8';
         
         let socket = null;
         let currentUser = null;
@@ -1525,51 +1550,34 @@
         let privacySettings = { showOnline: 'all', showPhone: 'all' };
         let userStatus = 'online';
         let receivedMessages = new Set();
-
-        // ==============================================
-        // ЗВУКОВЫЕ НАСТРОЙКИ
-        // ==============================================
+        
         let soundEnabled = true;
         let notificationSound = null;
-
-        // ==============================================
-        // ГЕНЕРАЦИЯ ID
-        // ==============================================
+        
         function generateId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + (currentUser || 'anon');
         }
-
-        // ==============================================
-        // ЗВУКОВЫЕ УВЕДОМЛЕНИЯ
-        // ==============================================
+        
         function initSound() {
             notificationSound = document.getElementById('notificationSound');
             if (!notificationSound) return;
-            
             const saved = localStorage.getItem('nanogram_sound');
             if (saved !== null) soundEnabled = saved === 'true';
-            
             const soundCheck = document.getElementById('soundCheck');
             if (soundCheck) soundCheck.checked = soundEnabled;
         }
-
+        
         function playNotification() {
             if (!soundEnabled || !notificationSound) return;
-            
             notificationSound.currentTime = 0;
-            notificationSound.play().catch(e => {
-                console.log('⚠️ Звук не воспроизвёлся:', e.message);
-            });
+            notificationSound.play().catch(e => console.log('⚠️ Звук не воспроизвёлся:', e.message));
         }
-
+        
         function toggleSound(enabled) {
             soundEnabled = enabled;
             localStorage.setItem('nanogram_sound', enabled);
         }
-
-        // ==============================================
-        // ТЕМЫ
-        // ==============================================
+        
         function toggleTheme() {
             if (document.body.classList.contains('light-theme')) {
                 document.body.classList.remove('light-theme');
@@ -1581,218 +1589,76 @@
                 document.getElementById('themeText').textContent = 'Светлая';
             }
         }
-
+        
         function changeTheme(theme) {
             document.body.classList.remove('light-theme', 'dark-theme');
             document.body.classList.add(theme + '-theme');
             document.getElementById('themeText').textContent = theme === 'light' ? 'Светлая' : 'Тёмная';
         }
-
+        
         function changeFontSize(size) {
             document.body.style.fontSize = size + 'px';
         }
-
-        // ==============================================
-        // КРАСИВАЯ ЗАСТАВКА 7 СЕКУНД
-        // ==============================================
+        
         function showSplash() {
             console.log('🎨 Заставка 7 секунд');
-            
             const splash = document.createElement('div');
             splash.id = 'splash-screen';
-            splash.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5);
-                background-size: 400% 400%;
-                animation: gradientMove 7s ease infinite;
-                z-index: 9999;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                flex-direction: column;
-                color: white;
-                overflow: hidden;
-            `;
-            
-            // Звёзды
+            splash.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c, #9f8be5); background-size: 400% 400%; animation: gradientMove 7s ease infinite; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; overflow: hidden;`;
             const starsContainer = document.createElement('div');
-            starsContainer.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-            `;
-            
+            starsContainer.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;`;
             for (let i = 0; i < 30; i++) {
                 const star = document.createElement('div');
                 const size = Math.random() * 4 + 2;
-                const left = Math.random() * 100;
-                const top = Math.random() * 100;
-                const delay = Math.random() * 5;
-                const duration = Math.random() * 3 + 2;
-                
-                star.style.cssText = `
-                    position: absolute;
-                    left: ${left}%;
-                    top: ${top}%;
-                    width: ${size}px;
-                    height: ${size}px;
-                    background: white;
-                    border-radius: 50%;
-                    box-shadow: 0 0 ${size * 2}px rgba(255, 255, 255, 0.8);
-                    opacity: 0;
-                    animation: starTwinkle ${duration}s ease-in-out infinite;
-                    animation-delay: ${delay}s;
-                `;
-                
+                star.style.cssText = `position: absolute; left: ${Math.random() * 100}%; top: ${Math.random() * 100}%; width: ${size}px; height: ${size}px; background: white; border-radius: 50%; box-shadow: 0 0 ${size * 2}px rgba(255,255,255,0.8); opacity: 0; animation: starTwinkle ${Math.random() * 3 + 2}s ease-in-out infinite; animation-delay: ${Math.random() * 5}s;`;
                 starsContainer.appendChild(star);
             }
-            
             splash.appendChild(starsContainer);
-            
-            splash.innerHTML += `
-                <div style="
-                    font-size: 120px;
-                    margin-bottom: 20px;
-                    animation: smoothFloat 4s ease-in-out infinite;
-                    transform-origin: center center;
-                    filter: drop-shadow(0 0 20px rgba(159, 139, 229, 0.5));
-                ">🧪</div>
-                
-                <h1 style="
-                    font-size: 64px;
-                    margin-bottom: 10px;
-                    background: linear-gradient(45deg, #ffd700, #9f8be5);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                ">Nanogram</h1>
-                
-                <p style="font-size: 24px; color: #b0b3b8; margin-bottom: 40px;">
-                    доступно на телефонах
-                </p>
-                
-                <p style="font-size: 18px; color: #ffd700; margin-bottom: 20px;">
-                    ⏳ Подождите немножко, идёт загрузка сервиса
-                </p>
-                
-                <div style="font-size: 72px; font-weight: bold; color: #ffd700; margin-top: 20px;" id="splashTimer">7</div>
-                
-                <style>
-                    @keyframes gradientMove {
-                        0% { background-position: 0% 50%; }
-                        50% { background-position: 100% 50%; }
-                        100% { background-position: 0% 50%; }
-                    }
-                    @keyframes smoothFloat {
-                        0% { transform: translateY(0px) rotate(0deg); }
-                        25% { transform: translateY(-12px) rotate(-2deg); }
-                        50% { transform: translateY(-20px) rotate(0deg); }
-                        75% { transform: translateY(-12px) rotate(2deg); }
-                        100% { transform: translateY(0px) rotate(0deg); }
-                    }
-                    @keyframes starTwinkle {
-                        0% { opacity: 0; transform: scale(0.5); }
-                        20% { opacity: 1; transform: scale(1.2); }
-                        40% { opacity: 0.8; transform: scale(1); }
-                        60% { opacity: 0.3; transform: scale(0.8); }
-                        80% { opacity: 0; transform: scale(0.5); }
-                        100% { opacity: 0; transform: scale(0.5); }
-                    }
-                </style>
-            `;
-            
+            splash.innerHTML += `<div style="font-size: 120px; margin-bottom: 20px; animation: smoothFloat 4s ease-in-out infinite;">🧪</div><h1 style="font-size: 64px; background: linear-gradient(45deg, #ffd700, #9f8be5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Nanogram</h1><p style="font-size: 24px; color: #b0b3b8; margin-bottom: 40px;">готовимся к Nexora</p><p style="font-size: 18px; color: #ffd700; margin-bottom: 20px;">⏳ Подождите немножко, идёт загрузка сервиса</p><div style="font-size: 72px; font-weight: bold; color: #ffd700; margin-top: 20px;" id="splashTimer">7</div><style>@keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } } @keyframes smoothFloat { 0% { transform: translateY(0px) rotate(0deg); } 25% { transform: translateY(-12px) rotate(-2deg); } 50% { transform: translateY(-20px) rotate(0deg); } 75% { transform: translateY(-12px) rotate(2deg); } 100% { transform: translateY(0px) rotate(0deg); } } @keyframes starTwinkle { 0% { opacity: 0; transform: scale(0.5); } 20% { opacity: 1; transform: scale(1.2); } 40% { opacity: 0.8; } 60% { opacity: 0.3; } 100% { opacity: 0; } }</style>`;
             document.body.appendChild(splash);
-            
             let timeLeft = 7;
             const timer = document.getElementById('splashTimer');
-            const interval = setInterval(() => {
-                timeLeft--;
-                if (timer) timer.textContent = timeLeft;
-                if (timeLeft <= 0) clearInterval(interval);
-            }, 1000);
-            
-            setTimeout(() => {
-                if (splash && splash.parentNode) {
-                    splash.remove();
-                }
-            }, 7000);
+            const interval = setInterval(() => { timeLeft--; if (timer) timer.textContent = timeLeft; if (timeLeft <= 0) clearInterval(interval); }, 1000);
+            setTimeout(() => { if (splash && splash.parentNode) splash.remove(); }, 7000);
         }
-
-        // ==============================================
-        // МОДАЛКИ
-        // ==============================================
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-            document.getElementById('modalOverlay').classList.add('active');
-        }
-
-        function closeAllModals() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-            document.getElementById('modalOverlay').classList.remove('active');
-        }
-
-        function openProfileMenu() {
-            openModal('profileModal');
-        }
-
-        function openStatusModal() {
-            openModal('statusModal');
-        }
-
+        
+        function openModal(id) { document.getElementById(id).classList.add('active'); document.getElementById('modalOverlay').classList.add('active'); }
+        function closeAllModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); document.getElementById('modalOverlay').classList.remove('active'); }
+        function openProfileMenu() { openModal('profileModal'); }
+        function openStatusModal() { openModal('statusModal'); }
+        
         function setStatus(status) {
             userStatus = status;
             updateHeaderStatus();
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'update_status',
-                    username: currentUser,
-                    status: status
-                }));
-            }
+            if (socket) socket.send(JSON.stringify({ type: 'update_status', username: currentUser, status: status }));
             closeAllModals();
         }
-
+        
         function updateHeaderStatus() {
             const dot = document.getElementById('headerStatusDot');
             const text = document.getElementById('headerStatusText');
             const avatarStatus = document.getElementById('avatarStatus');
-            
             dot.className = 'status-icon ' + userStatus;
             avatarStatus.className = 'avatar-status ' + userStatus;
-            
             if (userStatus === 'online') text.textContent = 'Онлайн';
             else if (userStatus === 'away') text.textContent = 'Отошёл';
             else if (userStatus === 'busy') text.textContent = 'Занят';
         }
-
+        
         function openSettingsModal() {
-            document.getElementById('themeSelect').value = 
-                document.body.classList.contains('light-theme') ? 'light' : 'dark';
+            document.getElementById('themeSelect').value = document.body.classList.contains('light-theme') ? 'light' : 'dark';
             openModal('settingsModal');
         }
-
+        
         function saveSettings() {
             const theme = document.getElementById('themeSelect').value;
             const fontSize = document.getElementById('fontSizeSelect').value;
             const soundEnabled = document.getElementById('soundCheck').checked;
-            
-            changeTheme(theme);
-            changeFontSize(fontSize);
-            toggleSound(soundEnabled);
-            
-            localStorage.setItem('nanogram_settings', JSON.stringify({
-                theme, fontSize, sound: soundEnabled
-            }));
-            
+            changeTheme(theme); changeFontSize(fontSize); toggleSound(soundEnabled);
+            localStorage.setItem('nanogram_settings', JSON.stringify({ theme, fontSize, sound: soundEnabled }));
             closeAllModals();
         }
-
+        
         function loadSettings() {
             const saved = localStorage.getItem('nanogram_settings');
             if (saved) {
@@ -1801,94 +1667,50 @@
                 changeFontSize(settings.fontSize);
                 document.getElementById('themeSelect').value = settings.theme;
                 document.getElementById('fontSizeSelect').value = settings.fontSize;
-                if (settings.sound !== undefined) {
-                    soundEnabled = settings.sound;
-                    const soundCheck = document.getElementById('soundCheck');
-                    if (soundCheck) soundCheck.checked = settings.sound;
-                }
+                if (settings.sound !== undefined) { soundEnabled = settings.sound; const sc = document.getElementById('soundCheck'); if (sc) sc.checked = settings.sound; }
             }
         }
-
+        
         function openPrivacyModal() {
             document.getElementById('privacyOnline').value = privacySettings.showOnline;
             document.getElementById('privacyPhone').value = privacySettings.showPhone;
             openModal('privacyModal');
         }
-
+        
         function savePrivacy() {
-            privacySettings = {
-                showOnline: document.getElementById('privacyOnline').value,
-                showPhone: document.getElementById('privacyPhone').value
-            };
-            
-            if (socket) {
-                socket.send(JSON.stringify({
-                    type: 'update_privacy',
-                    username: currentUser,
-                    settings: privacySettings
-                }));
-            }
+            privacySettings = { showOnline: document.getElementById('privacyOnline').value, showPhone: document.getElementById('privacyPhone').value };
+            if (socket) socket.send(JSON.stringify({ type: 'update_privacy', username: currentUser, settings: privacySettings }));
             closeAllModals();
         }
-
+        
         function updateBlockedList() {
             const list = document.getElementById('blockedList');
             if (!list) return;
-            list.innerHTML = blockedUsers.map(user => `
-                <div class="blocked-user">
-                    <span>${user}</span>
-                    <button onclick="unblockUser('${user}')">Разблокировать</button>
-                </div>
-            `).join('');
+            list.innerHTML = blockedUsers.map(user => `<div class="blocked-user"><span>${user}</span><button onclick="unblockUser('${user}')">Разблокировать</button></div>`).join('');
         }
-
-        function blockUser() {
-            const username = document.getElementById('blockUsername').value.trim();
-            if (!username) return;
-            socket.send(JSON.stringify({
-                type: 'block_user',
-                username: currentUser,
-                target: username
-            }));
-            document.getElementById('blockUsername').value = '';
-        }
-
-        function unblockUser(username) {
-            socket.send(JSON.stringify({
-                type: 'unblock_user',
-                username: currentUser,
-                target: username
-            }));
-        }
-                // ==============================================
-        // РЕГИСТРАЦИЯ
-        // ==============================================
+        
+        function blockUser() { const username = document.getElementById('blockUsername').value.trim(); if (!username) return; socket.send(JSON.stringify({ type: 'block_user', username: currentUser, target: username })); document.getElementById('blockUsername').value = ''; }
+        function unblockUser(username) { socket.send(JSON.stringify({ type: 'unblock_user', username: currentUser, target: username })); }
+        
         function register() {
             const username = document.getElementById('loginUsername').value.trim();
             const phone = document.getElementById('loginPhone').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
-            
-            if (!username || !phone || !password) {
-                alert('❌ Заполните все поля');
-                return;
-            }
-            
-            if (!document.getElementById('privacyAgree').checked) {
-                alert('❌ Примите политику');
-                return;
-            }
-            
-            currentUser = username;
-            currentPhone = phone;
+            if (!username || !phone || !password) { alert('❌ Заполните все поля'); return; }
+            if (!document.getElementById('privacyAgree').checked) { alert('❌ Примите политику'); return; }
+            currentUser = username; currentPhone = phone;
             localStorage.setItem('nanogram_user', username);
             localStorage.setItem('nanogram_phone', phone);
-            
             connectWebSocket(password);
         }
-
-        // ==============================================
-        // WEBSOCKET
-        // ==============================================
+        
+        function logoutAndRetry() {
+            localStorage.clear();
+            document.getElementById('banPage').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'flex';
+            location.reload();
+        }
+        
         function connectWebSocket(password) {
             socket = new WebSocket('wss://minegram.onrender.com');
             
@@ -1897,178 +1719,90 @@
                 document.getElementById('statusDot').className = 'status-dot';
                 document.getElementById('statusText').textContent = 'Онлайн';
                 reconnectAttempts = 0;
-                
-                socket.send(JSON.stringify({
-                    type: 'register',
-                    username: currentUser,
-                    password: password,
-                    phone: currentPhone,
-                    privacyAccepted: true
-                }));
-                
-                pingInterval = setInterval(() => {
-                    if (socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ 
-                            type: 'ping', 
-                            timestamp: Date.now() 
-                        }));
-                    }
-                }, 5000);
+                socket.send(JSON.stringify({ type: 'register', username: currentUser, password: password, phone: currentPhone, privacyAccepted: true }));
+                pingInterval = setInterval(() => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() })); }, 5000);
             };
             
             socket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 
                 if (data.type === 'pong') {
-                    document.getElementById('latency').textContent = 
-                        (Date.now() - data.timestamp) + 'ms';
+                    document.getElementById('latency').textContent = (Date.now() - data.timestamp) + 'ms';
                     return;
                 }
                 
                 console.log('📩 Получен тип:', data.type);
                 
-                // ===== УСПЕШНЫЙ ВХОД =====
+                if (data.type === 'you_are_banned') {
+                    console.log('🚫 Получен бан:', data);
+                    localStorage.clear();
+                    document.getElementById('banReasonText').innerText = data.reason || 'Нарушение правил';
+                    document.getElementById('banDateText').innerText = new Date(data.bannedAt).toLocaleString();
+                    document.getElementById('loginPage').style.display = 'none';
+                    document.getElementById('appPage').style.display = 'none';
+                    document.getElementById('banPage').style.display = 'flex';
+                    if (socket) socket.close();
+                    return;
+                }
+                
                 if (data.type === 'login_success' || data.type === 'register_success') {
                     console.log('✅ Успешный вход');
-                    
                     document.getElementById('loginPage').style.display = 'none';
                     document.getElementById('appPage').style.display = 'flex';
-                    
                     showSplash();
-                    
                     document.getElementById('headerNameText').textContent = currentUser;
-                    
-                    if (currentUser === CREATOR_USERNAME) {
-                        isCreator = true;
-                        document.getElementById('creatorIcon').style.display = 'inline';
-                    }
-                    
-                    if (data.premium || isCreator) {
-                        isPremium = true;
-                        document.getElementById('premiumIcon').style.display = 'inline';
-                    }
-                    
+                    if (currentUser === CREATOR_USERNAME) { isCreator = true; document.getElementById('creatorIcon').style.display = 'inline'; }
+                    if (data.premium || isCreator) { isPremium = true; document.getElementById('premiumIcon').style.display = 'inline'; }
                     if (data.profile) userProfile = data.profile;
                     if (data.privacy) privacySettings = data.privacy;
                     if (data.blocked) blockedUsers = data.blocked;
-                    
                     updateHeaderStatus();
                 }
                 
-                // ===== ИСТОРИЯ ЧАТА =====
                 if (data.type === 'chat_history') {
                     console.log(`📜 История для ${data.chatId}: ${data.messages.length} сообщений`);
-                    
                     if (data.chatId === currentChat) {
                         document.getElementById('messagesContainer').innerHTML = '';
                         data.messages.forEach(msg => {
-                            displayMessage({
-                                text: msg.text,
-                                from: msg.from,
-                                time: msg.time,
-                                type: msg.from === currentUser ? 'sent' : 'received'
-                            });
+                            displayMessage({ text: msg.text, from: msg.from, time: msg.time, type: msg.from === currentUser ? 'sent' : 'received' });
                         });
                     }
                 }
                 
-                // ===== СПИСКИ =====
-                if (data.type === 'user_list') {
-                    users = data.users || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Чаты')) {
-                        updateChatsList('chats');
-                    }
-                }
+                if (data.type === 'user_list') { users = data.users || []; if (document.querySelector('.tab.active').innerText.includes('Чаты')) updateChatsList('chats'); }
+                if (data.type === 'groups_list') { groups = data.groups || []; if (document.querySelector('.tab.active').innerText.includes('Группы')) updateChatsList('groups'); }
+                if (data.type === 'channels_list') { channels = data.channels || []; if (document.querySelector('.tab.active').innerText.includes('Каналы')) updateChatsList('channels'); }
+                if (data.type === 'rooms_list') { rooms = data.rooms || []; if (document.querySelector('.tab.active').innerText.includes('Комнаты')) updateChatsList('rooms'); }
                 
-                if (data.type === 'groups_list') {
-                    groups = data.groups || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Группы')) {
-                        updateChatsList('groups');
-                    }
-                }
-                
-                if (data.type === 'channels_list') {
-                    channels = data.channels || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) {
-                        updateChatsList('channels');
-                    }
-                }
-                
-                if (data.type === 'rooms_list') {
-                    rooms = data.rooms || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
-                        updateChatsList('rooms');
-                    }
-                }
-                
-                // ===== НОВОЕ СООБЩЕНИЕ =====
                 if (data.type === 'message') {
                     if (data.from === currentChat) {
-                        displayMessage({
-                            text: data.text,
-                            from: data.from,
-                            time: data.time,
-                            type: 'received'
-                        });
-                        if (data.from !== currentUser) {
-                            playNotification();
-                        }
+                        displayMessage({ text: data.text, from: data.from, time: data.time, type: 'received' });
+                        if (data.from !== currentUser) playNotification();
                     }
                 }
                 
-                // ===== ГРУППОВОЕ СООБЩЕНИЕ =====
                 if (data.type === 'group_message') {
                     if (data.groupId === currentGroupId) {
-                        displayMessage({
-                            text: data.text,
-                            from: data.from,
-                            time: data.time,
-                            type: data.from === currentUser ? 'sent' : 'received'
-                        });
-                        if (data.from !== currentUser) {
-                            playNotification();
-                        }
+                        displayMessage({ text: data.text, from: data.from, time: data.time, type: data.from === currentUser ? 'sent' : 'received' });
+                        if (data.from !== currentUser) playNotification();
                     }
                 }
                 
-                // ===== ИНДИКАТОР ПЕЧАТИ =====
                 if (data.type === 'typing' && data.from === currentChat) {
                     document.getElementById('typingIndicator').style.display = 'block';
                     document.getElementById('typingIndicator').textContent = `${data.from} печатает...`;
                     clearTimeout(typingTimeout);
-                    typingTimeout = setTimeout(() => {
-                        document.getElementById('typingIndicator').style.display = 'none';
-                    }, 2000);
+                    typingTimeout = setTimeout(() => { document.getElementById('typingIndicator').style.display = 'none'; }, 2000);
                 }
                 
-                // ===== СТАТИСТИКА =====
-                if (data.type === 'stats') {
-                    updateStatsModal(data.stats);
-                }
+                if (data.type === 'stats') updateStatsModal(data.stats);
+                if (data.type === 'suspicious_list') updateSuspiciousList(data.messages);
+                if (data.type === 'blocked_list') { blockedUsers = data.blocked; updateBlockedList(); }
                 
-                // ===== ПОДОЗРИТЕЛЬНЫЕ =====
-                if (data.type === 'suspicious_list') {
-                    updateSuspiciousList(data.messages);
-                }
-                
-                // ===== СПИСОК БЛОКИРОВОК =====
-                if (data.type === 'blocked_list') {
-                    blockedUsers = data.blocked;
-                    updateBlockedList();
-                }
-                
-                // ===== ОБНОВЛЕНИЕ СТАТУСА =====
-                if (data.type === 'status_update') {
-                    const activeTab = document.querySelector('.tab.active');
-                    if (activeTab && activeTab.innerText.includes('Чаты')) {
-                        updateChatsList('chats');
-                    }
-                }
+                if (data.type === 'status_update') { const activeTab = document.querySelector('.tab.active'); if (activeTab && activeTab.innerText.includes('Чаты')) updateChatsList('chats'); }
                 
                 const activeTab = document.querySelector('.tab.active');
-                if (activeTab) {
-                    updateChatsList(activeTab.innerText.toLowerCase());
-                }
+                if (activeTab) updateChatsList(activeTab.innerText.toLowerCase());
             };
             
             socket.onclose = function() {
@@ -2077,100 +1811,51 @@
                 document.getElementById('statusText').textContent = 'Офлайн';
                 document.getElementById('latency').textContent = '--ms';
                 clearInterval(pingInterval);
-                
-                if (reconnectAttempts < 5) {
-                    reconnectAttempts++;
-                    setTimeout(() => connectWebSocket(password), 3000);
-                }
+                if (reconnectAttempts < 5) { reconnectAttempts++; setTimeout(() => connectWebSocket(password), 3000); }
             };
             
-            socket.onerror = function(error) {
-                console.error('❌ WebSocket ошибка:', error);
-            };
+            socket.onerror = function(error) { console.error('❌ WebSocket ошибка:', error); };
         }
-
-        // ==============================================
-        // ТАБЫ И СПИСКИ
-        // ==============================================
+        
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             updateChatsList(tab);
         }
-
+        
         function updateChatsList(tab) {
             const list = document.getElementById('chatsList');
             if (!list) return;
             list.innerHTML = '';
-            
-            if (tab === 'chats') {
-                users.filter(u => u !== currentUser).forEach(user => {
-                    list.appendChild(createChatItem('user', user, '👤'));
-                });
-            } else if (tab === 'groups') {
-                groups.forEach(group => {
-                    list.appendChild(createChatItem('group', group.name, '👥', group));
-                });
-            } else if (tab === 'channels') {
-                channels.forEach(channel => {
-                    list.appendChild(createChatItem('channel', channel.name, '📢', channel));
-                });
-            } else if (tab === 'rooms') {
-                rooms.forEach(room => {
-                    list.appendChild(createChatItem('room', room.name, '🔒', room));
-                });
-            }
+            if (tab === 'chats') { users.filter(u => u !== currentUser).forEach(user => list.appendChild(createChatItem('user', user, '👤'))); }
+            else if (tab === 'groups') { groups.forEach(group => list.appendChild(createChatItem('group', group.name, '👥', group))); }
+            else if (tab === 'channels') { channels.forEach(channel => list.appendChild(createChatItem('channel', channel.name, '📢', channel))); }
+            else if (tab === 'rooms') { rooms.forEach(room => list.appendChild(createChatItem('room', room.name, '🔒', room))); }
         }
-
+        
         function createChatItem(type, name, icon, data = null) {
             const div = document.createElement('div');
             div.className = 'chat-item';
             div.onclick = () => selectChat(type, name, data);
-            
-            div.innerHTML = `
-                <div class="chat-avatar">${icon}</div>
-                <div class="chat-info">
-                    <div class="chat-name">${name}</div>
-                    <div class="chat-preview">${type}</div>
-                </div>
-            `;
+            div.innerHTML = `<div class="chat-avatar">${icon}</div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview">${type}</div></div>`;
             return div;
         }
-
+        
         function selectChat(type, name, data = null) {
             currentChat = name;
             currentChatType = type;
             if (type === 'group') currentGroupId = data?.id;
-            
             document.getElementById('currentChatName').textContent = name;
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesContainer').innerHTML = '';
-            
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'request_history',
-                    chatId: name,
-                    username: currentUser
-                }));
-            }
-            
+            if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'request_history', chatId: name, username: currentUser }));
             if (window.innerWidth <= 768) showChatPanel();
         }
-
-        function showChatPanel() {
-            document.getElementById('chatsPanel').classList.add('hidden');
-            document.getElementById('chatPanel').classList.remove('hidden');
-        }
-
-        function hideChatPanel() {
-            document.getElementById('chatPanel').classList.add('hidden');
-            document.getElementById('chatsPanel').classList.remove('hidden');
-        }
-
-        // ==============================================
-        // СООБЩЕНИЯ
-        // ==============================================
+        
+        function showChatPanel() { document.getElementById('chatsPanel').classList.add('hidden'); document.getElementById('chatPanel').classList.remove('hidden'); }
+        function hideChatPanel() { document.getElementById('chatPanel').classList.add('hidden'); document.getElementById('chatsPanel').classList.remove('hidden'); }
+        
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -2179,201 +1864,122 @@
             const time = new Date().toLocaleTimeString();
             const messageId = generateId();
             
-            displayMessage({ 
-                text, 
-                from: currentUser, 
-                time, 
-                type: 'sent',
-                id: messageId 
-            });
+            displayMessage({ text, from: currentUser, time, type: 'sent', id: messageId });
             
             if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'message',
-                    id: messageId,
-                    to: currentChat,
-                    from: currentUser,
-                    text,
-                    time
-                }));
+                socket.send(JSON.stringify({ type: 'message', id: messageId, to: currentChat, from: currentUser, text, time }));
             }
+            
+            const sendBtn = document.getElementById('sendBtn');
+            const btnRect = sendBtn.getBoundingClientRect();
+            
+            const flask = document.createElement('div');
+            flask.className = 'flying-flask';
+            flask.innerHTML = '🧪';
+            flask.style.left = btnRect.left + btnRect.width/2 - 22 + 'px';
+            flask.style.top = btnRect.top + btnRect.height/2 - 22 + 'px';
+            document.body.appendChild(flask);
+            
+            sendBtn.style.opacity = '0';
+            sendBtn.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                const lastMsg = document.querySelector('.message.sent:last-child');
+                if (lastMsg) {
+                    const msgRect = lastMsg.getBoundingClientRect();
+                    flask.style.left = msgRect.left + msgRect.width/2 - 22 + 'px';
+                    flask.style.top = msgRect.top + msgRect.height/2 - 22 + 'px';
+                    flask.style.transform = 'scale(0.6)';
+                    flask.style.opacity = '0.8';
+                    
+                    setTimeout(() => {
+                        flask.remove();
+                        lastMsg.classList.add('message-pop');
+                        setTimeout(() => lastMsg.classList.remove('message-pop'), 200);
+                        sendBtn.style.opacity = '1';
+                        sendBtn.style.pointerEvents = 'auto';
+                    }, 400);
+                } else {
+                    flask.remove();
+                    sendBtn.style.opacity = '1';
+                    sendBtn.style.pointerEvents = 'auto';
+                }
+            }, 50);
             
             input.value = '';
         }
-
+        
         function displayMessage(msg) {
             if (msg.id && receivedMessages.has(msg.id)) {
                 console.log('⚠️ Дубликат пропущен:', msg.id);
                 return;
             }
-            
-            if (msg.id) {
-                receivedMessages.add(msg.id);
-                setTimeout(() => receivedMessages.delete(msg.id), 300000);
-            }
+            if (msg.id) { receivedMessages.add(msg.id); setTimeout(() => receivedMessages.delete(msg.id), 300000); }
             
             const container = document.getElementById('messagesContainer');
-            
             const div = document.createElement('div');
             div.className = `message ${msg.type}`;
-            div.innerHTML = `
-                ${msg.text}
-                <div class="message-footer">${msg.time}</div>
-            `;
+            div.innerHTML = `${msg.text}<div class="message-footer">${msg.time}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
-
-        // ==============================================
-        // ГРУППЫ
-        // ==============================================
+        
         function createGroup() {
             const name = document.getElementById('groupName').value.trim();
             if (!name) return alert('Введите название');
-            
-            socket.send(JSON.stringify({
-                type: 'create_group',
-                name,
-                creator: currentUser
-            }));
-            
+            socket.send(JSON.stringify({ type: 'create_group', name, creator: currentUser }));
             closeAllModals();
         }
-
-        // ==============================================
-        // ФАЙЛЫ
-        // ==============================================
+        
         document.getElementById('fileInput')?.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            
-            document.getElementById('filePreview').innerHTML = `
-                <i class="fas fa-file"></i>
-                <p><strong>${file.name}</strong></p>
-                <p>${(file.size / 1024).toFixed(2)} KB</p>
-            `;
+            document.getElementById('filePreview').innerHTML = `<i class="fas fa-file"></i><p><strong>${file.name}</strong></p><p>${(file.size / 1024).toFixed(2)} KB</p>`;
             document.getElementById('sendFileBtn').disabled = false;
         });
-
+        
         function sendFile() {
             const file = document.getElementById('fileInput').files[0];
             if (!file || !currentChat) return;
-            
             const reader = new FileReader();
             reader.onload = function(e) {
-                socket.send(JSON.stringify({
-                    type: 'send_file',
-                    from: currentUser,
-                    to: currentChat,
-                    fileName: file.name,
-                    fileData: e.target.result.split(',')[1],
-                    time: new Date().toLocaleTimeString()
-                }));
+                socket.send(JSON.stringify({ type: 'send_file', from: currentUser, to: currentChat, fileName: file.name, fileData: e.target.result.split(',')[1], time: new Date().toLocaleTimeString() }));
                 closeAllModals();
             };
             reader.readAsDataURL(file);
         }
-
-        // ==============================================
-        // YOUTUBE
-        // ==============================================
+        
         function shareYoutube() {
             const link = document.getElementById('youtubeLink').value.trim();
             if (!link || !currentChat) return;
-            
             const videoId = link.match(/(?:youtu\.be\/|v=)([^&]+)/)?.[1];
             if (!videoId) return alert('Неверная ссылка');
-            
-            socket.send(JSON.stringify({
-                type: 'share_youtube',
-                from: currentUser,
-                to: currentChat,
-                videoId,
-                time: new Date().toLocaleTimeString()
-            }));
-            
+            socket.send(JSON.stringify({ type: 'share_youtube', from: currentUser, to: currentChat, videoId, time: new Date().toLocaleTimeString() }));
             closeAllModals();
         }
-
-        // ==============================================
-        // АДМИН-ФУНКЦИИ
-        // ==============================================
-        function openSuspiciousModal() {
-            if (currentUser !== CREATOR_USERNAME) return alert('❌ Только для создателя');
-            openModal('suspiciousModal');
-        }
-
-        function loadSuspicious() {
-            if (socket) socket.send(JSON.stringify({ type: 'get_suspicious', username: currentUser }));
-        }
-
-        function clearSuspicious() {
-            if (socket && currentUser === CREATOR_USERNAME) {
-                socket.send(JSON.stringify({ type: 'clear_suspicious', username: currentUser }));
-            }
-        }
-
-        function openStatsModal() {
-            if (currentUser !== CREATOR_USERNAME) return alert('❌ Только для создателя');
-            if (socket) socket.send(JSON.stringify({ type: 'get_stats', username: currentUser }));
-            openModal('statsModal');
-        }
-
+        
+        function openSuspiciousModal() { if (currentUser !== CREATOR_USERNAME) return alert('❌ Только для создателя'); openModal('suspiciousModal'); }
+        function loadSuspicious() { if (socket) socket.send(JSON.stringify({ type: 'get_suspicious', username: currentUser })); }
+        function clearSuspicious() { if (socket && currentUser === CREATOR_USERNAME) socket.send(JSON.stringify({ type: 'clear_suspicious', username: currentUser })); }
+        function openStatsModal() { if (currentUser !== CREATOR_USERNAME) return alert('❌ Только для создателя'); if (socket) socket.send(JSON.stringify({ type: 'get_stats', username: currentUser })); openModal('statsModal'); }
+        
         function updateStatsModal(stats) {
             const content = document.getElementById('statsContent');
-            if (content) {
-                content.innerHTML = `
-                    <div class="stat-item"><div class="stat-value">${stats.users}</div><div>Пользователей</div></div>
-                    <div class="stat-item"><div class="stat-value">${stats.online}</div><div>Онлайн</div></div>
-                    <div class="stat-item"><div class="stat-value">${stats.messages}</div><div>Сообщений</div></div>
-                `;
-            }
+            if (content) content.innerHTML = `<div class="stat-item"><div class="stat-value">${stats.users}</div><div>Пользователей</div></div><div class="stat-item"><div class="stat-value">${stats.online}</div><div>Онлайн</div></div><div class="stat-item"><div class="stat-value">${stats.messages}</div><div>Сообщений</div></div>`;
         }
-
+        
         function updateSuspiciousList(messages) {
             const list = document.getElementById('suspiciousList');
-            if (list) {
-                list.innerHTML = messages.map(msg => `
-                    <div class="suspicious-item">
-                        <strong>${msg.from}</strong> → ${msg.to}<br>
-                        ${msg.message}<br>
-                        <small>${new Date(msg.timestamp).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            }
+            if (list) list.innerHTML = messages.map(msg => `<div class="suspicious-item"><strong>${msg.from}</strong> → ${msg.to}<br>${msg.message}<br><small>${new Date(msg.timestamp).toLocaleString()}</small></div>`).join('');
         }
-
-        // ==============================================
-        // ВСПОМОГАТЕЛЬНЫЕ
-        // ==============================================
-        function openCreateMenu() {
-            if (confirm('Создать группу?')) openModal('createGroupModal');
-        }
-
-        function openAttachMenu() {
-            if (confirm('Файл или YouTube?')) openModal('fileModal');
-            else openModal('youtubeModal');
-        }
-
-        function openJoinModal() {
-            alert('Присоединение по ссылке в разработке');
-        }
-
-        function openDonateModal() {
-            window.open('https://donatepay.ru/don/1474515', '_blank');
-        }
-
-        function openPrivacyPolicyModal() {
-            window.open('/privacy', '_blank');
-        }
-
-        function saveProfile() {
-            closeAllModals();
-        }
-
-        // ==============================================
-        // ИНИЦИАЛИЗАЦИЯ
-        // ==============================================
+        
+        function openCreateMenu() { if (confirm('Создать группу?')) openModal('createGroupModal'); }
+        function openAttachMenu() { if (confirm('Файл или YouTube?')) openModal('fileModal'); else openModal('youtubeModal'); }
+        function openJoinModal() { alert('Присоединение по ссылке в разработке'); }
+        function openDonateModal() { window.open('https://donatepay.ru/don/1474515', '_blank'); }
+        function openPrivacyPolicyModal() { window.open('/privacy', '_blank'); }
+        function saveProfile() { closeAllModals(); }
+        
         window.onload = function() {
             loadSettings();
             initSound();
@@ -2387,18 +1993,45 @@
             
             console.log('🚀 Nanogram готов, версия', VERSION);
         };
-
-        // ==============================================
-        // ГОРЯЧИЕ КЛАВИШИ
-        // ==============================================
+        
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') sendMessage();
             if (e.key === 'Escape') closeAllModals();
         });
-
-        // ==============================================
-        // PWA РЕГИСТРАЦИЯ
-        // ==============================================
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ PWA установлен'))
+                    .catch(err => console.log('❌ Ошибка PWA:', err));
+            });
+        }
+                function openCreateMenu() { if (confirm('Создать группу?')) openModal('createGroupModal'); }
+        function openAttachMenu() { if (confirm('Файл или YouTube?')) openModal('fileModal'); else openModal('youtubeModal'); }
+        function openJoinModal() { alert('Присоединение по ссылке в разработке'); }
+        function openDonateModal() { window.open('https://donatepay.ru/don/1474515', '_blank'); }
+        function openPrivacyPolicyModal() { window.open('/privacy', '_blank'); }
+        function saveProfile() { closeAllModals(); }
+        
+        window.onload = function() {
+            loadSettings();
+            initSound();
+            
+            const savedUser = localStorage.getItem('nanogram_user');
+            const savedPhone = localStorage.getItem('nanogram_phone');
+            if (savedUser && savedPhone) {
+                document.getElementById('loginUsername').value = savedUser;
+                document.getElementById('loginPhone').value = savedPhone;
+            }
+            
+            console.log('🚀 Nanogram готов, версия', VERSION);
+        };
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') sendMessage();
+            if (e.key === 'Escape') closeAllModals();
+        });
+        
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
