@@ -734,7 +734,7 @@ wss.on('connection', (ws, req) => {
             
             console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
 
-            // ===== РЕГИСТРАЦИЯ / ВХОД С ПРОВЕРКОЙ БЕЛОГО СПИСКА И БАН-ЛИСТА =====
+                        // ===== РЕГИСТРАЦИЯ / ВХОД =====
             if (data.type === 'register') {
                 const { username, password, phone, privacyAccepted } = data;
                 
@@ -751,7 +751,7 @@ wss.on('connection', (ws, req) => {
                 const cleanUsername = username.trim();
                 const cleanPhone = phone.trim().replace(/\s+/g, '');
                 
-                // ===== ПРОВЕРКА БАН-ЛИСТА (ПЕРВООЧЕРЕДНО) =====
+                // ===== ПРОВЕРКА БАН-ЛИСТА (СНАЧАЛА) =====
                 if (isInBanList(cleanUsername, cleanPhone, clientIp)) {
                     const banInfo = getBanInfo(cleanUsername, cleanPhone, clientIp);
                     logAction('banned_attempt', cleanUsername, `Попытка входа из бан-листа (${banInfo?.reason})`);
@@ -767,14 +767,7 @@ wss.on('connection', (ws, req) => {
                     return;
                 }
                 
-                // ===== ПРОВЕРКА БЕЛОГО СПИСКА =====
-                if (!isInWhiteList(cleanUsername, cleanPhone, clientIp)) {
-                    // ПЕРВЫЙ ВХОД — ДОБАВЛЯЕМ В БЕЛЫЙ СПИСОК
-                    addToWhiteList(cleanUsername, cleanPhone, clientIp);
-                    console.log(`✨ Первый вход: ${cleanUsername} добавлен в белый список`);
-                }
-                
-                // Проверка бана в старом формате (для совместимости)
+                // Проверка старого формата бана
                 if (userDatabase[cleanUsername]?.banned) {
                     ws.send(JSON.stringify({
                         type: 'you_are_banned',
@@ -790,13 +783,13 @@ wss.on('connection', (ws, req) => {
                 // Существующий пользователь
                 if (userDatabase[cleanUsername]) {
                     if (userDatabase[cleanUsername].password !== password) {
-                        logError('ERR-002', cleanUsername, `Неверный пароль для ${cleanUsername}`);
+                        logError('ERR-002', cleanUsername, `Неверный пароль`);
                         ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный пароль', code: 'ERR-002' }));
                         return;
                     }
                     
                     if (userDatabase[cleanUsername].phone !== cleanPhone) {
-                        logError('ERR-002', cleanUsername, `Неверный номер для ${cleanUsername}`);
+                        logError('ERR-002', cleanUsername, `Неверный номер`);
                         ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный номер', code: 'ERR-002' }));
                         return;
                     }
@@ -816,6 +809,11 @@ wss.on('connection', (ws, req) => {
                     
                     saveData();
                     logAction('login', cleanUsername, clientIp);
+                    
+                    // ===== ДОБАВЛЯЕМ В БЕЛЫЙ СПИСОК (ПОСЛЕ УСПЕШНОГО ВХОДА) =====
+                    if (!isInWhiteList(cleanUsername, cleanPhone, clientIp)) {
+                        addToWhiteList(cleanUsername, cleanPhone, clientIp);
+                    }
                     
                     ws.send(JSON.stringify({
                         type: 'login_success',
@@ -843,7 +841,6 @@ wss.on('connection', (ws, req) => {
                         return;
                     }
                     
-                    // Проверка уникальности имени
                     if (userDatabase[cleanUsername]) {
                         logError('ERR-004', cleanUsername, `Имя ${cleanUsername} уже занято`);
                         ws.send(JSON.stringify({ type: 'error', message: '❌ Это имя уже занято', code: 'ERR-004' }));
@@ -876,6 +873,9 @@ wss.on('connection', (ws, req) => {
                     
                     saveData();
                     logAction('register', cleanUsername, clientIp);
+                    
+                    // ===== ДОБАВЛЯЕМ В БЕЛЫЙ СПИСОК (ПОСЛЕ УСПЕШНОЙ РЕГИСТРАЦИИ) =====
+                    addToWhiteList(cleanUsername, cleanPhone, clientIp);
                     
                     ws.send(JSON.stringify({
                         type: 'register_success',
