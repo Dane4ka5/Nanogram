@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.10.9 — без бана</title>
+    <title>Nanogram v0.11.0 — Whitelist + Banlist</title>
     
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -337,30 +337,6 @@
             border-radius: 50%;
             display: inline-block;
         }
-                .badge-container {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .creator-badge {
-            background: linear-gradient(135deg, var(--creator-purple), #9370db);
-            color: white;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .premium-badge {
-            background: linear-gradient(135deg, var(--premium-gold), #ffa500);
-            color: #000;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
 
         .donation-btn {
             background: linear-gradient(135deg, var(--premium-gold), #ffa500);
@@ -467,7 +443,6 @@
             margin: 6px 0;
             border-radius: 20px;
             cursor: pointer;
-            position: relative;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             transition: all 0.3s ease;
@@ -477,16 +452,6 @@
             transform: translateX(5px) scale(1.01);
             background: var(--hover);
             border-color: var(--accent);
-        }
-
-        .chat-item.selected {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-
-        .chat-item.selected .chat-name,
-        .chat-item.selected .chat-preview {
-            color: white;
         }
 
         .chat-avatar {
@@ -504,20 +469,6 @@
             position: relative;
         }
 
-        .chat-avatar-status {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid var(--bg-secondary);
-        }
-
-        .chat-avatar-status.online { background: var(--online-green); }
-        .chat-avatar-status.away { background: var(--away-yellow); }
-        .chat-avatar-status.busy { background: var(--busy-red); }
-
         .chat-info {
             flex: 1;
             min-width: 0;
@@ -528,9 +479,6 @@
             font-size: 16px;
             margin-bottom: 4px;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
 
         .chat-preview {
@@ -539,16 +487,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .chat-badge {
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background: var(--accent);
-            color: white;
-            margin-left: 10px;
-            white-space: nowrap;
         }
 
         .chat-header {
@@ -571,7 +509,6 @@
             font-size: 22px;
             color: white;
             flex-shrink: 0;
-            position: relative;
         }
 
         .chat-header-info {
@@ -584,25 +521,6 @@
             font-weight: 600;
             margin-bottom: 4px;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .chat-header-info p {
-            font-size: 14px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .online-status {
-            color: var(--online-green);
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .typing-indicator {
@@ -619,15 +537,6 @@
             100% { opacity: 0.5; }
         }
 
-        .p2p-badge {
-            background: var(--accent);
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 5px;
-        }
-
         .messages-container {
             flex: 1;
             padding: 20px;
@@ -642,8 +551,6 @@
             margin-bottom: 12px;
             padding: 12px 18px;
             border-radius: 22px;
-            position: relative;
-            animation: slideIn 0.3s ease;
             word-wrap: break-word;
             line-height: 1.4;
             border: 1px solid var(--border);
@@ -653,11 +560,6 @@
         .message:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.sent {
@@ -684,17 +586,12 @@
             opacity: 0.7;
         }
 
-        .status-icon.delivered { color: var(--accent); }
-        .status-icon.read { color: var(--success-green); }
-
         .message-input-area {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
             display: flex;
             gap: 8px;
             align-items: center;
-            position: relative;
-            z-index: 1;
             background: var(--bg-secondary);
         }
 
@@ -736,10 +633,6 @@
             box-shadow: 0 0 0 3px var(--accent-light);
         }
 
-        .message-input-area input:disabled {
-            opacity: 0.5;
-        }
-
         .send-btn {
             width: 44px;
             height: 44px;
@@ -758,64 +651,6 @@
         .send-btn:hover:not(:disabled) {
             transform: scale(1.1);
             background: var(--accent-hover);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .file-message {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg-tertiary);
-            padding: 8px 12px;
-            border-radius: 12px;
-            margin-top: 5px;
-        }
-
-        .file-icon {
-            font-size: 24px;
-            color: var(--accent);
-        }
-
-        .file-info {
-            flex: 1;
-        }
-
-        .file-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .file-size {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .youtube-preview {
-            background: var(--bg-tertiary);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 5px;
-            cursor: pointer;
-        }
-
-        .youtube-thumb {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent);
-            font-size: 48px;
-        }
-
-        .youtube-title {
-            padding: 8px 12px;
-            font-weight: 600;
         }
 
         .modal-overlay {
@@ -860,9 +695,6 @@
             margin-bottom: 20px;
             color: var(--accent);
             font-size: 26px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .modal input, .modal textarea, .modal select {
@@ -874,12 +706,6 @@
             color: var(--text-primary);
             margin-bottom: 16px;
             outline: none;
-            font-size: 15px;
-        }
-
-        .modal input:focus, .modal textarea:focus, .modal select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-light);
         }
 
         .modal button {
@@ -891,12 +717,6 @@
             font-weight: 600;
             cursor: pointer;
             margin-right: 12px;
-            font-size: 15px;
-        }
-
-        .modal button:hover {
-            background: var(--accent-hover);
-            transform: scale(1.03);
         }
 
         .modal .close-btn {
@@ -910,17 +730,6 @@
             border: 1px solid var(--border);
             color: var(--text-primary);
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            font-size: 20px;
-        }
-
-        .modal .close-btn:hover {
-            background: var(--accent);
-            color: white;
-            transform: rotate(90deg);
         }
 
         .profile-edit {
@@ -943,7 +752,6 @@
         .settings-section h3 {
             color: var(--accent);
             margin-bottom: 15px;
-            font-size: 18px;
         }
 
         .settings-item {
@@ -988,26 +796,6 @@
             margin-bottom: 16px;
         }
 
-        .file-preview i {
-            font-size: 48px;
-            color: var(--accent);
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 16px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            width: 0%;
-            transition: width 0.3s;
-        }
-
         .status-selector {
             display: flex;
             gap: 10px;
@@ -1026,16 +814,6 @@
         .status-option.online { color: var(--online-green); }
         .status-option.away { color: var(--away-yellow); }
         .status-option.busy { color: var(--busy-red); }
-
-        .status-option:hover {
-            background: var(--hover);
-            transform: scale(1.05);
-        }
-
-        .status-option.active {
-            background: var(--accent);
-            color: white;
-        }
 
         .login-container {
             width: 100%;
@@ -1082,11 +860,6 @@
             outline: none;
         }
 
-        .login-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px var(--accent-light);
-        }
-
         .login-btn {
             width: 100%;
             padding: 16px;
@@ -1098,11 +871,6 @@
             font-weight: 600;
             cursor: pointer;
             margin: 20px 0;
-        }
-
-        .login-btn:hover {
-            background: var(--accent-hover);
-            transform: scale(1.02);
         }
 
         .checkbox {
@@ -1134,20 +902,6 @@
             align-items: center;
             gap: 8px;
             box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.05);
-            background: var(--hover);
-        }
-
-        .suspicious-item {
-            background: var(--danger-red);
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            border-left: 4px solid var(--premium-gold);
         }
 
         .stats-grid {
@@ -1194,12 +948,7 @@
             }
         }
 
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            70% { opacity: 1; }
-            100% { opacity: 0; visibility: hidden; }
-        }
-
+        /* Анимация отправки */
         .flying-flask {
             position: fixed;
             width: 44px;
@@ -1210,16 +959,194 @@
             justify-content: center;
             pointer-events: none;
             z-index: 10000;
-            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transition: all 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             filter: drop-shadow(0 0 8px var(--accent));
         }
 
         .message-pop {
-            animation: popIn 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            animation: popPulse 0.6s ease-in-out;
         }
 
-        @keyframes popIn {
+        @keyframes popPulse {
             0% { transform: scale(0.8); opacity: 0; }
+            25% { transform: scale(1.1); opacity: 1; }
+            50% { transform: scale(0.9); opacity: 0.8; }
+            75% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+            /* ===== МОДАЛКИ ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+        }
+        .modal-overlay.active { display: block; }
+        
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            border-radius: 30px;
+            z-index: 1001;
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .modal.active { display: block; }
+        .modal h2 { margin-bottom: 20px; color: var(--accent); font-size: 26px; display: flex; align-items: center; gap: 10px; }
+        .modal input, .modal textarea, .modal select {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            outline: none;
+            font-size: 15px;
+        }
+        .modal input:focus, .modal textarea:focus, .modal select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .modal button {
+            padding: 14px 28px;
+            background: var(--accent);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+            font-size: 15px;
+        }
+        .modal button:hover { background: var(--accent-hover); transform: scale(1.03); }
+        .modal .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 20px;
+        }
+        .modal .close-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        /* ===== НАСТРОЙКИ ===== */
+        .profile-edit { text-align: center; margin-bottom: 20px; }
+        .profile-edit .avatar { width: 100px; height: 100px; font-size: 42px; margin: 0 auto 20px; cursor: pointer; }
+        .settings-section { margin: 20px 0; }
+        .settings-section h3 { color: var(--accent); margin-bottom: 15px; font-size: 18px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .settings-item select { width: 150px; }
+        .privacy-option { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .privacy-option select { width: 150px; }
+        .blocked-user { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 8px; }
+        .file-preview { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px; }
+        .file-preview i { font-size: 48px; color: var(--accent); }
+        
+        /* ===== СТАТУСЫ ===== */
+        .status-selector { display: flex; gap: 10px; margin: 20px 0; justify-content: center; }
+        .status-option { padding: 10px 20px; border-radius: 30px; border: 1px solid var(--border); cursor: pointer; transition: all 0.3s ease; }
+        .status-option.online { color: var(--online-green); }
+        .status-option.away { color: var(--away-yellow); }
+        .status-option.busy { color: var(--busy-red); }
+        .status-option:hover { background: var(--hover); transform: scale(1.05); }
+        .status-option.active { background: var(--accent); color: white; }
+        
+        /* ===== СТРАНИЦЫ ОШИБОК ===== */
+        .suspicious-item {
+            background: var(--danger-red);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid var(--premium-gold);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--premium-gold);
+        }
+        
+        /* ===== СКРОЛЛБАР ===== */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-light); border-radius: 10px; }
+        
+        /* ===== АДАПТИВ ===== */
+        @media (max-width: 768px) {
+            .login-card { width: 90%; padding: 30px 20px; }
+            .theme-toggle { bottom: 70px; right: 10px; }
+        }
+        
+        /* ===== АНИМАЦИИ ===== */
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        
+        .flying-flask {
+            position: fixed;
+            width: 44px;
+            height: 44px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10000;
+            transition: all 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+        
+        .message-pop {
+            animation: popPulse 0.6s ease-in-out;
+        }
+        
+        @keyframes popPulse {
+            0% { transform: scale(0.8); opacity: 0; }
+            25% { transform: scale(1.1); opacity: 1; }
+            50% { transform: scale(0.9); opacity: 0.8; }
+            75% { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(1); opacity: 1; }
         }
     </style>
@@ -1230,7 +1157,78 @@
     </div>
 
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
-        <!-- МОДАЛКА ПРОФИЛЯ -->
+        <!-- СТРАНИЦА ОШИБКИ -->
+    <div id="errorPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
+        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
+            <div style="font-size: 80px;">😵‍💫</div>
+            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">Упс, неполадочки</h1>
+            <p style="font-size: 18px; margin-bottom: 20px;">Напишите нам на почту и пришлите скриншот этого окна.</p>
+            <p style="font-size: 24px; background: var(--bg-tertiary); padding: 12px; border-radius: 20px; margin: 20px 0;">
+                📧 <strong id="errorEmail">support@nanogram.ru</strong>
+            </p>
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; font-family: monospace;">
+                🔍 Код ошибки: <strong id="errorCode">ERR-000</strong><br>
+                <span id="errorDetails" style="font-size: 12px;"></span>
+            </div>
+            <button onclick="location.reload()" style="margin-top: 30px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white;">🔄 Перезагрузить</button>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА БАНА (403) -->
+    <div id="banPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
+        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
+            <div style="font-size: 80px;">🚫</div>
+            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">403 — Доступ заблокирован</h1>
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; margin: 20px 0;">
+                <p><strong>Причина:</strong> <span id="banReasonText"></span></p>
+                <p><strong>Дата:</strong> <span id="banDateText"></span></p>
+            </div>
+            <p>📧 <strong>${SUPPORT_EMAIL}</strong><br>📞 <strong>${SUPPORT_PHONE}</strong></p>
+            <button onclick="location.reload()" style="margin-top: 20px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white;">🔄 Попробовать снова</button>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА ОШИБКИ -->
+    <div id="errorPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
+        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
+            <div style="font-size: 80px;">😵‍💫</div>
+            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">Упс, неполадочки</h1>
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                Что-то пошло не так. Напишите нам на почту и пришлите скриншот этого окна.
+            </p>
+            <p style="font-size: 24px; background: var(--bg-tertiary); padding: 12px; border-radius: 20px; margin: 20px 0;">
+                📧 <strong id="errorEmail">support@nanogram.ru</strong>
+            </p>
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; font-family: monospace; font-size: 14px;">
+                🔍 Код ошибки: <strong id="errorCode">ERR-000</strong><br>
+                <span id="errorDetails" style="font-size: 12px; color: var(--text-muted);"></span>
+            </div>
+            <button onclick="location.reload()" style="margin-top: 30px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">🔄 Перезагрузить</button>
+            <button onclick="history.back()" style="margin-top: 30px; margin-left: 10px; background: var(--bg-tertiary); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">⬅️ Назад</button>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА БАНА (403) -->
+    <div id="banPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
+        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
+            <div style="font-size: 80px;">🚫</div>
+            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">403 — Доступ заблокирован</h1>
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                Ваш аккаунт был заблокирован за нарушение правил.
+            </p>
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; margin: 20px 0;">
+                <p><strong>Причина блокировки:</strong> <span id="banReasonText"></span></p>
+                <p><strong>Дата блокировки:</strong> <span id="banDateText"></span></p>
+            </div>
+            <p style="font-size: 16px; margin-bottom: 15px;">
+                📧 Напишите нам: <strong>support@nanogram.ru</strong><br>
+                📞 Или позвоните: <strong>+7 987 756 06 84</strong>
+            </p>
+            <button onclick="location.reload()" style="margin-top: 20px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">🔄 Попробовать снова</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
@@ -1285,10 +1283,6 @@
             <div class="settings-item">
                 <label>Звук сообщений</label>
                 <input type="checkbox" id="soundCheck" checked>
-            </div>
-            <div class="settings-item">
-                <label>Уведомления о доставке</label>
-                <input type="checkbox" id="notifyCheck" checked>
             </div>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -1383,7 +1377,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.10.9 — без бана</p>
+            <p>v0.11.0 — Whitelist + Banlist</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1492,7 +1486,7 @@
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.10.9';
+        const VERSION = 'v0.11.0';
         
         let socket = null;
         let currentUser = null;
@@ -1578,7 +1572,7 @@
         }
         
         // ==============================================
-        // КРАСИВАЯ ЗАСТАВКА 7 СЕКУНД
+        // ЗАСТАВКА 7 СЕКУНД
         // ==============================================
         function showSplash() {
             console.log('🎨 Заставка 7 секунд');
@@ -1616,6 +1610,7 @@
         // ==============================================
         // МОДАЛКИ
         // ==============================================
+        
         function openModal(id) {
             document.getElementById(id).classList.add('active');
             document.getElementById('modalOverlay').classList.add('active');
@@ -1715,6 +1710,7 @@
         function unblockUser(username) {
             socket.send(JSON.stringify({ type: 'unblock_user', username: currentUser, target: username }));
         }
+        
                 // ==============================================
         // РЕГИСТРАЦИЯ
         // ==============================================
@@ -1741,6 +1737,32 @@
             connectWebSocket(password);
         }
         
+        function showErrorPage(code, details = '') {
+            console.log(`🚨 Показана страница ошибки: ${code} — ${details}`);
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('banPage').style.display = 'none';
+            const errorPage = document.getElementById('errorPage');
+            errorPage.style.display = 'flex';
+            document.getElementById('errorCode').textContent = code;
+            document.getElementById('errorDetails').textContent = details;
+            document.getElementById('errorEmail').textContent = SUPPORT_EMAIL;
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'error_report', code: code, details: details, user: currentUser || 'anonymous' }));
+            }
+        }
+        
+        function showBanPage(reason, bannedAt) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('errorPage').style.display = 'none';
+            const banPage = document.getElementById('banPage');
+            banPage.style.display = 'flex';
+            document.getElementById('banReasonText').textContent = reason || 'Нарушение правил';
+            document.getElementById('banDateText').textContent = new Date(bannedAt).toLocaleString();
+        }
+        
+        
         // ==============================================
         // WEBSOCKET
         // ==============================================
@@ -1763,10 +1785,7 @@
                 
                 pingInterval = setInterval(() => {
                     if (socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ 
-                            type: 'ping', 
-                            timestamp: Date.now() 
-                        }));
+                        socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
                     }
                 }, 5000);
             };
@@ -1778,8 +1797,31 @@
                     document.getElementById('latency').textContent = (Date.now() - data.timestamp) + 'ms';
                     return;
                 }
+                                // ===== БАН =====
+                if (data.type === 'you_are_banned') {
+                    console.log('🚫 Получен бан:', data);
+                    localStorage.clear();
+                    showBanPage(data.reason, data.bannedAt);
+                    if (socket) socket.close();
+                    return;
+                }
+                
+                // ===== ОШИБКИ =====
+                if (data.type === 'error' && data.code) {
+                    showErrorPage(data.code, data.message);
+                    return;
+                }
                 
                 console.log('📩 Получен тип:', data.type);
+                
+                // ===== БАН =====
+                if (data.type === 'you_are_banned') {
+                    console.log('🚫 Получен бан:', data);
+                    localStorage.clear();
+                    showBanPage(data.reason, data.bannedAt);
+                    if (socket) socket.close();
+                    return;
+                }
                 
                 // ===== УСПЕШНЫЙ ВХОД =====
                 if (data.type === 'login_success' || data.type === 'register_success') {
@@ -1802,6 +1844,12 @@
                     updateHeaderStatus();
                 }
                 
+                // ===== ОШИБКИ =====
+                if (data.type === 'error' && data.code) {
+                    showErrorPage(data.code, data.message);
+                    return;
+                }
+                
                 // ===== ИСТОРИЯ ЧАТА =====
                 if (data.type === 'chat_history') {
                     console.log(`📜 История для ${data.chatId}: ${data.messages.length} сообщений`);
@@ -1821,27 +1869,19 @@
                 // ===== СПИСКИ =====
                 if (data.type === 'user_list') {
                     users = data.users || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Чаты')) {
-                        updateChatsList('chats');
-                    }
+                    if (document.querySelector('.tab.active').innerText.includes('Чаты')) updateChatsList('chats');
                 }
                 if (data.type === 'groups_list') {
                     groups = data.groups || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Группы')) {
-                        updateChatsList('groups');
-                    }
+                    if (document.querySelector('.tab.active').innerText.includes('Группы')) updateChatsList('groups');
                 }
                 if (data.type === 'channels_list') {
                     channels = data.channels || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) {
-                        updateChatsList('channels');
-                    }
+                    if (document.querySelector('.tab.active').innerText.includes('Каналы')) updateChatsList('channels');
                 }
                 if (data.type === 'rooms_list') {
                     rooms = data.rooms || [];
-                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) {
-                        updateChatsList('rooms');
-                    }
+                    if (document.querySelector('.tab.active').innerText.includes('Комнаты')) updateChatsList('rooms');
                 }
                 
                 // ===== НОВОЕ СООБЩЕНИЕ =====
@@ -1906,6 +1946,7 @@
             
             socket.onerror = function(error) {
                 console.error('❌ WebSocket ошибка:', error);
+                showErrorPage('ERR-005', 'Не удалось подключиться к серверу');
             };
         }
                 // ==============================================
@@ -1983,7 +2024,7 @@
         }
         
         // ==============================================
-        // СООБЩЕНИЯ
+        // СООБЩЕНИЯ (С ИСПРАВЛЕННОЙ АНИМАЦИЕЙ)
         // ==============================================
         function sendMessage() {
             const input = document.getElementById('messageInput');
@@ -1993,13 +2034,22 @@
             const time = new Date().toLocaleTimeString();
             const messageId = generateId();
             
+            // Отображаем сообщение сразу (будет скрыто для анимации)
             displayMessage({ 
                 text, 
                 from: currentUser, 
                 time, 
                 type: 'sent',
-                id: messageId 
+                id: messageId,
+                temporary: true
             });
+            
+            // Находим последнее сообщение
+            const lastMsg = document.querySelector('.message.sent:last-child');
+            if (lastMsg) {
+                lastMsg.style.opacity = '0';
+                lastMsg.style.transform = 'scale(0.8)';
+            }
             
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
@@ -2012,7 +2062,7 @@
                 }));
             }
             
-            // АНИМАЦИЯ ОТПРАВКИ (КОЛБОЧКА)
+            // АНИМАЦИЯ ОТПРАВКИ (КОЛБОЧКА — медленнее на 15%)
             const sendBtn = document.getElementById('sendBtn');
             const btnRect = sendBtn.getBoundingClientRect();
             
@@ -2026,8 +2076,8 @@
             sendBtn.style.opacity = '0';
             sendBtn.style.pointerEvents = 'none';
             
+            // Увеличиваем время полёта (было 400ms, стало 460ms — на 15% медленнее)
             setTimeout(() => {
-                const lastMsg = document.querySelector('.message.sent:last-child');
                 if (lastMsg) {
                     const msgRect = lastMsg.getBoundingClientRect();
                     flask.style.left = msgRect.left + msgRect.width/2 - 22 + 'px';
@@ -2037,17 +2087,35 @@
                     
                     setTimeout(() => {
                         flask.remove();
-                        lastMsg.classList.add('message-pop');
-                        setTimeout(() => lastMsg.classList.remove('message-pop'), 200);
-                        sendBtn.style.opacity = '1';
-                        sendBtn.style.pointerEvents = 'auto';
-                    }, 400);
+                        // ТРОЙНОЙ ПУЛЬС (появляется-исчезает 3 раза)
+                        let pulseCount = 0;
+                        const pulseInterval = setInterval(() => {
+                            if (pulseCount < 3) {
+                                if (pulseCount % 2 === 0) {
+                                    lastMsg.style.opacity = '1';
+                                    lastMsg.style.transform = 'scale(1.1)';
+                                } else {
+                                    lastMsg.style.opacity = '0';
+                                    lastMsg.style.transform = 'scale(0.9)';
+                                }
+                                pulseCount++;
+                            } else {
+                                clearInterval(pulseInterval);
+                                lastMsg.style.opacity = '1';
+                                lastMsg.style.transform = 'scale(1)';
+                                lastMsg.classList.add('message-pop');
+                                setTimeout(() => lastMsg.classList.remove('message-pop'), 600);
+                                sendBtn.style.opacity = '1';
+                                sendBtn.style.pointerEvents = 'auto';
+                            }
+                        }, 150);
+                    }, 460);
                 } else {
                     flask.remove();
                     sendBtn.style.opacity = '1';
                     sendBtn.style.pointerEvents = 'auto';
                 }
-            }, 50);
+            }, 60);
             
             input.value = '';
         }
@@ -2066,6 +2134,10 @@
             const div = document.createElement('div');
             div.className = `message ${msg.type}`;
             div.innerHTML = `${msg.text}<div class="message-footer">${msg.time}</div>`;
+            if (msg.temporary) {
+                div.style.opacity = '0';
+                div.style.transform = 'scale(0.8)';
+            }
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
@@ -2160,6 +2232,8 @@
                     <div class="stat-item"><div class="stat-value">${stats.users}</div><div>Пользователей</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.online}</div><div>Онлайн</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.messages}</div><div>Сообщений</div></div>
+                    <div class="stat-item"><div class="stat-value">${stats.whitelist || 0}</div><div>В белом списке</div></div>
+                    <div class="stat-item"><div class="stat-value">${stats.banned || 0}</div><div>В бан-листе</div></div>
                 `;
             }
         }
@@ -2240,6 +2314,40 @@
                     .catch(err => console.log('❌ Ошибка PWA:', err));
             });
         }
-    </script>
+                // ==============================================
+        // ПОДДЕРЖКА
+        // ==============================================
+        const SUPPORT_EMAIL = 'support@nanogram.ru';
+        const SUPPORT_PHONE = '+7 987 756 06 84';
+        
+        // ==============================================
+        // СТРАНИЦЫ ОШИБОК
+        // ==============================================
+        function showErrorPage(code, details = '') {
+            console.log(`🚨 Ошибка: ${code} — ${details}`);
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('banPage').style.display = 'none';
+            const errorPage = document.getElementById('errorPage');
+            if (errorPage) {
+                errorPage.style.display = 'flex';
+                document.getElementById('errorCode').textContent = code;
+                document.getElementById('errorDetails').textContent = details;
+                document.getElementById('errorEmail').textContent = SUPPORT_EMAIL;
+            }
+        }
+        
+        function showBanPage(reason, bannedAt) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'none';
+            document.getElementById('errorPage').style.display = 'none';
+            const banPage = document.getElementById('banPage');
+            if (banPage) {
+                banPage.style.display = 'flex';
+                document.getElementById('banReasonText').textContent = reason || 'Нарушение правил';
+                document.getElementById('banDateText').textContent = new Date(bannedAt).toLocaleString();
+            }
+        }
+            </script>
 </body>
 </html>
