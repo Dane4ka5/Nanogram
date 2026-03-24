@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nanogram v0.11.0 — Whitelist + Banlist</title>
+    <title>Nanogram v0.11.5 — IP Ban + Whitelist</title>
     
+    <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nanogram">
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <meta name="mobile-web-app-capable" content="yes">
     
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <!-- Звук уведомлений -->
     <audio id="notificationSound" preload="auto" style="display: none;">
         <source src="/sounds/msg.mp3" type="audio/mpeg">
     </audio>
@@ -93,7 +97,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .app-container {
@@ -257,7 +260,6 @@
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
             background: var(--bg-secondary);
         }
 
@@ -466,7 +468,6 @@
             color: white;
             margin-right: 16px;
             flex-shrink: 0;
-            position: relative;
         }
 
         .chat-info {
@@ -974,7 +975,7 @@
             75% { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(1); opacity: 1; }
         }
-            /* ===== МОДАЛКИ ===== */
+                /* ===== МОДАЛКИ ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -1077,9 +1078,8 @@
         .status-option.away { color: var(--away-yellow); }
         .status-option.busy { color: var(--busy-red); }
         .status-option:hover { background: var(--hover); transform: scale(1.05); }
-        .status-option.active { background: var(--accent); color: white; }
         
-        /* ===== СТРАНИЦЫ ОШИБОК ===== */
+        /* ===== ПОДОЗРИТЕЛЬНЫЕ И СТАТИСТИКА ===== */
         .suspicious-item {
             background: var(--danger-red);
             padding: 15px;
@@ -1118,12 +1118,6 @@
         }
         
         /* ===== АНИМАЦИИ ===== */
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            70% { opacity: 1; }
-            100% { opacity: 0; visibility: hidden; }
-        }
-        
         .flying-flask {
             position: fixed;
             width: 44px;
@@ -1157,78 +1151,7 @@
     </div>
 
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
-        <!-- СТРАНИЦА ОШИБКИ -->
-    <div id="errorPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
-        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
-            <div style="font-size: 80px;">😵‍💫</div>
-            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">Упс, неполадочки</h1>
-            <p style="font-size: 18px; margin-bottom: 20px;">Напишите нам на почту и пришлите скриншот этого окна.</p>
-            <p style="font-size: 24px; background: var(--bg-tertiary); padding: 12px; border-radius: 20px; margin: 20px 0;">
-                📧 <strong id="errorEmail">support@nanogram.ru</strong>
-            </p>
-            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; font-family: monospace;">
-                🔍 Код ошибки: <strong id="errorCode">ERR-000</strong><br>
-                <span id="errorDetails" style="font-size: 12px;"></span>
-            </div>
-            <button onclick="location.reload()" style="margin-top: 30px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white;">🔄 Перезагрузить</button>
-        </div>
-    </div>
-
-    <!-- СТРАНИЦА БАНА (403) -->
-    <div id="banPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
-        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
-            <div style="font-size: 80px;">🚫</div>
-            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">403 — Доступ заблокирован</h1>
-            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; margin: 20px 0;">
-                <p><strong>Причина:</strong> <span id="banReasonText"></span></p>
-                <p><strong>Дата:</strong> <span id="banDateText"></span></p>
-            </div>
-            <p>📧 <strong>${SUPPORT_EMAIL}</strong><br>📞 <strong>${SUPPORT_PHONE}</strong></p>
-            <button onclick="location.reload()" style="margin-top: 20px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white;">🔄 Попробовать снова</button>
-        </div>
-    </div>
-
-    <!-- СТРАНИЦА ОШИБКИ -->
-    <div id="errorPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
-        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
-            <div style="font-size: 80px;">😵‍💫</div>
-            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">Упс, неполадочки</h1>
-            <p style="font-size: 18px; margin-bottom: 20px;">
-                Что-то пошло не так. Напишите нам на почту и пришлите скриншот этого окна.
-            </p>
-            <p style="font-size: 24px; background: var(--bg-tertiary); padding: 12px; border-radius: 20px; margin: 20px 0;">
-                📧 <strong id="errorEmail">support@nanogram.ru</strong>
-            </p>
-            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; font-family: monospace; font-size: 14px;">
-                🔍 Код ошибки: <strong id="errorCode">ERR-000</strong><br>
-                <span id="errorDetails" style="font-size: 12px; color: var(--text-muted);"></span>
-            </div>
-            <button onclick="location.reload()" style="margin-top: 30px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">🔄 Перезагрузить</button>
-            <button onclick="history.back()" style="margin-top: 30px; margin-left: 10px; background: var(--bg-tertiary); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">⬅️ Назад</button>
-        </div>
-    </div>
-
-    <!-- СТРАНИЦА БАНА (403) -->
-    <div id="banPage" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; align-items: center; justify-content: center; text-align: center; backdrop-filter: blur(8px);">
-        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 40px; max-width: 500px; border: 1px solid var(--border);">
-            <div style="font-size: 80px;">🚫</div>
-            <h1 style="font-size: 48px; color: var(--danger-red); margin: 20px 0;">403 — Доступ заблокирован</h1>
-            <p style="font-size: 18px; margin-bottom: 20px;">
-                Ваш аккаунт был заблокирован за нарушение правил.
-            </p>
-            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 20px; margin: 20px 0;">
-                <p><strong>Причина блокировки:</strong> <span id="banReasonText"></span></p>
-                <p><strong>Дата блокировки:</strong> <span id="banDateText"></span></p>
-            </div>
-            <p style="font-size: 16px; margin-bottom: 15px;">
-                📧 Напишите нам: <strong>support@nanogram.ru</strong><br>
-                📞 Или позвоните: <strong>+7 987 756 06 84</strong>
-            </p>
-            <button onclick="location.reload()" style="margin-top: 20px; background: var(--accent); border: none; padding: 12px 24px; border-radius: 40px; color: white; cursor: pointer;">🔄 Попробовать снова</button>
-        </div>
-    </div>
-
-    <!-- МОДАЛКА ПРОФИЛЯ -->
+        <!-- МОДАЛКА ПРОФИЛЯ -->
     <div class="modal" id="profileModal">
         <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
         <h2><i class="fas fa-user-circle"></i> Профиль</h2>
@@ -1377,7 +1300,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nanogram</h1>
-            <p>v0.11.0 — Whitelist + Banlist</p>
+            <p>v0.11.5 — IP Ban + Whitelist</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -1486,7 +1409,7 @@
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.11.0';
+        const VERSION = 'v0.11.5';
         
         let socket = null;
         let currentUser = null;
@@ -1610,7 +1533,6 @@
         // ==============================================
         // МОДАЛКИ
         // ==============================================
-        
         function openModal(id) {
             document.getElementById(id).classList.add('active');
             document.getElementById('modalOverlay').classList.add('active');
@@ -1710,7 +1632,6 @@
         function unblockUser(username) {
             socket.send(JSON.stringify({ type: 'unblock_user', username: currentUser, target: username }));
         }
-        
                 // ==============================================
         // РЕГИСТРАЦИЯ
         // ==============================================
@@ -1736,32 +1657,6 @@
             
             connectWebSocket(password);
         }
-        
-        function showErrorPage(code, details = '') {
-            console.log(`🚨 Показана страница ошибки: ${code} — ${details}`);
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appPage').style.display = 'none';
-            document.getElementById('banPage').style.display = 'none';
-            const errorPage = document.getElementById('errorPage');
-            errorPage.style.display = 'flex';
-            document.getElementById('errorCode').textContent = code;
-            document.getElementById('errorDetails').textContent = details;
-            document.getElementById('errorEmail').textContent = SUPPORT_EMAIL;
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'error_report', code: code, details: details, user: currentUser || 'anonymous' }));
-            }
-        }
-        
-        function showBanPage(reason, bannedAt) {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appPage').style.display = 'none';
-            document.getElementById('errorPage').style.display = 'none';
-            const banPage = document.getElementById('banPage');
-            banPage.style.display = 'flex';
-            document.getElementById('banReasonText').textContent = reason || 'Нарушение правил';
-            document.getElementById('banDateText').textContent = new Date(bannedAt).toLocaleString();
-        }
-        
         
         // ==============================================
         // WEBSOCKET
@@ -1797,28 +1692,15 @@
                     document.getElementById('latency').textContent = (Date.now() - data.timestamp) + 'ms';
                     return;
                 }
-                                // ===== БАН =====
-                if (data.type === 'you_are_banned') {
-                    console.log('🚫 Получен бан:', data);
-                    localStorage.clear();
-                    showBanPage(data.reason, data.bannedAt);
-                    if (socket) socket.close();
-                    return;
-                }
-                
-                // ===== ОШИБКИ =====
-                if (data.type === 'error' && data.code) {
-                    showErrorPage(data.code, data.message);
-                    return;
-                }
                 
                 console.log('📩 Получен тип:', data.type);
                 
-                // ===== БАН =====
-                if (data.type === 'you_are_banned') {
-                    console.log('🚫 Получен бан:', data);
+                // ===== РЕДИРЕКТ НА СТРАНИЦУ БАНА =====
+                if (data.type === 'redirect_to_ban') {
+                    console.log('🚫 Перенаправление на страницу бана:', data);
                     localStorage.clear();
-                    showBanPage(data.reason, data.bannedAt);
+                    const url = `/ban.html?reason=${encodeURIComponent(data.reason || 'Нарушение правил')}&date=${data.date || new Date().toISOString()}`;
+                    window.location.href = url;
                     if (socket) socket.close();
                     return;
                 }
@@ -1842,12 +1724,6 @@
                     if (data.privacy) privacySettings = data.privacy;
                     if (data.blocked) blockedUsers = data.blocked;
                     updateHeaderStatus();
-                }
-                
-                // ===== ОШИБКИ =====
-                if (data.type === 'error' && data.code) {
-                    showErrorPage(data.code, data.message);
-                    return;
                 }
                 
                 // ===== ИСТОРИЯ ЧАТА =====
@@ -1946,7 +1822,7 @@
             
             socket.onerror = function(error) {
                 console.error('❌ WebSocket ошибка:', error);
-                showErrorPage('ERR-005', 'Не удалось подключиться к серверу');
+                // Не показываем страницу ошибки, просто пробуем переподключиться
             };
         }
                 // ==============================================
@@ -2022,9 +1898,8 @@
             document.getElementById('chatPanel').classList.add('hidden');
             document.getElementById('chatsPanel').classList.remove('hidden');
         }
-        
-        // ==============================================
-        // СООБЩЕНИЯ (С ИСПРАВЛЕННОЙ АНИМАЦИЕЙ)
+                // ==============================================
+        // СООБЩЕНИЯ (С АНИМАЦИЕЙ)
         // ==============================================
         function sendMessage() {
             const input = document.getElementById('messageInput');
@@ -2034,7 +1909,6 @@
             const time = new Date().toLocaleTimeString();
             const messageId = generateId();
             
-            // Отображаем сообщение сразу (будет скрыто для анимации)
             displayMessage({ 
                 text, 
                 from: currentUser, 
@@ -2044,11 +1918,11 @@
                 temporary: true
             });
             
-            // Находим последнее сообщение
             const lastMsg = document.querySelector('.message.sent:last-child');
             if (lastMsg) {
                 lastMsg.style.opacity = '0';
                 lastMsg.style.transform = 'scale(0.8)';
+                lastMsg.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             }
             
             if (socket && socket.readyState === WebSocket.OPEN) {
@@ -2062,7 +1936,7 @@
                 }));
             }
             
-            // АНИМАЦИЯ ОТПРАВКИ (КОЛБОЧКА — медленнее на 15%)
+            // АНИМАЦИЯ ОТПРАВКИ
             const sendBtn = document.getElementById('sendBtn');
             const btnRect = sendBtn.getBoundingClientRect();
             
@@ -2076,7 +1950,6 @@
             sendBtn.style.opacity = '0';
             sendBtn.style.pointerEvents = 'none';
             
-            // Увеличиваем время полёта (было 400ms, стало 460ms — на 15% медленнее)
             setTimeout(() => {
                 if (lastMsg) {
                     const msgRect = lastMsg.getBoundingClientRect();
@@ -2087,28 +1960,13 @@
                     
                     setTimeout(() => {
                         flask.remove();
-                        // ТРОЙНОЙ ПУЛЬС (появляется-исчезает 3 раза)
-                        let pulseCount = 0;
-                        const pulseInterval = setInterval(() => {
-                            if (pulseCount < 3) {
-                                if (pulseCount % 2 === 0) {
-                                    lastMsg.style.opacity = '1';
-                                    lastMsg.style.transform = 'scale(1.1)';
-                                } else {
-                                    lastMsg.style.opacity = '0';
-                                    lastMsg.style.transform = 'scale(0.9)';
-                                }
-                                pulseCount++;
-                            } else {
-                                clearInterval(pulseInterval);
-                                lastMsg.style.opacity = '1';
-                                lastMsg.style.transform = 'scale(1)';
-                                lastMsg.classList.add('message-pop');
-                                setTimeout(() => lastMsg.classList.remove('message-pop'), 600);
-                                sendBtn.style.opacity = '1';
-                                sendBtn.style.pointerEvents = 'auto';
-                            }
-                        }, 150);
+                        // ПЛАВНОЕ ПОЯВЛЕНИЕ СООБЩЕНИЯ (без пульсации)
+                        lastMsg.style.opacity = '1';
+                        lastMsg.style.transform = 'scale(1)';
+                        lastMsg.classList.add('message-pop');
+                        setTimeout(() => lastMsg.classList.remove('message-pop'), 300);
+                        sendBtn.style.opacity = '1';
+                        sendBtn.style.pointerEvents = 'auto';
                     }, 460);
                 } else {
                     flask.remove();
@@ -2119,7 +1977,6 @@
             
             input.value = '';
         }
-        
         function displayMessage(msg) {
             if (msg.id && receivedMessages.has(msg.id)) {
                 console.log('⚠️ Дубликат пропущен:', msg.id);
@@ -2234,6 +2091,7 @@
                     <div class="stat-item"><div class="stat-value">${stats.messages}</div><div>Сообщений</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.whitelist || 0}</div><div>В белом списке</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.banned || 0}</div><div>В бан-листе</div></div>
+                    <div class="stat-item"><div class="stat-value">${stats.ipBanned || 0}</div><div>IP в бане</div></div>
                 `;
             }
         }
@@ -2313,40 +2171,6 @@
                     .then(reg => console.log('✅ PWA установлен'))
                     .catch(err => console.log('❌ Ошибка PWA:', err));
             });
-        }
-                // ==============================================
-        // ПОДДЕРЖКА
-        // ==============================================
-        const SUPPORT_EMAIL = 'support@nanogram.ru';
-        const SUPPORT_PHONE = '+7 987 756 06 84';
-        
-        // ==============================================
-        // СТРАНИЦЫ ОШИБОК
-        // ==============================================
-        function showErrorPage(code, details = '') {
-            console.log(`🚨 Ошибка: ${code} — ${details}`);
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appPage').style.display = 'none';
-            document.getElementById('banPage').style.display = 'none';
-            const errorPage = document.getElementById('errorPage');
-            if (errorPage) {
-                errorPage.style.display = 'flex';
-                document.getElementById('errorCode').textContent = code;
-                document.getElementById('errorDetails').textContent = details;
-                document.getElementById('errorEmail').textContent = SUPPORT_EMAIL;
-            }
-        }
-        
-        function showBanPage(reason, bannedAt) {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appPage').style.display = 'none';
-            document.getElementById('errorPage').style.display = 'none';
-            const banPage = document.getElementById('banPage');
-            if (banPage) {
-                banPage.style.display = 'flex';
-                document.getElementById('banReasonText').textContent = reason || 'Нарушение правил';
-                document.getElementById('banDateText').textContent = new Date(bannedAt).toLocaleString();
-            }
         }
             </script>
 </body>

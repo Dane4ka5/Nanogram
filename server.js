@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // КОНФИГУРАЦИЯ
 // ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.11.0 — Whitelist + Banlist + Error System';
+const VERSION = 'v0.11.5 — IP Ban + Whitelist';
 const CREATOR_USERNAME = 'Dane4ka5';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
@@ -22,8 +22,8 @@ const SUPPORT_PHONE = '+7 987 756 06 84';
 const users = new Map(); // username -> WebSocket
 const activeUsers = new Map(); // ws -> { username, ip, status, lastSeen }
 
-let userDatabase = {}; // username -> { password, phone, registered, lastSeen }
-let messages = {}; // chatKey -> [messages]
+let userDatabase = {};
+let messages = {};
 let groups = {};
 let channels = {
     'NANOGRAM': {
@@ -47,7 +47,7 @@ let privacySettings = {};
 let suspiciousMessages = [];
 
 // ==============================================
-// БЕЛЫЙ СПИСОК (первый вход)
+// БЕЛЫЙ СПИСОК
 // ==============================================
 let whiteList = { users: [] };
 
@@ -62,7 +62,6 @@ function loadWhiteList() {
             saveWhiteList();
         }
     } catch (e) {
-        console.error('❌ Ошибка загрузки whitelist.json:', e);
         whiteList = { users: [] };
     }
 }
@@ -72,7 +71,6 @@ function saveWhiteList() {
         fs.writeFileSync('./whitelist.json', JSON.stringify(whiteList, null, 2), 'utf8');
         return true;
     } catch (e) {
-        console.error('❌ Ошибка сохранения whitelist.json:', e);
         return false;
     }
 }
@@ -110,7 +108,7 @@ function removeFromWhiteList(username) {
 }
 
 // ==============================================
-// БАН-ЛИСТ (расширенный)
+// БАН-ЛИСТ (по username/phone)
 // ==============================================
 let banList = { banned: [] };
 
@@ -125,7 +123,6 @@ function loadBanList() {
             saveBanList();
         }
     } catch (e) {
-        console.error('❌ Ошибка загрузки banlist.json:', e);
         banList = { banned: [] };
     }
 }
@@ -135,7 +132,6 @@ function saveBanList() {
         fs.writeFileSync('./banlist.json', JSON.stringify(banList, null, 2), 'utf8');
         return true;
     } catch (e) {
-        console.error('❌ Ошибка сохранения banlist.json:', e);
         return false;
     }
 }
@@ -146,19 +142,17 @@ function isInBanList(username, phone, ip) {
     );
 }
 
-function addToBanList(username, phone, ip, reason, video = 'default_ban.mp4', admin = CREATOR_USERNAME) {
+function addToBanList(username, phone, ip, reason, admin = CREATOR_USERNAME) {
     if (!isInBanList(username, phone, ip)) {
         banList.banned.push({
             username,
             phone,
             ip,
-            reason,
-            video,
+            reason: reason || 'Нарушение правил',
             bannedAt: new Date().toISOString(),
             bannedBy: admin
         });
         saveBanList();
-        // Удаляем из белого списка
         removeFromWhiteList(username);
         console.log(`🚫 Добавлен в бан-лист: ${username} — ${reason}`);
         return true;
@@ -185,23 +179,59 @@ function getBanInfo(username, phone, ip) {
 }
 
 // ==============================================
-// КОДЫ ОШИБОК
+// IP БАН-ЛИСТ (ручной)
 // ==============================================
-const ERROR_CODES = {
-    'ERR-001': 'WHITELIST_NOT_FOUND — Пользователь не найден в белом списке',
-    'ERR-002': 'AUTH_FAILED — Неверный пароль или телефон',
-    'ERR-003': 'PHONE_ALREADY_USED — Телефон уже зарегистрирован',
-    'ERR-004': 'USERNAME_EXISTS — Имя пользователя уже занято',
-    'ERR-005': 'WS_CONNECTION_FAILED — Ошибка подключения к серверу',
-    'ERR-006': 'DATABASE_CORRUPTED — Ошибка чтения data.json',
-    'ERR-007': 'BANLIST_CORRUPTED — Ошибка чтения banlist.json',
-    'ERR-008': 'WHITELIST_CORRUPTED — Ошибка чтения whitelist.json',
-    'ERR-009': 'MESSAGE_SEND_FAILED — Не удалось отправить сообщение',
-    'ERR-010': 'FILE_UPLOAD_FAILED — Ошибка загрузки файла'
-};
+let ipBanList = [];
 
-function getErrorDetails(code) {
-    return ERROR_CODES[code] || 'Неизвестная ошибка';
+function loadIpBanList() {
+    try {
+        if (fs.existsSync('./ipbanlist.json')) {
+            const data = fs.readFileSync('./ipbanlist.json', 'utf8');
+            ipBanList = JSON.parse(data);
+            console.log(`✅ IP бан-лист загружен: ${ipBanList.length} IP`);
+        } else {
+            ipBanList = [];
+            saveIpBanList();
+        }
+    } catch (e) {
+        ipBanList = [];
+    }
+}
+
+function saveIpBanList() {
+    try {
+        fs.writeFileSync('./ipbanlist.json', JSON.stringify(ipBanList, null, 2), 'utf8');
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function isIpBanned(ip) {
+    return ipBanList.includes(ip);
+}
+
+function addIpToBanList(ip, reason = 'Нарушение правил', admin = CREATOR_USERNAME) {
+    if (!isIpBanned(ip)) {
+        ipBanList.push(ip);
+        saveIpBanList();
+        logAction('ip_ban', admin, `IP ${ip} — ${reason}`);
+        console.log(`🚫 IP добавлен в бан-лист: ${ip}`);
+        return true;
+    }
+    return false;
+}
+
+function removeIpFromBanList(ip) {
+    const index = ipBanList.indexOf(ip);
+    if (index !== -1) {
+        ipBanList.splice(index, 1);
+        saveIpBanList();
+        logAction('ip_unban', CREATOR_USERNAME, `IP ${ip}`);
+        console.log(`✅ IP удалён из бан-листа: ${ip}`);
+        return true;
+    }
+    return false;
 }
 
 // ==============================================
@@ -252,9 +282,9 @@ function loadAllData() {
         messages = {};
     }
     
-    // Загружаем белый список и бан-лист
     loadWhiteList();
     loadBanList();
+    loadIpBanList();
     
     console.log('='.repeat(60) + '\n');
 }
@@ -351,13 +381,15 @@ const server = http.createServer((req, res) => {
                 suspicious: suspiciousMessages.length,
                 premium: Object.keys(premiumUsers).length,
                 whitelist: whiteList.users.length,
-                banned: banList.banned.length
+                banned: banList.banned.length,
+                ipBanned: ipBanList.length
             },
             files: {
                 dataJson: fs.existsSync('./data.json'),
                 messagesJson: fs.existsSync('./messages.json'),
                 whitelistJson: fs.existsSync('./whitelist.json'),
                 banlistJson: fs.existsSync('./banlist.json'),
+                ipbanlistJson: fs.existsSync('./ipbanlist.json'),
                 usersLog: fs.existsSync('./users.log'),
                 suspiciousLog: fs.existsSync('./suspicious.log'),
                 errorsLog: fs.existsSync('./errors.log')
@@ -404,7 +436,7 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // ===== ТЕНЕВАЯ ПАНЕЛЬ (НОВЫЙ URL) =====
+    // ===== ТЕНЕВАЯ ПАНЕЛЬ =====
     if (req.url.includes('/hu1_vzlomaesh')) {
         let data = {};
         try {
@@ -425,27 +457,48 @@ const server = http.createServer((req, res) => {
             const redirectUrl = '/hu1_vzlomaesh';
             const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
             
-            // БАН (добавление в бан-лист и удаление из белого)
+            // БАН IP
+            if (req.url.includes('action=ban_ip')) {
+                const ip = urlParams.get('ip');
+                const reason = urlParams.get('reason') || 'Нарушение правил';
+                if (ip) {
+                    addIpToBanList(ip, reason, CREATOR_USERNAME);
+                    // Кикаем всех с этим IP
+                    wss.clients.forEach(client => {
+                        const clientIp = client._socket?.remoteAddress?.replace('::ffff:', '');
+                        if (clientIp === ip && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ 
+                                type: 'redirect_to_ban', 
+                                reason: 'Ваш IP-адрес заблокирован', 
+                                date: new Date().toISOString() 
+                            }));
+                            client.close();
+                        }
+                    });
+                }
+            }
+            
+            // РАЗБАН IP
+            if (req.url.includes('action=unban_ip')) {
+                const ip = urlParams.get('ip');
+                if (ip) removeIpFromBanList(ip);
+            }
+            
+            // БАН ПОЛЬЗОВАТЕЛЯ
             if (req.url.includes('action=ban_user')) {
                 const username = urlParams.get('username');
                 const reason = urlParams.get('reason') || 'Нарушение правил';
-                const video = urlParams.get('video') || 'default_ban.mp4';
-                
                 if (username && username !== CREATOR_USERNAME) {
                     const user = userDatabase[username];
                     const phone = user?.phone || '';
                     const ip = whiteList.users.find(u => u.username === username)?.ip || '';
-                    
-                    addToBanList(username, phone, ip, reason, video, CREATOR_USERNAME);
-                    
-                    // Кикаем если онлайн
+                    addToBanList(username, phone, ip, reason, CREATOR_USERNAME);
                     const targetWs = users.get(username);
                     if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                        targetWs.send(JSON.stringify({
-                            type: 'you_are_banned',
-                            reason: reason,
-                            video: video,
-                            bannedAt: new Date().toISOString()
+                        targetWs.send(JSON.stringify({ 
+                            type: 'redirect_to_ban', 
+                            reason: reason, 
+                            date: new Date().toISOString() 
                         }));
                         targetWs.close();
                         users.delete(username);
@@ -454,17 +507,18 @@ const server = http.createServer((req, res) => {
                 }
             }
             
-            // РАЗБАН (удаление из бан-листа и возврат в белый список)
+            // РАЗБАН ПОЛЬЗОВАТЕЛЯ
             if (req.url.includes('action=unban_user')) {
                 const username = urlParams.get('username');
                 if (username) {
                     const banInfo = removeFromBanList(username);
-                    // Возвращаем в белый список
                     const user = userDatabase[username];
                     if (user) {
                         const ip = banInfo?.ip || '';
                         addToWhiteList(username, user.phone, ip);
                     }
+                    if (userDatabase[username]) userDatabase[username].banned = false;
+                    saveData();
                     logAction('admin_unban', CREATOR_USERNAME, username);
                 }
             }
@@ -554,6 +608,7 @@ const server = http.createServer((req, res) => {
             <div class="stat-card"><div class="stat-value">${premiumCount}</div><div class="stat-label">👑 Премиум</div></div>
             <div class="stat-card"><div class="stat-value">${whiteList.users.length}</div><div class="stat-label">✅ В белом списке</div></div>
             <div class="stat-card"><div class="stat-value">${banList.banned.length}</div><div class="stat-label">🚫 В бан-листе</div></div>
+            <div class="stat-card"><div class="stat-value">${ipBanList.length}</div><div class="stat-label">🌐 IP в бане</div></div>
         </div>
         
         <div class="admin-actions">
@@ -566,27 +621,43 @@ const server = http.createServer((req, res) => {
         </div>
         
         <div class="ban-form">
-            <h2>🚫 ДОБАВИТЬ В БАН-ЛИСТ</h2>
+            <h2>🌐 IP БАН-ЛИСТ</h2>
+            <form method="get" class="flex" style="align-items: center;">
+                <input type="hidden" name="action" value="ban_ip">
+                <input type="text" name="ip" placeholder="IP-адрес" required>
+                <input type="text" name="reason" placeholder="Причина">
+                <button type="submit" class="danger-btn">🚫 Забанить IP</button>
+            </form>
+            <h3>📋 Забаненные IP (${ipBanList.length})</h3>
+            <table>
+                <tr><th>IP</th><th>Действие</th></tr>
+                ${ipBanList.map(ip => `
+                    <tr><td><code>${ip}</code></td>
+                    <td><form method="get"><input type="hidden" name="action" value="unban_ip"><input type="hidden" name="ip" value="${ip}"><button type="submit" class="success-btn">✅ Разбанить</button></form></td></tr>
+                `).join('')}
+            </table>
+        </div>
+        
+        <div class="ban-form">
+            <h2>🚫 БАН-ЛИСТ (по пользователю)</h2>
             <form method="get" class="flex" style="align-items: center;">
                 <input type="hidden" name="action" value="ban_user">
                 <input type="text" name="username" placeholder="Имя пользователя" required>
-                <input type="text" name="reason" placeholder="Причина бана">
-                <input type="text" name="video" placeholder="Видео (default_ban.mp4)">
+                <input type="text" name="reason" placeholder="Причина">
                 <button type="submit" class="danger-btn">🚫 Забанить</button>
             </form>
-            <p style="font-size: 12px; color: #8b949e; margin-top: 10px;">⚠️ Забаненный пользователь удаляется из белого списка и не сможет войти</p>
         </div>
         
         <div class="panel">
             <h2>👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ</h2>
             <h3>✅ БЕЛЫЙ СПИСОК (${whiteList.users.length})</h3>
             <table>
-                <tr><th>Имя</th><th>Телефон</th><th>IP</th><th>Дата добавления</th><th>Действия</th></tr>
+                <tr><th>Имя</th><th>Телефон</th><th>IP</th><th>Дата</th><th>Действия</th></tr>
                 ${whiteList.users.map(user => `
                     <tr class="whitelist-row">
                         <td><strong>${user.username}</strong></td>
                         <td>${user.phone || '—'}</td>
-                        <td>${user.ip || '—'}</td>
+                        <td><code>${user.ip || '—'}</code></td>
                         <td>${new Date(user.addedAt).toLocaleString()}</td>
                         <td>
                             <form method="get" style="display:inline;">
@@ -599,17 +670,16 @@ const server = http.createServer((req, res) => {
                 `).join('')}
             </table>
             
-            <h3 style="margin-top: 30px;">🚫 БАН-ЛИСТ (${banList.banned.length})</h3>
+            <h3>🚫 БАН-ЛИСТ (${banList.banned.length})</h3>
             <table>
-                <tr><th>Имя</th><th>Телефон</th><th>IP</th><th>Причина</th><th>Дата</th><th>Кем</th><th>Действие</th></tr>
+                <tr><th>Имя</th><th>Телефон</th><th>IP</th><th>Причина</th><th>Дата</th><th>Действие</th></tr>
                 ${banList.banned.map(ban => `
                     <tr class="banned-row">
                         <td><strong>${ban.username}</strong></td>
                         <td>${ban.phone || '—'}</td>
-                        <td>${ban.ip || '—'}</td>
-                        <td>${ban.reason || 'Нарушение правил'}</td>
+                        <td><code>${ban.ip || '—'}</code></td>
+                        <td>${ban.reason}</td>
                         <td>${new Date(ban.bannedAt).toLocaleString()}</td>
-                        <td>${ban.bannedBy || 'админ'}</td>
                         <td>
                             <form method="get" style="display:inline;">
                                 <input type="hidden" name="action" value="unban_user">
@@ -621,9 +691,9 @@ const server = http.createServer((req, res) => {
                 `).join('')}
             </table>
             
-            <h3 style="margin-top: 30px;">📋 ВСЕ ПОЛЬЗОВАТЕЛИ (${usersCount})</h3>
+            <h3>📋 ВСЕ ПОЛЬЗОВАТЕЛИ (${usersCount})</h3>
             <table>
-                <tr><th>Имя</th><th>Телефон</th><th>Премиум</th><th>В белом списке</th><th>В бан-листе</th><th>Действия</th></tr>
+                <tr><th>Имя</th><th>Телефон</th><th>Премиум</th><th>В белом</th><th>В бане</th><th>Действия</th></tr>
                 ${Object.entries(data.users || {}).sort().map(([name, info]) => {
                     const inWhitelist = whiteList.users.some(u => u.username === name);
                     const inBanlist = banList.banned.some(b => b.username === name);
@@ -706,7 +776,7 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws, req) => {
-    const clientIp = req.socket.remoteAddress;
+    const clientIp = req.socket.remoteAddress?.replace('::ffff:', '') || 'unknown';
     console.log(`🔌 Новое подключение: ${clientIp}`);
     
     let currentUser = null;
@@ -734,7 +804,7 @@ wss.on('connection', (ws, req) => {
             
             console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
 
-                        // ===== РЕГИСТРАЦИЯ / ВХОД =====
+            // ===== РЕГИСТРАЦИЯ / ВХОД =====
             if (data.type === 'register') {
                 const { username, password, phone, privacyAccepted } = data;
                 
@@ -751,17 +821,26 @@ wss.on('connection', (ws, req) => {
                 const cleanUsername = username.trim();
                 const cleanPhone = phone.trim().replace(/\s+/g, '');
                 
-                // ===== ПРОВЕРКА БАН-ЛИСТА (СНАЧАЛА) =====
+                // ===== ПРОВЕРКА IP БАНА (САМАЯ ПЕРВАЯ) =====
+                if (isIpBanned(clientIp)) {
+                    logAction('ip_banned_attempt', cleanUsername, `IP ${clientIp} заблокирован`);
+                    ws.send(JSON.stringify({
+                        type: 'redirect_to_ban',
+                        reason: 'Ваш IP-адрес заблокирован',
+                        date: new Date().toISOString()
+                    }));
+                    ws.close();
+                    return;
+                }
+                
+                // ===== ПРОВЕРКА БАН-ЛИСТА =====
                 if (isInBanList(cleanUsername, cleanPhone, clientIp)) {
                     const banInfo = getBanInfo(cleanUsername, cleanPhone, clientIp);
                     logAction('banned_attempt', cleanUsername, `Попытка входа из бан-листа (${banInfo?.reason})`);
                     ws.send(JSON.stringify({
-                        type: 'you_are_banned',
+                        type: 'redirect_to_ban',
                         reason: banInfo?.reason || 'Нарушение правил',
-                        video: banInfo?.video || 'default_ban.mp4',
-                        bannedAt: banInfo?.bannedAt,
-                        supportEmail: SUPPORT_EMAIL,
-                        supportPhone: SUPPORT_PHONE
+                        date: banInfo?.bannedAt || new Date().toISOString()
                     }));
                     ws.close();
                     return;
@@ -770,11 +849,9 @@ wss.on('connection', (ws, req) => {
                 // Проверка старого формата бана
                 if (userDatabase[cleanUsername]?.banned) {
                     ws.send(JSON.stringify({
-                        type: 'you_are_banned',
+                        type: 'redirect_to_ban',
                         reason: userDatabase[cleanUsername].banReason || 'Нарушение правил',
-                        bannedAt: userDatabase[cleanUsername].bannedAt,
-                        supportEmail: SUPPORT_EMAIL,
-                        supportPhone: SUPPORT_PHONE
+                        date: userDatabase[cleanUsername].bannedAt
                     }));
                     ws.close();
                     return;
@@ -810,7 +887,7 @@ wss.on('connection', (ws, req) => {
                     saveData();
                     logAction('login', cleanUsername, clientIp);
                     
-                    // ===== ДОБАВЛЯЕМ В БЕЛЫЙ СПИСОК (ПОСЛЕ УСПЕШНОГО ВХОДА) =====
+                    // Добавляем в белый список после успешного входа
                     if (!isInWhiteList(cleanUsername, cleanPhone, clientIp)) {
                         addToWhiteList(cleanUsername, cleanPhone, clientIp);
                     }
@@ -874,7 +951,7 @@ wss.on('connection', (ws, req) => {
                     saveData();
                     logAction('register', cleanUsername, clientIp);
                     
-                    // ===== ДОБАВЛЯЕМ В БЕЛЫЙ СПИСОК (ПОСЛЕ УСПЕШНОЙ РЕГИСТРАЦИИ) =====
+                    // Добавляем в белый список после успешной регистрации
                     addToWhiteList(cleanUsername, cleanPhone, clientIp);
                     
                     ws.send(JSON.stringify({
@@ -919,6 +996,10 @@ wss.on('connection', (ws, req) => {
                 }
                 
                 // Проверка бана перед отправкой
+                if (isIpBanned(clientIp)) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Ваш IP заблокирован' }));
+                    return;
+                }
                 if (isInBanList(from, userDatabase[from]?.phone, clientIp)) {
                     ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
                     return;
@@ -1026,58 +1107,61 @@ wss.on('connection', (ws, req) => {
             }
 
             // ===== АДМИН-КОМАНДЫ ЧЕРЕЗ WEBSOCKET =====
-            
-            // БАН (через WebSocket)
+            if (data.type === 'admin_ban_ip') {
+                if (data.username !== CREATOR_USERNAME) return;
+                const { ip, reason } = data;
+                if (ip) {
+                    addIpToBanList(ip, reason || 'Нарушение правил', CREATOR_USERNAME);
+                    // Кикаем всех с этим IP
+                    wss.clients.forEach(client => {
+                        const clientIp = client._socket?.remoteAddress?.replace('::ffff:', '');
+                        if (clientIp === ip && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ 
+                                type: 'redirect_to_ban', 
+                                reason: 'Ваш IP-адрес заблокирован', 
+                                date: new Date().toISOString() 
+                            }));
+                            client.close();
+                        }
+                    });
+                    ws.send(JSON.stringify({ type: 'ip_banned', ip, reason }));
+                }
+            }
+
+            if (data.type === 'admin_unban_ip') {
+                if (data.username !== CREATOR_USERNAME) return;
+                const { ip } = data;
+                if (ip) removeIpFromBanList(ip);
+                ws.send(JSON.stringify({ type: 'ip_unbanned', ip }));
+            }
+
             if (data.type === 'admin_ban') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
-                    return;
-                }
-                const { target, reason, video } = data;
-                if (!target) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Не указан пользователь' }));
-                    return;
-                }
-                if (target === CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Нельзя забанить создателя' }));
-                    return;
-                }
-                
+                if (data.username !== CREATOR_USERNAME) return;
+                const { target, reason } = data;
+                if (!target || target === CREATOR_USERNAME) return;
                 const user = userDatabase[target];
                 const phone = user?.phone || '';
-                const ip = whiteList.users.find(u => u.username === target)?.ip || clientIp;
-                
-                addToBanList(target, phone, ip, reason || 'Нарушение правил', video || 'default_ban.mp4', CREATOR_USERNAME);
-                
+                const ip = whiteList.users.find(u => u.username === target)?.ip || '';
+                addToBanList(target, phone, ip, reason || 'Нарушение правил', CREATOR_USERNAME);
                 const targetWs = users.get(target);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                    targetWs.send(JSON.stringify({
-                        type: 'you_are_banned',
-                        reason: reason || 'Нарушение правил',
-                        video: video || 'default_ban.mp4',
-                        bannedAt: new Date().toISOString(),
-                        supportEmail: SUPPORT_EMAIL,
-                        supportPhone: SUPPORT_PHONE
+                    targetWs.send(JSON.stringify({ 
+                        type: 'redirect_to_ban', 
+                        reason: reason || 'Нарушение правил', 
+                        date: new Date().toISOString() 
                     }));
                     targetWs.close();
                     users.delete(target);
                 }
-                ws.send(JSON.stringify({ type: 'user_banned', target, reason: reason || 'Нарушение правил' }));
+                ws.send(JSON.stringify({ type: 'user_banned', target, reason }));
                 logAction('admin_ban', data.username, `${target} (${reason})`);
-                broadcastUserList();
             }
 
-            // РАЗБАН (через WebSocket)
             if (data.type === 'admin_unban') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
-                    return;
-                }
+                if (data.username !== CREATOR_USERNAME) return;
                 const { target } = data;
                 if (!target) return;
-                
                 const banInfo = removeFromBanList(target);
-                // Возвращаем в белый список
                 const user = userDatabase[target];
                 if (user) {
                     const ip = banInfo?.ip || '';
@@ -1085,24 +1169,12 @@ wss.on('connection', (ws, req) => {
                 }
                 if (userDatabase[target]) userDatabase[target].banned = false;
                 saveData();
-                
-                // Отправляем информацию о разбане (для страницы реабилитации)
-                ws.send(JSON.stringify({ 
-                    type: 'user_unbanned_with_reason', 
-                    target, 
-                    reason: banInfo?.reason || 'Нарушение правил',
-                    video: banInfo?.video || 'default_ban.mp4'
-                }));
+                ws.send(JSON.stringify({ type: 'user_unbanned', target }));
                 logAction('admin_unban', data.username, target);
-                broadcastUserList();
             }
 
-            // ВЫДАТЬ ПРЕМИУМ
             if (data.type === 'admin_give_premium') {
-                if (data.username !== CREATOR_USERNAME) {
-                    ws.send(JSON.stringify({ type: 'error', message: '❌ Только для создателя' }));
-                    return;
-                }
+                if (data.username !== CREATOR_USERNAME) return;
                 const { target, months } = data;
                 if (!target || !userDatabase[target]) return;
                 const expires = months === 999 ? 'never' : new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -1114,7 +1186,6 @@ wss.on('connection', (ws, req) => {
                 logAction('admin_give_premium', CREATOR_USERNAME, `${target} (${months} мес)`);
             }
 
-            // СТАТИСТИКА
             if (data.type === 'get_stats') {
                 if (data.username !== CREATOR_USERNAME) return;
                 const stats = {
@@ -1123,13 +1194,13 @@ wss.on('connection', (ws, req) => {
                     groups: Object.keys(groups).length, channels: Object.keys(channels).length,
                     premium: Object.keys(premiumUsers).length, suspicious: suspiciousMessages.length,
                     whitelist: whiteList.users.length, banned: banList.banned.length,
+                    ipBanned: ipBanList.length,
                     uptime: process.uptime(), memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB', version: VERSION
                 };
                 ws.send(JSON.stringify({ type: 'stats', stats }));
                 logAction('admin_stats', data.username, 'Запрос статистики');
             }
 
-            // ПОДОЗРИТЕЛЬНЫЕ
             if (data.type === 'get_suspicious') {
                 if (data.username !== CREATOR_USERNAME) return;
                 ws.send(JSON.stringify({ type: 'suspicious_list', messages: suspiciousMessages.slice(-100).reverse() }));
@@ -1226,8 +1297,7 @@ wss.on('connection', (ws, req) => {
                 ws.send(JSON.stringify({ 
                     type: 'error', 
                     message: '❌ Внутренняя ошибка сервера',
-                    code: 'ERR-000',
-                    details: error.message
+                    code: 'ERR-000'
                 })); 
             } catch (e) {}
         }
@@ -1284,6 +1354,7 @@ setInterval(() => {
     saveMessages();
     saveWhiteList();
     saveBanList();
+    saveIpBanList();
     console.log(`💾 Автосохранение в ${new Date().toLocaleTimeString()}`);
 }, SAVE_INTERVAL);
 
@@ -1299,6 +1370,7 @@ setInterval(() => {
         if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
         if (fs.existsSync('./whitelist.json')) fs.copyFileSync('./whitelist.json', `./backups/whitelist_${timestamp}.json`);
         if (fs.existsSync('./banlist.json')) fs.copyFileSync('./banlist.json', `./backups/banlist_${timestamp}.json`);
+        if (fs.existsSync('./ipbanlist.json')) fs.copyFileSync('./ipbanlist.json', `./backups/ipbanlist_${timestamp}.json`);
         if (fs.existsSync('./users.log')) fs.copyFileSync('./users.log', `./backups/users_${timestamp}.log`);
         if (fs.existsSync('./suspicious.log')) fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
         if (fs.existsSync('./errors.log')) fs.copyFileSync('./errors.log', `./backups/errors_${timestamp}.log`);
@@ -1307,148 +1379,7 @@ setInterval(() => {
         if (backups.length > MAX_BACKUPS) {
             backups.slice(MAX_BACKUPS).forEach(f => {
                 const base = f.replace('data_', '');
-                ['data_', 'messages_', 'whitelist_', 'banlist_', 'users_', 'suspicious_', 'errors_'].forEach(prefix => {
-                    const file = `./backups/${prefix}${base}`;
-                    if (fs.existsSync(file)) fs.unlinkSync(file);
-                });
-            });
-        }
-        console.log(`💾 Бэкап создан: ${timestamp}`);
-    } catch (e) {
-        console.error('❌ Ошибка бэкапа:', e);
-    }
-}, 60 * 60 * 1000);
-
-// ==============================================
-// ОЧИСТКА НЕАКТИВНЫХ СОЕДИНЕНИЙ
-// ==============================================
-setInterval(() => {
-    let cleaned = 0;
-    wss.clients.forEach(ws => {
-        if (ws.readyState !== WebSocket.OPEN) cleaned++;
-    });
-    if (cleaned > 0) console.log(`🧹 Очищено ${cleaned} неактивных соединений`);
-}, 5 * 60 * 1000);
-
-// ==============================================
-// ЗАПУСК СЕРВЕРА
-// ==============================================
-loadAllData();
-
-server.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION}`);
-    console.log('='.repeat(70));
-    console.log(`📡 Порт: ${PORT}`);
-    console.log(`👑 Создатель: ${CREATOR_USERNAME}`);
-    console.log(`📧 Поддержка: ${SUPPORT_EMAIL}`);
-    console.log(`📞 Телефон: ${SUPPORT_PHONE}`);
-    console.log(`\n📊 СТАТИСТИКА:`);
-    console.log(`   👥 Пользователей: ${Object.keys(userDatabase).length}`);
-    console.log(`   🟢 Онлайн сейчас: ${users.size}`);
-    console.log(`   💬 Чатов: ${Object.keys(messages).length}`);
-    console.log(`   👥 Групп: ${Object.keys(groups).length}`);
-    console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
-    console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
-    console.log(`   ✅ В белом списке: ${whiteList.users.length}`);
-    console.log(`   🚫 В бан-листе: ${banList.banned.length}`);
-    console.log(`\n🌐 ДОСТУП:`);
-    console.log(`   📱 http://localhost:${PORT}`);
-    console.log(`   🕵️ /hu1_vzlomaesh - теневая панель`);
-    console.log(`   📜 /privacy - политика`);
-    console.log(`   🔍 /diagnostic - диагностика`);
-    console.log('='.repeat(70) + '\n');
-    
-    logAction('system', 'SERVER', `Запуск ${VERSION}`);
-});
-
-// ==============================================
-// ОБРАБОТКА СИГНАЛОВ
-// ==============================================
-process.on('SIGINT', () => {
-    console.log('\n📦 Сохранение перед выходом...');
-    saveData();
-    saveMessages();
-    saveWhiteList();
-    saveBanList();
-    logAction('system', 'SERVER', 'Остановка');
-    console.log('✅ Данные сохранены. Сервер остановлен.');
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    console.log('\n📦 Сохранение перед выходом...');
-    saveData();
-    saveMessages();
-    saveWhiteList();
-    saveBanList();
-    process.exit(0);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('❌ Непойманная ошибка:', err);
-    logError('ERR-FATAL', 'SYSTEM', err.message);
-    saveData();
-    saveMessages();
-    saveWhiteList();
-    saveBanList();
-});
-// ==============================================
-// ФУНКЦИИ РАССЫЛКИ
-// ==============================================
-function broadcastUserList() {
-    const userList = Array.from(users.keys());
-    const message = JSON.stringify({ type: 'user_list', users: userList, online: userList.length, timestamp: Date.now() });
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) client.send(message);
-    });
-}
-
-function broadcastStatusUpdate(username, status) {
-    const message = JSON.stringify({ type: 'status_update', username, status, timestamp: Date.now() });
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) client.send(message);
-    });
-}
-
-function broadcastToAll(message) {
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(message));
-    });
-}
-
-// ==============================================
-// ПЕРИОДИЧЕСКОЕ СОХРАНЕНИЕ
-// ==============================================
-setInterval(() => {
-    saveData();
-    saveMessages();
-    saveWhiteList();
-    saveBanList();
-    console.log(`💾 Автосохранение в ${new Date().toLocaleTimeString()}`);
-}, SAVE_INTERVAL);
-
-// ==============================================
-// БЭКАПЫ (КАЖДЫЙ ЧАС)
-// ==============================================
-setInterval(() => {
-    try {
-        if (!fs.existsSync('./backups')) fs.mkdirSync('./backups');
-        const timestamp = Date.now();
-        
-        if (fs.existsSync('./data.json')) fs.copyFileSync('./data.json', `./backups/data_${timestamp}.json`);
-        if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${timestamp}.json`);
-        if (fs.existsSync('./whitelist.json')) fs.copyFileSync('./whitelist.json', `./backups/whitelist_${timestamp}.json`);
-        if (fs.existsSync('./banlist.json')) fs.copyFileSync('./banlist.json', `./backups/banlist_${timestamp}.json`);
-        if (fs.existsSync('./users.log')) fs.copyFileSync('./users.log', `./backups/users_${timestamp}.log`);
-        if (fs.existsSync('./suspicious.log')) fs.copyFileSync('./suspicious.log', `./backups/suspicious_${timestamp}.log`);
-        if (fs.existsSync('./errors.log')) fs.copyFileSync('./errors.log', `./backups/errors_${timestamp}.log`);
-        
-        const backups = fs.readdirSync('./backups').filter(f => f.startsWith('data_')).sort().reverse();
-        if (backups.length > MAX_BACKUPS) {
-            backups.slice(MAX_BACKUPS).forEach(f => {
-                const base = f.replace('data_', '');
-                ['data_', 'messages_', 'whitelist_', 'banlist_', 'users_', 'suspicious_', 'errors_'].forEach(prefix => {
+                ['data_', 'messages_', 'whitelist_', 'banlist_', 'ipbanlist_', 'users_', 'suspicious_', 'errors_'].forEach(prefix => {
                     const file = `./backups/${prefix}${base}`;
                     if (fs.existsSync(file)) fs.unlinkSync(file);
                 });
@@ -1492,16 +1423,18 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   🚨 Подозрительных: ${suspiciousMessages.length}`);
     console.log(`   ✅ В белом списке: ${whiteList.users.length}`);
     console.log(`   🚫 В бан-листе: ${banList.banned.length}`);
+    console.log(`   🌐 IP в бане: ${ipBanList.length}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
     console.log(`   🕵️ /hu1_vzlomaesh - теневая панель`);
     console.log(`   📜 /privacy - политика`);
     console.log(`   🔍 /diagnostic - диагностика`);
+    console.log(`\n🚫 СТРАНИЦА БАНА:`);
+    console.log(`   📄 /ban.html - страница 403 (отдельный файл)`);
     console.log('='.repeat(70) + '\n');
     
     logAction('system', 'SERVER', `Запуск ${VERSION}`);
 });
-
 // ==============================================
 // ОБРАБОТКА СИГНАЛОВ
 // ==============================================
@@ -1511,6 +1444,7 @@ process.on('SIGINT', () => {
     saveMessages();
     saveWhiteList();
     saveBanList();
+    saveIpBanList();
     logAction('system', 'SERVER', 'Остановка');
     console.log('✅ Данные сохранены. Сервер остановлен.');
     process.exit(0);
@@ -1522,6 +1456,7 @@ process.on('SIGTERM', () => {
     saveMessages();
     saveWhiteList();
     saveBanList();
+    saveIpBanList();
     process.exit(0);
 });
 
@@ -1532,4 +1467,5 @@ process.on('uncaughtException', (err) => {
     saveMessages();
     saveWhiteList();
     saveBanList();
+    saveIpBanList();
 });
