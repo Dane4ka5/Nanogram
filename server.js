@@ -820,43 +820,7 @@ wss.on('connection', (ws, req) => {
                 
                 const cleanUsername = username.trim();
                 const cleanPhone = phone.trim().replace(/\s+/g, '');
-                
-                // ===== ПРОВЕРКА IP БАНА (САМАЯ ПЕРВАЯ) =====
-                if (isIpBanned(clientIp)) {
-                    logAction('ip_banned_attempt', cleanUsername, `IP ${clientIp} заблокирован`);
-                    ws.send(JSON.stringify({
-                        type: 'redirect_to_ban',
-                        reason: 'Ваш IP-адрес заблокирован',
-                        date: new Date().toISOString()
-                    }));
-                    ws.close();
-                    return;
-                }
-                
-                // ===== ПРОВЕРКА БАН-ЛИСТА =====
-                if (isInBanList(cleanUsername, cleanPhone, clientIp)) {
-                    const banInfo = getBanInfo(cleanUsername, cleanPhone, clientIp);
-                    logAction('banned_attempt', cleanUsername, `Попытка входа из бан-листа (${banInfo?.reason})`);
-                    ws.send(JSON.stringify({
-                        type: 'redirect_to_ban',
-                        reason: banInfo?.reason || 'Нарушение правил',
-                        date: banInfo?.bannedAt || new Date().toISOString()
-                    }));
-                    ws.close();
-                    return;
-                }
-                
-                // Проверка старого формата бана
-                if (userDatabase[cleanUsername]?.banned) {
-                    ws.send(JSON.stringify({
-                        type: 'redirect_to_ban',
-                        reason: userDatabase[cleanUsername].banReason || 'Нарушение правил',
-                        date: userDatabase[cleanUsername].bannedAt
-                    }));
-                    ws.close();
-                    return;
-                }
-                
+                            
                 // Существующий пользователь
                 if (userDatabase[cleanUsername]) {
                     if (userDatabase[cleanUsername].password !== password) {
@@ -886,6 +850,11 @@ wss.on('connection', (ws, req) => {
                     
                     saveData();
                     logAction('login', cleanUsername, clientIp);
+                     
+                    // ===== БЕЛЫЙ СПИСОК (автоматически) =====
+                    if (!isInWhiteList(cleanUsername, cleanPhone, clientIp)) {
+                     addToWhiteList(cleanUsername, cleanPhone, clientIp);
+                     }
                     
                     // Добавляем в белый список после успешного входа
                     if (!isInWhiteList(cleanUsername, cleanPhone, clientIp)) {
