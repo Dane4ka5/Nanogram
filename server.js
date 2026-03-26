@@ -26,9 +26,9 @@ let userDatabase = {};
 let messages = {};
 let groups = {};
 let channels = {
-    'NANOGRAM': {
-        id: 'NANOGRAM',
-        name: 'NANOGRAM',
+    'NEXORA': {
+        id: 'NEXORA',
+        name: 'NEXORA',
         description: 'Официальный канал',
         creator: 'Dane4ka5',
         admins: ['Dane4ka5'],
@@ -406,7 +406,7 @@ const server = http.createServer((req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📜 Политика Nanogram</title>
+    <title>📜 Политика Nexora</title>
     <style>
         body { background: #0a0c10; color: #fff; font-family: sans-serif; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: #161b22; padding: 40px; border-radius: 20px; }
@@ -418,7 +418,7 @@ const server = http.createServer((req, res) => {
 </head>
 <body>
     <div class="container">
-        <h1>📜 Политика конфиденциальности Nanogram</h1>
+        <h1>📜 Политика конфиденциальности Nexora</h1>
         <h2>1. Какие данные мы собираем</h2>
         <p>• Имя пользователя</p>
         <p>• Номер телефона</p>
@@ -595,7 +595,7 @@ const server = http.createServer((req, res) => {
 </head>
 <body>
     <div class="container">
-        <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NANOGRAM</h1>
+        <h1>🔐 ТЕНЕВАЯ ПАНЕЛЬ NEXORA</h1>
         <p>Добро пожаловать, Создатель! 👑</p>
         <p>📧 Поддержка: ${SUPPORT_EMAIL} | 📞 ${SUPPORT_PHONE}</p>
         
@@ -785,7 +785,7 @@ wss.on('connection', (ws, req) => {
         type: 'connection_established',
         version: VERSION,
         timestamp: Date.now(),
-        message: 'Подключено к серверу Nanogram'
+        message: 'Подключено к серверу Nexora'
     }));
 
     ws.on('message', (message) => {
@@ -1377,7 +1377,7 @@ loadAllData();
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log(`🚀 Nanogram ${VERSION}`);
+    console.log(`🚀 Nexora ${VERSION}`);
     console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`👑 Создатель: ${CREATOR_USERNAME}`);

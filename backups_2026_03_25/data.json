@@ -23,19 +23,6 @@
   },
   "groups": {},
   "channels": {
-    "NEXORA": {
-      "id": "NEXORA",
-      "name": "NEXORA",
-      "description": "Официальный канал",
-      "creator": "Dane4ka5",
-      "admins": [
-        "Dane4ka5"
-      ],
-      "subscribers": [],
-      "posts": [],
-      "avatar": "🧪",
-      "createdAt": "2026-03-26T19:38:47.257Z"
-    },
     "NANOGRAM": {
       "name": "NANOGRAM",
       "description": "Официальный канал обновлений",
@@ -87,5 +74,5 @@
   },
   "blockedUsers": {},
   "privacySettings": {},
-  "lastSaved": "2026-03-26T19:43:53.014Z"
+  "lastSaved": "2026-03-24T20:22:39.965Z"
 }
