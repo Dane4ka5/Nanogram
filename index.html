@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Nexora v0.12.0 — Unread Counter</title>
+    <title>Nexora — быстрый мессенджер</title>
     
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -13,10 +13,8 @@
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
     <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- Звук уведомлений -->
     <audio id="notificationSound" preload="auto" style="display: none;">
         <source src="/sounds/msg.mp3" type="audio/mpeg">
     </audio>
@@ -188,12 +186,12 @@
         .profile-name { font-weight: 700; font-size: 18px; margin-bottom: 4px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
         .profile-status { font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
         .status-icon { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .donation-btn {
+        .premium-btn {
             background: linear-gradient(135deg, var(--premium-gold), #ffa500); color: #000; border: none;
             padding: 14px 20px; border-radius: 40px; font-weight: bold; cursor: pointer; width: calc(100% - 32px);
             margin: 10px 16px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease;
         }
-        .donation-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3); }
+        .premium-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3); }
         .search-box { padding: 10px 18px; margin: 0 16px 16px; border-radius: 40px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-secondary); }
         .search-box i { color: var(--text-secondary); }
         .search-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 15px; }
@@ -380,6 +378,7 @@
             min-width: 18px;
             text-align: center;
             display: inline-block;
+            margin-left: 8px;
         }
     </style>
 </head>
@@ -536,123 +535,11 @@
         <button onclick="shareYoutube()">📤 Отправить</button>
     </div>
 
-        <!-- СТРАНИЦА ВВОДА ПАРОЛЯ (ДОСТУП К NEXORA ДО РЕЛИЗА) -->
-    <div id="nexoraAccessPage" class="access-container">
-        <div class="access-card">
-            <h1>🧪 Nexora</h1>
-            <p>Закрытый доступ<br><small>до официального релиза 15 апреля 2026</small></p>
-            <input type="password" id="nexoraPassword" class="access-input" placeholder="Пароль доступа">
-            <button class="access-btn" onclick="checkNexoraAccess()">🔓 Войти</button>
-            <p id="accessError" class="access-error"></p>
-            <p class="access-hint">* Только для тестировщиков</p>
-        </div>
-    </div>
-
-    <style>
-        .access-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0a0c10, #2d1b3a, #4a2b5c);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 20000;
-            backdrop-filter: blur(4px);
-        }
-        .access-card {
-            background: var(--bg-secondary);
-            padding: 40px;
-            border-radius: 50px;
-            text-align: center;
-            border: 1px solid var(--border);
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-        }
-        .access-card h1 {
-            font-size: 48px;
-            color: var(--accent);
-            margin-bottom: 10px;
-        }
-        .access-card p {
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-        }
-        .access-input {
-            width: 100%;
-            padding: 14px 20px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            color: var(--text-primary);
-            font-size: 18px;
-            text-align: center;
-            margin: 20px 0;
-            letter-spacing: 2px;
-        }
-        .access-btn {
-            background: var(--accent);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-        }
-        .access-btn:hover {
-            background: var(--accent-hover);
-            transform: scale(1.02);
-        }
-        .access-error {
-            color: var(--danger-red);
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        .access-hint {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 20px;
-        }
-    </style>
-
-    <script>
-        const NEXORA_ACCESS_PASSWORD = 'nexora2026';
-        
-        function checkNexoraAccess() {
-            const password = document.getElementById('nexoraPassword').value.trim();
-            if (password === NEXORA_ACCESS_PASSWORD) {
-                localStorage.setItem('nexora_access', 'granted');
-                document.getElementById('nexoraAccessPage').style.display = 'none';
-                document.getElementById('loginPage').style.display = 'flex';
-            } else {
-                document.getElementById('accessError').textContent = '❌ Неверный пароль доступа';
-            }
-        }
-        
-        // При загрузке проверяем, есть ли уже доступ
-        window.addEventListener('load', function() {
-            const hasAccess = localStorage.getItem('nexora_access') === 'granted';
-            if (hasAccess) {
-                document.getElementById('nexoraAccessPage').style.display = 'none';
-                document.getElementById('loginPage').style.display = 'flex';
-            } else {
-                document.getElementById('nexoraAccessPage').style.display = 'flex';
-                document.getElementById('loginPage').style.display = 'none';
-            }
-        });
-    </script>
-
     <!-- СТРАНИЦА ВХОДА -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nexora</h1>
-            <p>v0.12.0 — Unread Counter</p>
+            <p>безопасный мессенджер</p>
             
             <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
@@ -667,7 +554,7 @@
             <button class="login-btn" onclick="register()">🚀 Войти</button>
             
             <div style="margin-top: 10px;">
-                <span class="privacy-link" onclick="openDonateModal()">💰 Донаты</span>
+                <span class="privacy-link" onclick="openPremiumModal()">👑 Премиум</span>
                 <span style="margin: 0 10px;">|</span>
                 <span class="privacy-link" onclick="openPrivacyPolicyModal()">📜 Политика</span>
             </div>
@@ -676,7 +563,6 @@
 
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div id="appPage" class="app-container" style="display: none;">
-        <!-- ЛЕВАЯ ПАНЕЛЬ -->
         <div class="chats-panel" id="chatsPanel">
             <div class="panel-header">
                 <h2>🧪 <span>Nexora</span></h2>
@@ -710,8 +596,8 @@
                 </div>
             </div>
             
-            <button class="donation-btn" onclick="openDonateModal()">
-                <i class="fas fa-heart"></i> Поддержать
+            <button class="premium-btn" onclick="openPremiumModal()">
+                <i class="fas fa-crown"></i> Премиум
             </button>
             
             <div class="search-box">
@@ -733,7 +619,6 @@
             </button>
         </div>
         
-        <!-- ПРАВАЯ ПАНЕЛЬ -->
         <div class="chat-panel hidden" id="chatPanel">
             <div class="chat-header">
                 <button class="mobile-back-btn" onclick="hideChatPanel()"><i class="fas fa-arrow-left"></i></button>
@@ -756,13 +641,611 @@
             </div>
         </div>
     </div>
+                --message-received: #2d333b;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            --premium-gold: #ffd700;
+            --creator-purple: #8a2be2;
+            --success-green: #2ea043;
+            --danger-red: #da3633;
+            --online-green: #2ea043;
+            --away-yellow: #f0b400;
+            --busy-red: #da3633;
+        }
 
-    <script>
+        body.light-theme {
+            --bg-primary: linear-gradient(135deg, #0a0c10 0%, #2d1b3a 20%, #9f8be5 40%, #d9c9ff 60%, #f8f0ff 80%);
+            --bg-secondary: rgba(255, 255, 255, 0.9);
+            --bg-tertiary: rgba(255, 255, 255, 0.95);
+            --text-primary: #2d2a3a;
+            --text-secondary: #5a4f7a;
+            --text-muted: #7a6b9a;
+            --accent: #9f8be5;
+            --accent-hover: #b09cff;
+            --border: rgba(160, 140, 200, 0.3);
+            --hover: rgba(200, 180, 255, 0.3);
+            --message-sent: #9f8be5;
+            --message-received: rgba(255, 255, 255, 0.9);
+            --shadow: 0 8px 24px rgba(120, 90, 180, 0.2);
+        }
+
+        body.dark-theme {
+            --bg-primary: linear-gradient(225deg, #0a0c10 0%, #2d1b3a 20%, #9f8be5 40%, #d9c9ff 60%, #f8f0ff 80%);
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3b8;
+            --text-muted: #8b949e;
+            --accent: #9f8be5;
+            --accent-hover: #b09cff;
+            --border: #30363d;
+            --hover: #2d333b;
+            --message-sent: #9f8be5;
+            --message-received: #2d333b;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chats-panel {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: transform 0.3s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            border-right: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+
+        .chats-panel.hidden { transform: translateX(-100%); }
+        .chat-panel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+            transition: transform 0.3s ease;
+            background: var(--bg-secondary);
+        }
+        .chat-panel.hidden { transform: translateX(100%); }
+
+        @media (min-width: 769px) {
+            .chats-panel { position: relative; width: 350px; transform: none !important; }
+            .chat-panel { position: relative; width: calc(100% - 350px); transform: none !important; }
+            .app-container { flex-direction: row; }
+            .mobile-back-btn { display: none !important; }
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        .panel-header h2 { font-size: 26px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+        .header-buttons { display: flex; gap: 8px; }
+        .icon-btn, .settings-btn {
+            width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border);
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .settings-btn { background: var(--bg-tertiary); }
+        .icon-btn:hover, .settings-btn:hover { transform: scale(1.1) rotate(5deg); background: var(--accent); color: white; }
+        .mobile-back-btn {
+            width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; margin-right: 12px;
+        }
+        .connection-status {
+            padding: 6px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px;
+            background: var(--bg-tertiary); border-bottom: 1px solid var(--border); color: var(--text-secondary);
+        }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--online-green); animation: pulse 2s infinite; }
+        .status-dot.disconnected { background: var(--danger-red); animation: none; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .profile-section { padding: 14px 18px; margin: 12px 16px; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; background: var(--bg-secondary); }
+        .profile-section:hover { transform: scale(1.01); background: var(--hover); border-color: var(--accent); }
+        .profile-header { display: flex; align-items: center; gap: 15px; }
+        .avatar {
+            width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            display: flex; align-items: center; justify-content: center; font-size: 26px; color: white; overflow: hidden; flex-shrink: 0; position: relative;
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-status { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg-secondary); }
+        .avatar-status.online { background: var(--online-green); }
+        .avatar-status.away { background: var(--away-yellow); }
+        .avatar-status.busy { background: var(--busy-red); }
+        .profile-info { flex: 1; min-width: 0; }
+        .profile-name { font-weight: 700; font-size: 18px; margin-bottom: 4px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .profile-status { font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+        .status-icon { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .premium-btn {
+            background: linear-gradient(135deg, var(--premium-gold), #ffa500); color: #000; border: none;
+            padding: 14px 20px; border-radius: 40px; font-weight: bold; cursor: pointer; width: calc(100% - 32px);
+            margin: 10px 16px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease;
+        }
+        .premium-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3); }
+        .search-box { padding: 10px 18px; margin: 0 16px 16px; border-radius: 40px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-secondary); }
+        .search-box i { color: var(--text-secondary); }
+        .search-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 15px; }
+        .tabs { display: flex; padding: 0 16px; gap: 10px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            flex: 1; min-width: 70px; padding: 10px 0; border-radius: 30px; text-align: center; font-size: 14px; font-weight: 600;
+            background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;
+        }
+        .tab:hover { transform: translateY(-2px); background: var(--hover); border-color: var(--accent); }
+        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .tab i { margin-right: 6px; }
+        .chats-list { flex: 1; overflow-y: auto; padding: 0 12px; }
+        .chat-item {
+            display: flex; align-items: center; padding: 14px 16px; margin: 6px 0; border-radius: 20px;
+            cursor: pointer; background: var(--bg-secondary); border: 1px solid var(--border); transition: all 0.3s ease;
+        }
+        .chat-item:hover { transform: translateX(5px) scale(1.01); background: var(--hover); border-color: var(--accent); }
+        .chat-avatar {
+            width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; margin-right: 16px; flex-shrink: 0;
+        }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .chat-preview { font-size: 14px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-header {
+            padding: 14px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); background: var(--bg-secondary);
+        }
+        .chat-header-avatar {
+            width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; flex-shrink: 0;
+        }
+        .chat-header-info { flex: 1; min-width: 0; }
+        .chat-header-info h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary); }
+        .typing-indicator { font-size: 13px; color: var(--accent); font-style: italic; animation: blink 1.5s infinite; margin-top: 4px; }
+        @keyframes blink { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-secondary); }
+        .message {
+            max-width: 75%; margin-bottom: 12px; padding: 12px 18px; border-radius: 22px;
+            word-wrap: break-word; line-height: 1.4; border: 1px solid var(--border); transition: all 0.3s ease;
+        }
+        .message:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+        .message.sent { align-self: flex-end; background: var(--message-sent); color: white; border-bottom-right-radius: 6px; }
+        .message.received { align-self: flex-start; background: var(--message-received); color: var(--text-primary); border-bottom-left-radius: 6px; }
+        .message-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 6px; font-size: 11px; opacity: 0.7; }
+        .message-input-area {
+            padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; background: var(--bg-secondary);
+        }
+        .attach-btn {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border);
+            color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.3s ease; flex-shrink: 0;
+        }
+        .attach-btn:hover { background: var(--accent); color: white; transform: scale(1.1); }
+        .message-input-area input {
+            flex: 1; padding: 14px 20px; background: var(--bg-tertiary); border: 1px solid var(--border);
+            border-radius: 40px; outline: none; color: var(--text-primary); font-size: 15px;
+        }
+        .message-input-area input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+        .send-btn {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--accent); border: none;
+            color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+        }
+        .send-btn:hover:not(:disabled) { transform: scale(1.1); background: var(--accent-hover); }
+        
+        /* ===== МОДАЛКИ ===== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px); z-index: 1000; display: none;
+        }
+        .modal-overlay.active { display: block; }
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px;
+            max-height: 80vh; overflow-y: auto; padding: 30px; border-radius: 30px; z-index: 1001; display: none;
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
+        }
+        .modal.active { display: block; }
+        .modal h2 { margin-bottom: 20px; color: var(--accent); font-size: 26px; display: flex; align-items: center; gap: 10px; }
+        .modal input, .modal textarea, .modal select {
+            width: 100%; padding: 14px 18px; background: var(--bg-tertiary); border: 1px solid var(--border);
+            border-radius: 20px; color: var(--text-primary); margin-bottom: 16px; outline: none; font-size: 15px;
+        }
+        .modal button {
+            padding: 14px 28px; background: var(--accent); border: none; border-radius: 30px;
+            color: white; font-weight: 600; cursor: pointer; margin-right: 12px; font-size: 15px;
+        }
+        .modal button:hover { background: var(--accent-hover); transform: scale(1.03); }
+        .modal .close-btn {
+            position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; border-radius: 50%;
+            background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px;
+        }
+        .modal .close-btn:hover { background: var(--accent); color: white; transform: rotate(90deg); }
+        
+        .profile-edit { text-align: center; margin-bottom: 20px; }
+        .profile-edit .avatar { width: 100px; height: 100px; font-size: 42px; margin: 0 auto 20px; cursor: pointer; }
+        .settings-section { margin: 20px 0; }
+        .settings-section h3 { color: var(--accent); margin-bottom: 15px; font-size: 18px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .settings-item select { width: 150px; }
+        .privacy-option { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .privacy-option select { width: 150px; }
+        .blocked-user { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 8px; }
+        .file-preview { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px; }
+        .file-preview i { font-size: 48px; color: var(--accent); }
+        
+        .status-selector { display: flex; gap: 10px; margin: 20px 0; justify-content: center; }
+        .status-option { padding: 10px 20px; border-radius: 30px; border: 1px solid var(--border); cursor: pointer; transition: all 0.3s ease; }
+        .status-option.online { color: var(--online-green); }
+        .status-option.away { color: var(--away-yellow); }
+        .status-option.busy { color: var(--busy-red); }
+        .status-option:hover { background: var(--hover); transform: scale(1.05); }
+        
+        .login-container {
+            width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center;
+            background: var(--bg-primary); position: fixed; top: 0; left: 0;
+        }
+        .login-card {
+            padding: 50px 40px; border-radius: 50px; width: 420px; text-align: center;
+            background: var(--bg-secondary); border: 1px solid var(--border); box-shadow: var(--shadow);
+        }
+        .login-card h1 { font-size: 48px; margin-bottom: 10px; color: var(--accent); }
+        .login-card p { color: var(--text-secondary); margin-bottom: 30px; }
+        .login-input {
+            width: 100%; padding: 16px 22px; background: var(--bg-tertiary); border: 1px solid var(--border);
+            border-radius: 40px; color: var(--text-primary); font-size: 16px; margin: 10px 0; outline: none;
+        }
+        .login-btn {
+            width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 40px;
+            color: white; font-size: 18px; font-weight: 600; cursor: pointer; margin: 20px 0;
+        }
+        .checkbox { display: flex; align-items: center; gap: 10px; margin: 15px 0; justify-content: center; color: var(--text-secondary); }
+        .privacy-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
+        .theme-toggle {
+            position: fixed; bottom: 80px; right: 20px; z-index: 1001; background: var(--bg-secondary);
+            border: 1px solid var(--border); border-radius: 50px; padding: 10px 20px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow);
+        }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 20px 0; }
+        .stat-item { background: var(--bg-tertiary); padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--premium-gold); }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-light); border-radius: 10px; }
+        
+        @media (max-width: 768px) {
+            .login-card { width: 90%; padding: 30px 20px; }
+            .theme-toggle { bottom: 70px; right: 10px; }
+        }
+        
+        /* Анимация отправки */
+        .flying-flask {
+            position: fixed;
+            width: 44px;
+            height: 44px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10000;
+            transition: all 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+        .message-pop {
+            animation: popPulse 0.6s ease-in-out;
+        }
+        @keyframes popPulse {
+            0% { transform: scale(0.8); opacity: 0; }
+            25% { transform: scale(1.1); opacity: 1; }
+            50% { transform: scale(0.9); opacity: 0.8; }
+            75% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .unread-badge {
+            background: #da3633;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 20px;
+            padding: 2px 6px;
+            min-width: 18px;
+            text-align: center;
+            display: inline-block;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-sun"></i> <span id="themeText">Тёмная</span>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
+
+    <!-- МОДАЛКА ПРОФИЛЯ -->
+    <div class="modal" id="profileModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-user-circle"></i> Профиль</h2>
+        <div class="profile-edit">
+            <div class="avatar" id="modalAvatar" onclick="document.getElementById('avatarInput').click()">👤</div>
+            <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            <p style="color: var(--text-secondary);">Нажми на аватарку</p>
+        </div>
+        <input type="text" id="profileName" placeholder="Имя" value="">
+        <textarea id="profileBio" placeholder="О себе" rows="3"></textarea>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="saveProfile()">💾 Сохранить</button>
+            <button onclick="openStatusModal()" style="background: var(--bg-tertiary);">📊 Статус</button>
+        </div>
+    </div>
+    
+    <!-- МОДАЛКА СТАТУСА -->
+    <div class="modal" id="statusModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-circle"></i> Мой статус</h2>
+        <div class="status-selector">
+            <div class="status-option online" onclick="setStatus('online')">🟢 Онлайн</div>
+            <div class="status-option away" onclick="setStatus('away')">🟡 Отошёл</div>
+            <div class="status-option busy" onclick="setStatus('busy')">🔴 Занят</div>
+        </div>
+    </div>
+    
+    <!-- МОДАЛКА НАСТРОЕК -->
+    <div class="modal" id="settingsModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-cog"></i> Настройки</h2>
+        <div class="settings-section">
+            <h3>Оформление</h3>
+            <div class="settings-item">
+                <label>Тема</label>
+                <select id="themeSelect" onchange="changeTheme(this.value)">
+                    <option value="dark">Тёмная</option>
+                    <option value="light">Светлая</option>
+                </select>
+            </div>
+            <div class="settings-item">
+                <label>Размер шрифта</label>
+                <select id="fontSizeSelect" onchange="changeFontSize(this.value)">
+                    <option value="14">Маленький</option>
+                    <option value="16" selected>Средний</option>
+                    <option value="18">Большой</option>
+                </select>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Уведомления</h3>
+            <div class="settings-item">
+                <label>Звук сообщений</label>
+                <input type="checkbox" id="soundCheck" checked>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="saveSettings()">💾 Сохранить</button>
+            <button onclick="openPrivacyModal()" style="background: var(--bg-tertiary);">🔒 Приватность</button>
+        </div>
+    </div>
+    
+    <!-- МОДАЛКА ПРИВАТНОСТИ -->
+    <div class="modal" id="privacyModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-lock"></i> Приватность</h2>
+        <div class="privacy-option">
+            <label>Кто видит мой онлайн</label>
+            <select id="privacyOnline">
+                <option value="all">Все</option>
+                <option value="contacts">Контакты</option>
+                <option value="none">Никто</option>
+            </select>
+        </div>
+        <div class="privacy-option">
+            <label>Кто видит мой номер</label>
+            <select id="privacyPhone">
+                <option value="all">Все</option>
+                <option value="contacts">Контакты</option>
+                <option value="none">Никто</option>
+            </select>
+        </div>
+        <button onclick="savePrivacy()">💾 Сохранить</button>
+    </div>
+        <!-- МОДАЛКА БЛОКИРОВОК -->
+    <div class="modal" id="blockModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-ban"></i> Блокировки</h2>
+        <div id="blockedList" style="margin-bottom: 20px;"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="blockUsername" placeholder="Имя пользователя">
+            <button onclick="blockUser()">🔨 Заблокировать</button>
+        </div>
+    </div>
+    
+    <!-- МОДАЛКА ПОДОЗРИТЕЛЬНЫХ (ДЛЯ Dane4ka5) -->
+    <div class="modal" id="suspiciousModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-exclamation-triangle" style="color: #da3633;"></i> Подозрительные</h2>
+        <div id="suspiciousList" style="max-height: 60vh; overflow-y: auto;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="loadSuspicious()">🔄 Обновить</button>
+            <button onclick="clearSuspicious()" style="background: #da3633;">🗑️ Очистить</button>
+        </div>
+    </div>
+    
+    <!-- МОДАЛКА СТАТИСТИКИ (ДЛЯ Dane4ka5) -->
+    <div class="modal" id="statsModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-chart-bar"></i> Статистика</h2>
+        <div id="statsContent" class="stats-grid"></div>
+        <button onclick="loadStats()">🔄 Обновить</button>
+    </div>
+    
+    <!-- МОДАЛКА СОЗДАНИЯ ГРУППЫ -->
+    <div class="modal" id="createGroupModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-users"></i> Создать группу</h2>
+        <input type="text" id="groupName" placeholder="Название группы">
+        <button onclick="createGroup()">✅ Создать</button>
+        <button onclick="closeAllModals()" style="background: transparent;">Отмена</button>
+    </div>
+    
+    <!-- МОДАЛКА ФАЙЛА -->
+    <div class="modal" id="fileModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-file"></i> Отправить файл</h2>
+        <div class="file-preview" id="filePreview">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Выберите файл</p>
+        </div>
+        <input type="file" id="fileInput" style="display: none;">
+        <button onclick="document.getElementById('fileInput').click()">📁 Выбрать файл</button>
+        <button onclick="sendFile()" id="sendFileBtn" disabled>📤 Отправить</button>
+    </div>
+    
+    <!-- МОДАЛКА YOUTUBE -->
+    <div class="modal" id="youtubeModal">
+        <button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button>
+        <h2><i class="fab fa-youtube"></i> Поделиться видео</h2>
+        <input type="text" id="youtubeLink" placeholder="Ссылка на YouTube">
+        <button onclick="shareYoutube()">📤 Отправить</button>
+    </div>
+
+    <!-- СТРАНИЦА ВХОДА -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <h1>🧪 Nexora</h1>
+            <p>безопасный мессенджер</p>
+            
+            <input type="text" id="loginUsername" class="login-input" placeholder="Имя пользователя">
+            <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
+            <input type="password" id="loginPassword" class="login-input" placeholder="Пароль">
+            
+            <div class="checkbox">
+                <input type="checkbox" id="privacyAgree">
+                <label>Я принимаю</label>
+                <span class="privacy-link" onclick="openPrivacyPolicyModal()">Политику</span>
+            </div>
+            
+            <button class="login-btn" onclick="register()">🚀 Войти</button>
+            
+            <div style="margin-top: 10px;">
+                <span class="privacy-link" onclick="openPremiumModal()">👑 Премиум</span>
+                <span style="margin: 0 10px;">|</span>
+                <span class="privacy-link" onclick="openPrivacyPolicyModal()">📜 Политика</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+    <div id="appPage" class="app-container" style="display: none;">
+        <div class="chats-panel" id="chatsPanel">
+            <div class="panel-header">
+                <h2>🧪 <span>Nexora</span></h2>
+                <div class="header-buttons">
+                    <button class="settings-btn" onclick="openSettingsModal()"><i class="fas fa-cog"></i></button>
+                    <button class="icon-btn" onclick="openCreateMenu()"><i class="fas fa-plus"></i></button>
+                </div>
+            </div>
+            
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Подключение...</span>
+                <span id="latency" style="margin-left: auto;">0ms</span>
+            </div>
+            
+            <div class="profile-section" onclick="openProfileMenu()">
+                <div class="profile-header">
+                    <div class="avatar" id="headerAvatar">👤<span class="avatar-status online" id="avatarStatus"></span></div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="headerName">
+                            <span id="headerNameText"></span>
+                            <span id="premiumIcon" style="display: none;"><i class="fas fa-crown"></i></span>
+                            <span id="creatorIcon" style="display: none;"><i class="fas fa-star"></i></span>
+                            <span id="betaIcon" style="display: none;" title="Я в бета-тестировании"><i class="fas fa-cog"></i></span>
+                        </div>
+                        <div class="profile-status" id="headerStatus">
+                            <span class="status-icon online" id="headerStatusDot"></span>
+                            <span id="headerStatusText">Онлайн</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="premium-btn" onclick="openPremiumModal()">
+                <i class="fas fa-crown"></i> Премиум
+            </button>
+            
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Поиск...">
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('chats')"><i class="fas fa-user"></i> Чаты</button>
+                <button class="tab" onclick="switchTab('groups')"><i class="fas fa-users"></i> Группы</button>
+                <button class="tab" onclick="switchTab('channels')"><i class="fas fa-bullhorn"></i> Каналы</button>
+                <button class="tab" onclick="switchTab('rooms')"><i class="fas fa-lock"></i> Комнаты</button>
+            </div>
+            
+            <div class="chats-list" id="chatsList"></div>
+            
+            <button class="tab" onclick="openJoinModal()" style="margin: 16px;">
+                <i class="fas fa-link"></i> Присоединиться
+            </button>
+        </div>
+        
+        <div class="chat-panel hidden" id="chatPanel">
+            <div class="chat-header">
+                <button class="mobile-back-btn" onclick="hideChatPanel()"><i class="fas fa-arrow-left"></i></button>
+                <div class="chat-header-avatar" id="chatHeaderAvatar">👤</div>
+                <div class="chat-header-info">
+                    <h3 id="currentChatName">Выберите чат</h3>
+                    <p id="currentChatInfo"></p>
+                    <div id="typingIndicator" class="typing-indicator"></div>
+                </div>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer"></div>
+            
+            <div class="message-input-area">
+                <button class="attach-btn" onclick="openAttachMenu()"><i class="fas fa-paperclip"></i></button>
+                <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+        <script>
         // ==============================================
         // КОНСТАНТЫ
         // ==============================================
         const CREATOR_USERNAME = 'Dane4ka5';
-        const VERSION = 'v0.12.0';
+        const VERSION = 'v0.13.0';
         
         let socket = null;
         let currentUser = null;
@@ -828,7 +1311,7 @@
         function initSound() {
             notificationSound = document.getElementById('notificationSound');
             if (!notificationSound) return;
-            const saved = localStorage.getItem('nanogram_sound');
+            const saved = localStorage.getItem('nexora_sound');
             if (saved !== null) soundEnabled = saved === 'true';
             const soundCheck = document.getElementById('soundCheck');
             if (soundCheck) soundCheck.checked = soundEnabled;
@@ -842,7 +1325,7 @@
         
         function toggleSound(enabled) {
             soundEnabled = enabled;
-            localStorage.setItem('nanogram_sound', enabled);
+            localStorage.setItem('nexora_sound', enabled);
         }
         
         // ==============================================
@@ -952,12 +1435,12 @@
             changeTheme(theme);
             changeFontSize(fontSize);
             toggleSound(soundEnabled);
-            localStorage.setItem('nanogram_settings', JSON.stringify({ theme, fontSize, sound: soundEnabled }));
+            localStorage.setItem('nexora_settings', JSON.stringify({ theme, fontSize, sound: soundEnabled }));
             closeAllModals();
         }
         
         function loadSettings() {
-            const saved = localStorage.getItem('nanogram_settings');
+            const saved = localStorage.getItem('nexora_settings');
             if (saved) {
                 const settings = JSON.parse(saved);
                 changeTheme(settings.theme);
@@ -1029,13 +1512,12 @@
             
             currentUser = username;
             currentPhone = phone;
-            localStorage.setItem('nanogram_user', username);
-            localStorage.setItem('nanogram_phone', phone);
+            localStorage.setItem('nexora_user', username);
+            localStorage.setItem('nexora_phone', phone);
             
             connectWebSocket(password);
         }
-        
-        // ==============================================
+                // ==============================================
         // WEBSOCKET
         // ==============================================
         function connectWebSocket(password) {
@@ -1071,16 +1553,6 @@
                 }
                 
                 console.log('📩 Получен тип:', data.type);
-                
-                // ===== РЕДИРЕКТ НА СТРАНИЦУ БАНА =====
-                if (data.type === 'redirect_to_ban') {
-                    console.log('🚫 Перенаправление на страницу бана:', data);
-                    localStorage.clear();
-                    const url = `/ban.html?reason=${encodeURIComponent(data.reason || 'Нарушение правил')}&date=${data.date || new Date().toISOString()}`;
-                    window.location.href = url;
-                    if (socket) socket.close();
-                    return;
-                }
                 
                 // ===== УСПЕШНЫЙ ВХОД =====
                 if (data.type === 'login_success' || data.type === 'register_success') {
@@ -1204,8 +1676,7 @@
                 console.error('❌ WebSocket ошибка:', error);
             };
         }
-        
-        // ==============================================
+                // ==============================================
         // ТАБЫ И СПИСКИ
         // ==============================================
         function switchTab(tab) {
@@ -1237,10 +1708,13 @@
             }
         }
         
-                function createChatItem(type, name, icon, data = null) {
+        function createChatItem(type, name, icon, data = null) {
             const div = document.createElement('div');
             div.className = 'chat-item';
             div.onclick = () => selectChat(type, name, data);
+            
+            const unread = unreadCounts[name] || 0;
+            const badgeHtml = unread > 0 ? `<span class="unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
             
             div.innerHTML = `
                 <div class="chat-avatar">${icon}</div>
@@ -1284,7 +1758,7 @@
         // ==============================================
         // СООБЩЕНИЯ (С АНИМАЦИЕЙ)
         // ==============================================
-                function sendMessage() {
+        function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentChat) return;
@@ -1390,8 +1864,7 @@
             socket.send(JSON.stringify({ type: 'create_group', name, creator: currentUser }));
             closeAllModals();
         }
-        
-        // ==============================================
+                // ==============================================
         // ФАЙЛЫ
         // ==============================================
         document.getElementById('fileInput')?.addEventListener('change', function(e) {
@@ -1472,8 +1945,6 @@
                     <div class="stat-item"><div class="stat-value">${stats.users}</div><div>Пользователей</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.online}</div><div>Онлайн</div></div>
                     <div class="stat-item"><div class="stat-value">${stats.messages}</div><div>Сообщений</div></div>
-                    <div class="stat-item"><div class="stat-value">${stats.whitelist || 0}</div><div>В белом списке</div></div>
-                    <div class="stat-item"><div class="stat-value">${stats.banned || 0}</div><div>В бан-листе</div></div>
                 `;
             }
         }
@@ -1507,8 +1978,8 @@
             alert('Присоединение по ссылке в разработке');
         }
         
-        function openDonateModal() {
-            window.open('https://donatepay.ru/don/1474515', '_blank');
+        function openPremiumModal() {
+            alert('👑 Премиум\n\nСкоро здесь появится информация о покупке премиум-доступа.\nСледите за обновлениями!');
         }
         
         function openPrivacyPolicyModal() {
@@ -1523,11 +1994,16 @@
         // ИНИЦИАЛИЗАЦИЯ
         // ==============================================
         window.onload = function() {
+            if (navigator.userAgent.includes('Firefox')) {
+    setTimeout(() => {
+        alert("⚠️ Для лучшей работы Nexora рекомендуем использовать Chrome, Edge или браузер на телефоне. Firefox может работать нестабильно.");
+    }, 500);
+}
             loadSettings();
             initSound();
             
-            const savedUser = localStorage.getItem('nanogram_user');
-            const savedPhone = localStorage.getItem('nanogram_phone');
+            const savedUser = localStorage.getItem('nexora_user');
+            const savedPhone = localStorage.getItem('nexora_phone');
             if (savedUser && savedPhone) {
                 document.getElementById('loginUsername').value = savedUser;
                 document.getElementById('loginPhone').value = savedPhone;
@@ -1554,6 +2030,6 @@
                     .catch(err => console.log('❌ Ошибка PWA:', err));
             });
         }
-    </script>
+            </script>
 </body>
 </html>
