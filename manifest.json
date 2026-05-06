@@ -1,6 +1,6 @@
 {
-    "name": "Nanogram",
-    "short_name": "Nanogram",
+    "name": "Nexora",
+    "short_name": "Nexora",
     "description": "Безопасный мессенджер",
     "start_url": "/",
     "display": "standalone",
