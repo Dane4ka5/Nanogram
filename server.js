@@ -5,16 +5,16 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.13.2';
+const VERSION = 'v0.14.0';
 const CREATOR_USERNAME = 'Dane4ka5';
-const CONSOLE_PASSWORD = '14883482GG';  // твой пароль для входа в консоль
-
+const CONSOLE_PASSWORD = '14883482GG';
 const SAVE_INTERVAL = 60 * 1000;
 const MAX_MESSAGES_PER_CHAT = 10000;
 const MAX_BACKUPS = 50;
 
 const users = new Map();
 const activeUsers = new Map();
+let offlineMessages = {}; // username -> [{ from, to, text, time, timestamp, chatId }]
 
 let userDatabase = {};
 let messages = {};
@@ -77,6 +77,11 @@ function loadAllData() {
     } catch (e) {
         messages = {};
     }
+    if (fs.existsSync('./offline.json')) {
+        try {
+            offlineMessages = JSON.parse(fs.readFileSync('./offline.json', 'utf8'));
+        } catch(e) { offlineMessages = {}; }
+    } else { offlineMessages = {}; }
     console.log('='.repeat(60) + '\n');
 }
 
@@ -112,6 +117,13 @@ function saveMessages() {
     }
 }
 
+function saveOffline() {
+    try {
+        fs.writeFileSync('./offline.json', JSON.stringify(offlineMessages, null, 2), 'utf8');
+        return true;
+    } catch(e) { return false; }
+}
+
 function logAction(action, username, details) {
     const logEntry = `[${new Date().toISOString()}] ${action} | ${username || 'SYSTEM'} | ${details}\n`;
     fs.appendFile('./users.log', logEntry, () => {});
@@ -135,6 +147,14 @@ function generateId() {
     return crypto.randomBytes(8).toString('hex');
 }
 
+function sendOfflineMessages(username, ws) {
+    if (offlineMessages[username] && offlineMessages[username].length > 0) {
+        ws.send(JSON.stringify({ type: 'offline_messages', messages: offlineMessages[username] }));
+        delete offlineMessages[username];
+        saveOffline();
+    }
+}
+
 const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     
@@ -152,7 +172,7 @@ const server = http.createServer((req, res) => {
                 suspicious: suspiciousMessages.length,
                 premium: Object.keys(premiumUsers).length
             },
-            files: { dataJson: fs.existsSync('./data.json'), messagesJson: fs.existsSync('./messages.json') }
+            files: { dataJson: fs.existsSync('./data.json'), messagesJson: fs.existsSync('./messages.json'), offlineJson: fs.existsSync('./offline.json') }
         };
         res.end(JSON.stringify(diagnostic, null, 2));
         return;
@@ -163,74 +183,9 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // ========== КОНСОЛЬ С ПАРОЛЕМ ==========
+    // КОНСОЛЬ (не менялась)
     if (req.url === '/console') {
-        res.end(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Nexora Console 🔐</title>
-                <style>
-                    body{background:#0a0c10;color:#0f0;font-family:monospace;padding:20px;}
-                    #login, #console{max-width:600px;margin:50px auto;}
-                    input,button{background:#111;color:#0f0;border:1px solid #0f0;padding:10px;margin:5px;width:100%;}
-                    #output{height:400px;overflow:auto;background:#000;padding:10px;margin-bottom:10px;white-space:pre-wrap;}
-                </style>
-            </head>
-            <body>
-                <div id="login">
-                    <h2>🔐 Вход в консоль</h2>
-                    <input type="password" id="pwd" placeholder="Пароль">
-                    <button onclick="checkPassword()">Войти</button>
-                    <div id="loginError" style="color:#f00;"></div>
-                </div>
-                <div id="console" style="display:none;">
-                    <h1>🔧 NEXORA CONSOLE</h1>
-                    <div id="output"></div>
-                    <input type="text" id="cmd" placeholder="> введите команду...">
-                </div>
-                <script>
-                    function checkPassword() {
-                        const pwd = document.getElementById('pwd').value;
-                        fetch('/console-auth', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ password: pwd })
-                        }).then(res => res.json()).then(data => {
-                            if (data.ok) {
-                                document.getElementById('login').style.display = 'none';
-                                document.getElementById('console').style.display = 'block';
-                                initConsole();
-                            } else {
-                                document.getElementById('loginError').innerText = '❌ Неверный пароль';
-                            }
-                        });
-                    }
-                    function initConsole() {
-                        const output = document.getElementById('output');
-                        const input = document.getElementById('cmd');
-                        function addLog(msg) { output.innerHTML += '<div>> ' + msg + '</div>'; output.scrollTop = output.scrollHeight; }
-                        async function sendCmd() {
-                            const cmd = input.value.trim();
-                            if (!cmd) return;
-                            addLog(cmd);
-                            const res = await fetch('/exec', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ cmd })
-                            });
-                            const ans = await res.json();
-                            addLog(ans.result);
-                            input.value = '';
-                        }
-                        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCmd(); });
-                        addLog('✅ Консоль готова. Команды: /stats, /premium user months, /broadcast текст, /online, /msg user текст, /ban user, /unban user');
-                    }
-                </script>
-            </body>
-            </html>
-        `);
+        res.end(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nexora Console 🔐</title><style>body{background:#0a0c10;color:#0f0;font-family:monospace;padding:20px;}#login,#console{max-width:600px;margin:50px auto;}input,button{background:#111;color:#0f0;border:1px solid #0f0;padding:10px;margin:5px;width:100%;}#output{height:400px;overflow:auto;background:#000;padding:10px;margin-bottom:10px;}</style></head><body><div id="login"><h2>🔐 Вход в консоль</h2><input type="password" id="pwd" placeholder="Пароль"><button onclick="checkPassword()">Войти</button><div id="loginError" style="color:#f00;"></div></div><div id="console" style="display:none;"><h1>🔧 NEXORA CONSOLE</h1><div id="output"></div><input type="text" id="cmd" placeholder="> введите команду..."></div><script>function checkPassword(){const pwd=document.getElementById('pwd').value;fetch('/console-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})}).then(res=>res.json()).then(data=>{if(data.ok){document.getElementById('login').style.display='none';document.getElementById('console').style.display='block';initConsole();}else{document.getElementById('loginError').innerText='❌ Неверный пароль';}});}function initConsole(){const output=document.getElementById('output');const input=document.getElementById('cmd');function addLog(msg){output.innerHTML+='<div>> '+msg+'</div>';output.scrollTop=output.scrollHeight;}async function sendCmd(){const cmd=input.value.trim();if(!cmd)return;addLog(cmd);const res=await fetch('/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})});const ans=await res.json();addLog(ans.result);input.value='';}input.addEventListener('keypress',(e)=>{if(e.key==='Enter')sendCmd();});addLog('✅ Консоль готова. Команды: /stats, /premium user months, /broadcast текст, /online, /msg user текст');}</script></body></html>`);
         return;
     }
     
@@ -278,14 +233,6 @@ const server = http.createServer((req, res) => {
                         result = `📨 Сообщение отправлено ${user}`;
                     } else { result = `❌ Пользователь ${user} не в сети`; }
                 } else { result = '❌ /msg user текст'; }
-            } else if (cmd.startsWith('/ban')) {
-                const user = cmd.split(' ')[1];
-                if (user && user !== CREATOR_USERNAME) {
-                    result = `🚫 Функция бана в разработке (пока просто запись)`;
-                } else { result = '❌ Нельзя забанить себя'; }
-            } else if (cmd.startsWith('/unban')) {
-                const user = cmd.split(' ')[1];
-                result = `✅ Разбан для ${user} (в разработке)`;
             } else {
                 result = '❌ Неизвестная команда. Доступно: /stats, /premium user months, /broadcast текст, /online, /msg user текст';
             }
@@ -325,49 +272,102 @@ wss.on('connection', (ws, req) => {
             if (data.type === 'ping') { ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now(), latency: Date.now() - data.timestamp })); return; }
             console.log(`📩 Получен тип: ${data.type} от ${data.username || 'unknown'}`);
             
-            if (data.type === 'register') {
-                const { username, password, phone, privacyAccepted } = data;
-                if (!username || !password || !phone) { ws.send(JSON.stringify({ type: 'error', message: '❌ Имя, пароль и телефон обязательны' })); return; }
-                if (!privacyAccepted) { ws.send(JSON.stringify({ type: 'error', message: '❌ Необходимо принять политику' })); return; }
-                const cleanUsername = username.trim(), cleanPhone = phone.trim().replace(/\s+/g, '');
-                
-                if (userDatabase[cleanUsername]) {
-                    if (userDatabase[cleanUsername].password !== password) { ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный пароль' })); return; }
-                    if (userDatabase[cleanUsername].phone !== cleanPhone) { ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный номер' })); return; }
-                    console.log(`👋 Вход: ${cleanUsername}`);
-                    currentUser = cleanUsername;
-                    userDatabase[cleanUsername].lastSeen = new Date().toISOString();
-                    users.set(cleanUsername, ws);
-                    activeUsers.set(ws, { username: cleanUsername, ip: clientIp, status: 'online', joinedAt: Date.now() });
-                    saveData();
-                    logAction('login', cleanUsername, clientIp);
-                    ws.send(JSON.stringify({ type: 'login_success', username: cleanUsername, profile: userProfiles[cleanUsername] || {}, premium: premiumUsers[cleanUsername]?.active || false, privacy: privacySettings[cleanUsername] || {}, blocked: blockedUsers[cleanUsername] || [] }));
-                } else {
-                    let phoneExists = false;
-                    for (const u of Object.values(userDatabase)) if (u.phone === cleanPhone) { phoneExists = true; break; }
-                    if (phoneExists) { ws.send(JSON.stringify({ type: 'error', message: '❌ Этот номер уже используется' })); return; }
-                    if (userDatabase[cleanUsername]) { ws.send(JSON.stringify({ type: 'error', message: '❌ Это имя уже занято' })); return; }
-                    console.log(`👤 Новый пользователь: ${cleanUsername} (${cleanPhone})`);
-                    currentUser = cleanUsername;
-                    userDatabase[cleanUsername] = { username: cleanUsername, password: password, phone: cleanPhone, registered: new Date().toISOString(), lastSeen: new Date().toISOString() };
-                    userProfiles[cleanUsername] = { avatar: '👤', bio: '' };
-                    premiumUsers[cleanUsername] = { active: false };
-                    privacySettings[cleanUsername] = { showOnline: 'all', showPhone: 'all' };
-                    blockedUsers[cleanUsername] = [];
-                    users.set(cleanUsername, ws);
-                    activeUsers.set(ws, { username: cleanUsername, ip: clientIp, status: 'online', joinedAt: Date.now() });
-                    saveData();
-                    logAction('register', cleanUsername, clientIp);
-                    ws.send(JSON.stringify({ type: 'register_success', username: cleanUsername, profile: userProfiles[cleanUsername], premium: false, privacy: privacySettings[cleanUsername], blocked: [] }));
+            // ========== ЛОГИН ПО ТЕЛЕФОНУ ==========
+            if (data.type === 'login') {
+                const { phone, password } = data;
+                let username = null;
+                for (const [u, info] of Object.entries(userDatabase)) {
+                    if (info.phone === phone && info.password === password) {
+                        username = u;
+                        break;
+                    }
                 }
-                ws.send(JSON.stringify({ type: 'user_list', users: Array.from(users.keys()) }));
-                ws.send(JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }));
-                ws.send(JSON.stringify({ type: 'groups_list', groups: Object.values(groups).filter(g => g.members?.includes(cleanUsername)) }));
-                ws.send(JSON.stringify({ type: 'rooms_list', rooms: Object.values(privateRooms).filter(r => r.members?.includes(cleanUsername)) }));
+                if (!username) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный телефон или пароль' }));
+                    return;
+                }
+                currentUser = username;
+                userDatabase[username].lastSeen = new Date().toISOString();
+                users.set(username, ws);
+                activeUsers.set(ws, { username, ip: clientIp, status: 'online', joinedAt: Date.now() });
+                saveData();
+                logAction('login', username, clientIp);
+                ws.send(JSON.stringify({
+                    type: 'login_success',
+                    username: username,
+                    profile: userProfiles[username] || {},
+                    premium: premiumUsers[username]?.active || false,
+                    privacy: privacySettings[username] || {},
+                    blocked: blockedUsers[username] || [],
+                    contacts: userDatabase[username]?.contacts || []
+                }));
+                sendOfflineMessages(username, ws);
+                ws.send(JSON.stringify({ type: 'users_list', users: Object.keys(userDatabase) }));
+                broadcastUserList();
+                broadcastStatusUpdate(username, 'online');
+            }
+            
+            // ========== РЕГИСТРАЦИЯ С @USERNAME ==========
+            if (data.type === 'register') {
+                let { username, phone, password, privacyAccepted } = data;
+                if (!username || !phone || !password) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Заполните все поля' }));
+                    return;
+                }
+                if (!privacyAccepted) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Примите политику' }));
+                    return;
+                }
+                username = username.trim();
+                const cleanPhone = phone.trim().replace(/\s+/g, '');
+                if (!username.startsWith('@')) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Username должен начинаться с @' }));
+                    return;
+                }
+                const cleanUsername = username.slice(1);
+                if (userDatabase[cleanUsername]) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Такой @username уже занят' }));
+                    return;
+                }
+                let phoneExists = false;
+                for (const u of Object.values(userDatabase)) if (u.phone === cleanPhone) { phoneExists = true; break; }
+                if (phoneExists) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Этот номер уже используется' }));
+                    return;
+                }
+                console.log(`👤 Новый пользователь: ${cleanUsername} (${cleanPhone})`);
+                currentUser = cleanUsername;
+                userDatabase[cleanUsername] = {
+                    username: cleanUsername,
+                    password: password,
+                    phone: cleanPhone,
+                    registered: new Date().toISOString(),
+                    lastSeen: new Date().toISOString(),
+                    contacts: []
+                };
+                userProfiles[cleanUsername] = { avatar: '👤', bio: '' };
+                premiumUsers[cleanUsername] = { active: false };
+                privacySettings[cleanUsername] = { showOnline: 'all', showPhone: 'all' };
+                blockedUsers[cleanUsername] = [];
+                users.set(cleanUsername, ws);
+                activeUsers.set(ws, { username: cleanUsername, ip: clientIp, status: 'online', joinedAt: Date.now() });
+                saveData();
+                logAction('register', cleanUsername, clientIp);
+                ws.send(JSON.stringify({
+                    type: 'register_success',
+                    username: cleanUsername,
+                    profile: userProfiles[cleanUsername],
+                    premium: false,
+                    privacy: privacySettings[cleanUsername],
+                    blocked: [],
+                    contacts: []
+                }));
+                ws.send(JSON.stringify({ type: 'users_list', users: Object.keys(userDatabase) }));
                 broadcastUserList();
                 broadcastStatusUpdate(cleanUsername, 'online');
             }
             
+            // ========== ЗАПРОС ИСТОРИИ ==========
             if (data.type === 'request_history') {
                 const { chatId, username } = data;
                 if (!chatId || !username) return;
@@ -377,6 +377,7 @@ wss.on('connection', (ws, req) => {
                 if (chatHistory.length > 0) logAction('request_history', username, `${chatId} (${chatHistory.length})`);
             }
             
+            // ========== ОТПРАВКА СООБЩЕНИЯ + ОФЛАЙН ==========
             if (data.type === 'message') {
                 const { from, to, text, time, id } = data;
                 if (!from || !to || !text) { ws.send(JSON.stringify({ type: 'error', message: '❌ Неполные данные' })); return; }
@@ -388,16 +389,68 @@ wss.on('connection', (ws, req) => {
                 if (messages[chatKey].length > MAX_MESSAGES_PER_CHAT) messages[chatKey] = messages[chatKey].slice(-MAX_MESSAGES_PER_CHAT);
                 saveMessages();
                 const targetWs = users.get(to);
-                let delivered = false;
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     targetWs.send(JSON.stringify({ type: 'message', id: messageObj.id, from, text, time, serverTime: Date.now() }));
-                    delivered = true;
                     messageObj.delivered = true;
+                } else {
+                    if (!offlineMessages[to]) offlineMessages[to] = [];
+                    offlineMessages[to].push({ from, to, text, time, timestamp: messageObj.timestamp, chatId: from });
+                    saveOffline();
                 }
-                ws.send(JSON.stringify({ type: 'message_delivered', messageId: messageObj.id, to, time, delivered, suspicious: isSuspicious }));
+                ws.send(JSON.stringify({ type: 'message_delivered', messageId: messageObj.id, to, time, delivered: !!targetWs, suspicious: isSuspicious }));
                 logAction('message', from, `→ ${to}${isSuspicious ? ' 🚨' : ''}`);
             }
             
+            // ========== ДОБАВЛЕНИЕ В КОНТАКТЫ ==========
+            if (data.type === 'add_contact') {
+                const { from, to } = data;
+                const cleanTo = to.startsWith('@') ? to.slice(1) : to;
+                if (!userDatabase[cleanTo]) { ws.send(JSON.stringify({ type: 'error', message: 'Пользователь не найден' })); return; }
+                if (!userDatabase[from].contacts) userDatabase[from].contacts = [];
+                if (!userDatabase[from].contacts.includes(cleanTo)) {
+                    userDatabase[from].contacts.push(cleanTo);
+                    saveData();
+                    ws.send(JSON.stringify({ type: 'contacts_list', contacts: userDatabase[from].contacts }));
+                    logAction('add_contact', from, `→ ${cleanTo}`);
+                }
+            }
+            
+            // ========== РЕАКЦИИ НА СООБЩЕНИЯ ==========
+            if (data.type === 'toggle_reaction') {
+                const { messageId, reaction, chatId } = data;
+                let found = false;
+                for (const [chatKey, chatMsgs] of Object.entries(messages)) {
+                    const msgIndex = chatMsgs.findIndex(m => m.id === messageId);
+                    if (msgIndex !== -1) {
+                        const msg = chatMsgs[msgIndex];
+                        if (!msg.reactions) msg.reactions = [];
+                        const existingIndex = msg.reactions.findIndex(r => r.user === currentUser);
+                        if (existingIndex !== -1) {
+                            if (msg.reactions[existingIndex].reaction === reaction) {
+                                msg.reactions.splice(existingIndex, 1);
+                            } else {
+                                msg.reactions[existingIndex].reaction = reaction;
+                            }
+                        } else {
+                            msg.reactions.push({ user: currentUser, reaction });
+                        }
+                        messages[chatKey][msgIndex] = msg;
+                        saveMessages();
+                        const participants = chatKey.split('_');
+                        participants.forEach(p => {
+                            const userWs = users.get(p);
+                            if (userWs && userWs.readyState === WebSocket.OPEN) {
+                                userWs.send(JSON.stringify({ type: 'message_reaction', messageId, chatId: chatKey, reactions: msg.reactions }));
+                            }
+                        });
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) ws.send(JSON.stringify({ type: 'error', message: 'Сообщение не найдено' }));
+            }
+            
+            // ========== ГРУППЫ, СТАТУСЫ, ПРИВАТНОСТЬ, БЛОКИРОВКИ (без изменений) ==========
             if (data.type === 'create_group') {
                 const { name, creator } = data;
                 if (!name || !creator) { ws.send(JSON.stringify({ type: 'error', message: '❌ Название обязательно' })); return; }
@@ -407,7 +460,6 @@ wss.on('connection', (ws, req) => {
                 ws.send(JSON.stringify({ type: 'group_created', group: groups[groupId] }));
                 ws.send(JSON.stringify({ type: 'groups_list', groups: Object.values(groups).filter(g => g.members.includes(creator)) }));
             }
-            
             if (data.type === 'add_to_group') {
                 const { groupId, username, adder } = data;
                 if (!groups[groupId] || !groups[groupId].admins.includes(adder)) { ws.send(JSON.stringify({ type: 'error', message: '❌ Нет прав' })); return; }
@@ -419,7 +471,6 @@ wss.on('connection', (ws, req) => {
                     if (tws) tws.send(JSON.stringify({ type: 'added_to_group', group: groups[groupId] }));
                 }
             }
-            
             if (data.type === 'group_message') {
                 const { groupId, from, text, time } = data;
                 if (!groups[groupId] || !groups[groupId].members.includes(from)) { ws.send(JSON.stringify({ type: 'error', message: '❌ Нет доступа' })); return; }
@@ -432,42 +483,35 @@ wss.on('connection', (ws, req) => {
                 saveData(); saveMessages();
                 groups[groupId].members.forEach(m => { const mws = users.get(m); if (mws) mws.send(JSON.stringify({ type: 'group_message', id: msg.id, groupId, from, text, time, serverTime: Date.now() })); });
             }
-            
             if (data.type === 'update_status') {
                 const { username, status } = data;
                 const ud = activeUsers.get(ws);
                 if (ud && ud.username === username) { ud.status = status; activeUsers.set(ws, ud); broadcastStatusUpdate(username, status); ws.send(JSON.stringify({ type: 'status_updated', status })); }
             }
-            
             if (data.type === 'update_privacy') {
                 const { username, settings } = data;
                 privacySettings[username] = { ...privacySettings[username], ...settings };
                 saveData();
                 ws.send(JSON.stringify({ type: 'privacy_updated', settings: privacySettings[username] }));
             }
-            
             if (data.type === 'block_user') {
                 const { username, target } = data;
                 if (!username || !target) return;
                 if (!blockedUsers[username]) blockedUsers[username] = [];
                 if (!blockedUsers[username].includes(target)) { blockedUsers[username].push(target); saveData(); ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] })); }
             }
-            
             if (data.type === 'unblock_user') {
                 const { username, target } = data;
                 if (blockedUsers[username]) { blockedUsers[username] = blockedUsers[username].filter(b => b !== target); saveData(); ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] })); }
             }
-            
             if (data.type === 'typing') {
                 const tws = users.get(data.to);
                 if (tws) tws.send(JSON.stringify({ type: 'typing', from: data.from }));
             }
-            
             if (data.type === 'signal' || data.type === 'signal_answer' || data.type === 'ice_candidate') {
                 const tws = users.get(data.to);
                 if (tws) tws.send(JSON.stringify({ ...data, from: data.from }));
             }
-            
             if (data.type === 'p2p_message') {
                 const { from, to, text, time, messageId } = data;
                 const chatKey = [from, to].sort().join('_');
@@ -476,7 +520,17 @@ wss.on('connection', (ws, req) => {
                 saveMessages();
                 ws.send(JSON.stringify({ type: 'p2p_message_saved', messageId }));
             }
-            
+            if (data.type === 'get_stats' && data.username === CREATOR_USERNAME) {
+                ws.send(JSON.stringify({ type: 'stats', stats: { users: Object.keys(userDatabase).length, online: users.size, messages: Object.values(messages).reduce((a,c)=>a+c.length,0), groups: Object.keys(groups).length, channels: Object.keys(channels).length, premium: Object.keys(premiumUsers).length, suspicious: suspiciousMessages.length } }));
+            }
+            if (data.type === 'get_suspicious' && data.username === CREATOR_USERNAME) {
+                ws.send(JSON.stringify({ type: 'suspicious_list', messages: suspiciousMessages.slice(-100).reverse() }));
+            }
+            if (data.type === 'clear_suspicious' && data.username === CREATOR_USERNAME) {
+                suspiciousMessages = [];
+                fs.writeFileSync('./suspicious.log', '');
+                ws.send(JSON.stringify({ type: 'suspicious_cleared' }));
+            }
         } catch (error) {
             console.error('❌ Ошибка:', error);
             try { ws.send(JSON.stringify({ type: 'error', message: '❌ Внутренняя ошибка сервера' })); } catch(e) {}
@@ -506,15 +560,16 @@ function broadcastStatusUpdate(username, status) {
     wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); });
 }
 
-setInterval(() => { saveData(); saveMessages(); console.log(`💾 Автосохранение ${new Date().toLocaleTimeString()}`); }, SAVE_INTERVAL);
+setInterval(() => { saveData(); saveMessages(); saveOffline(); console.log(`💾 Автосохранение ${new Date().toLocaleTimeString()}`); }, SAVE_INTERVAL);
 setInterval(() => {
     try {
         if (!fs.existsSync('./backups')) fs.mkdirSync('./backups');
         const ts = Date.now();
         if (fs.existsSync('./data.json')) fs.copyFileSync('./data.json', `./backups/data_${ts}.json`);
         if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${ts}.json`);
+        if (fs.existsSync('./offline.json')) fs.copyFileSync('./offline.json', `./backups/offline_${ts}.json`);
         const backups = fs.readdirSync('./backups').filter(f => f.startsWith('data_')).sort().reverse();
-        if (backups.length > MAX_BACKUPS) backups.slice(MAX_BACKUPS).forEach(f => { const b = f.replace('data_', ''); ['data_', 'messages_'].forEach(p => { const file = `./backups/${p}${b}`; if (fs.existsSync(file)) fs.unlinkSync(file); }); });
+        if (backups.length > MAX_BACKUPS) backups.slice(MAX_BACKUPS).forEach(f => { const b = f.replace('data_', ''); ['data_', 'messages_', 'offline_'].forEach(p => { const file = `./backups/${p}${b}`; if (fs.existsSync(file)) fs.unlinkSync(file); }); });
     } catch(e) {}
 }, 60 * 60 * 1000);
 setInterval(() => { let c = 0; wss.clients.forEach(ws => { if (ws.readyState !== WebSocket.OPEN) c++; }); if (c > 0) console.log(`🧹 Очищено ${c} неактивных`); }, 5 * 60 * 1000);
@@ -529,6 +584,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   🟢 Онлайн: ${users.size}`);
     console.log(`   💬 Чатов: ${Object.keys(messages).length}`);
     console.log(`   👑 Премиум: ${Object.keys(premiumUsers).length}`);
+    console.log(`   📨 Офлайн сообщений: ${Object.values(offlineMessages).reduce((a,c)=>a+c.length,0)}`);
     console.log(`\n🌐 ДОСТУП:`);
     console.log(`   📱 http://localhost:${PORT}`);
     console.log(`   🔐 /console - командная строка (пароль: ${CONSOLE_PASSWORD})`);
@@ -536,5 +592,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   🔍 /diagnostic - диагностика`);
 });
 
-process.on('SIGINT', () => { console.log('\n📦 Сохранение...'); saveData(); saveMessages(); process.exit(0); });
-process.on('uncaughtException', (err) => { console.error('❌ Ошибка:', err); saveData(); saveMessages(); });
+process.on('SIGINT', () => { console.log('\n📦 Сохранение...'); saveData(); saveMessages(); saveOffline(); process.exit(0); });
+process.on('uncaughtException', (err) => { console.error('❌ Ошибка:', err); saveData(); saveMessages(); saveOffline(); });
