@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Nexora — контакты, реакции, офлайн</title>
+    <title>Nexora — видеозвонки, каналы</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -59,7 +59,7 @@
         .chat-header-info h3{font-size:18px;margin-bottom:4px;}
         .typing-indicator{font-size:13px;color:var(--accent);font-style:italic;margin-top:4px;}
         .messages-container{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;}
-        .message{max-width:75%;margin-bottom:12px;padding:12px 18px;border-radius:22px;border:1px solid var(--border;}
+        .message{max-width:75%;margin-bottom:12px;padding:12px 18px;border-radius:22px;border:1px solid var(--border);}
         .message.sent{align-self:flex-end;background:var(--msg-sent);color:white;border-bottom-right-radius:6px;}
         .message.received{align-self:flex-start;background:var(--msg-rec);border-bottom-left-radius:6px;}
         .message-footer{font-size:11px;opacity:0.7;text-align:right;margin-top:6px;}
@@ -71,7 +71,7 @@
         .send-btn{width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:white;}
         .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);z-index:1000;display:none;}
         .modal-overlay.active{display:block;}
-        .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:500px;max-height:80vh;overflow-y:auto;padding:30px;border-radius:30px;z-index:1001;display:none;background:var(--bg2);border:1px solid var(--border);}
+        .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:600px;max-height:80vh;overflow-y:auto;padding:30px;border-radius:30px;z-index:1001;display:none;background:var(--bg2);border:1px solid var(--border);}
         .modal.active{display:block;}
         .modal .close-btn{position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;}
         .login-container{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:200;}
@@ -90,18 +90,31 @@
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         .waiting-retry{background:var(--accent);border:none;padding:12px 24px;border-radius:40px;color:white;cursor:pointer;}
         @media (max-width:768px){.login-card{width:90%;padding:30px 20px}.theme-toggle{bottom:70px;right:10px}}
+        /* видео-звонки */
+        .call-container{display:flex;gap:20px;justify-content:center;margin:20px 0;}
+        .call-container video{width:45%;border-radius:20px;background:#000;}
     </style>
 </head>
 <body>
     <div class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-sun"></i> <span id="themeText">Тёмная</span></div>
     <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
 
-    <!-- ЭКРАН ОЖИДАНИЯ -->
     <div id="waitingPage" class="waiting-container" style="display: none;">
         <div class="waiting-card"><h1>🧪 Nexora</h1><div id="waitingMessage"><p>Подключаемся к серверу...</p><p style="font-size:14px;color:var(--text2);margin-top:10px;">Пожалуйста, подождите 15–30 секунд</p></div><div id="waitingSpinner" class="waiting-spinner"></div><div id="waitingRetry" style="display:none;"><p style="color:var(--red);margin-bottom:15px;">❌ Сервер пока не отвечает</p><button class="waiting-retry" onclick="retryConnection()">🔄 Повторить</button></div></div>
     </div>
 
-    <!-- МОДАЛКИ -->
+    <!-- МОДАЛКА ВИДЕОЗВОНКА -->
+    <div class="modal" id="callModal">
+        <button class="close-btn" onclick="hangUp()"><i class="fas fa-times"></i></button>
+        <h2><i class="fas fa-video"></i> Видеозвонок</h2>
+        <div class="call-container">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+        <div style="text-align:center; margin-top:20px;"><button onclick="hangUp()" style="background:var(--red);">📞 Положить трубку</button></div>
+    </div>
+
+    <!-- ОСТАЛЬНЫЕ МОДАЛКИ (те же, что были) -->
     <div class="modal" id="profileModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-user-circle"></i> Профиль</h2><div class="profile-edit"><div class="avatar" id="modalAvatar" onclick="document.getElementById('avatarInput').click()">👤</div><input type="file" id="avatarInput" accept="image/*" style="display: none;"><p style="color:var(--text2);">Нажми на аватарку</p></div><input type="text" id="profileName" placeholder="Имя"><textarea id="profileBio" placeholder="О себе" rows="3"></textarea><div style="display:flex;gap:10px;"><button onclick="saveProfile()">💾 Сохранить</button><button onclick="openStatusModal()" style="background:var(--bg3);">📊 Статус</button></div></div>
     <div class="modal" id="statusModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-circle"></i> Мой статус</h2><div class="status-selector"><div class="status-option online" onclick="setStatus('online')">🟢 Онлайн</div><div class="status-option away" onclick="setStatus('away')">🟡 Отошёл</div><div class="status-option busy" onclick="setStatus('busy')">🔴 Занят</div></div></div>
     <div class="modal" id="settingsModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-cog"></i> Настройки</h2><div class="settings-section"><h3>Оформление</h3><div class="settings-item"><label>Тема</label><select id="themeSelect" onchange="changeTheme(this.value)"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></div><div class="settings-item"><label>Размер шрифта</label><select id="fontSizeSelect" onchange="changeFontSize(this.value)"><option value="14">Маленький</option><option value="16" selected>Средний</option><option value="18">Большой</option></select></div></div><div class="settings-section"><h3>Уведомления</h3><div class="settings-item"><label>Звук сообщений</label><input type="checkbox" id="soundCheck" checked></div></div><div style="display:flex;gap:10px;"><button onclick="saveSettings()">💾 Сохранить</button><button onclick="openPrivacyModal()" style="background:var(--bg3);">🔒 Приватность</button></div></div>
@@ -110,10 +123,11 @@
     <div class="modal" id="suspiciousModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-exclamation-triangle" style="color:var(--red);"></i> Подозрительные</h2><div id="suspiciousList" style="max-height:60vh;overflow-y:auto;"></div><div style="display:flex;gap:10px;margin-top:20px;"><button onclick="loadSuspicious()">🔄 Обновить</button><button onclick="clearSuspicious()" style="background:var(--red);">🗑️ Очистить</button></div></div>
     <div class="modal" id="statsModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-chart-bar"></i> Статистика</h2><div id="statsContent" class="stats-grid"></div><button onclick="loadStats()">🔄 Обновить</button></div>
     <div class="modal" id="createGroupModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-users"></i> Создать группу</h2><input type="text" id="groupName" placeholder="Название группы"><button onclick="createGroup()">✅ Создать</button><button onclick="closeAllModals()" style="background:transparent;">Отмена</button></div>
+    <div class="modal" id="createChannelModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-bullhorn"></i> Создать канал</h2><input type="text" id="channelName" placeholder="Название канала"><button onclick="createChannel()">✅ Создать</button><button onclick="closeAllModals()" style="background:transparent;">Отмена</button></div>
     <div class="modal" id="fileModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fas fa-file"></i> Отправить файл</h2><div class="file-preview" id="filePreview"><i class="fas fa-cloud-upload-alt"></i><p>Выберите файл</p></div><input type="file" id="fileInput" style="display:none;"><button onclick="document.getElementById('fileInput').click()">📁 Выбрать файл</button><button onclick="sendFile()" id="sendFileBtn" disabled>📤 Отправить</button></div>
     <div class="modal" id="youtubeModal"><button class="close-btn" onclick="closeAllModals()"><i class="fas fa-times"></i></button><h2><i class="fab fa-youtube"></i> Поделиться видео</h2><input type="text" id="youtubeLink" placeholder="Ссылка на YouTube"><button onclick="shareYoutube()">📤 Отправить</button></div>
 
-    <!-- СТРАНИЦА ВХОДА (телефон + пароль) -->
+    <!-- СТРАНИЦА ВХОДА / РЕГИСТРАЦИИ (такая же, как вчера) -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h1>🧪 Nexora</h1>
@@ -121,18 +135,10 @@
             <input type="tel" id="loginPhone" class="login-input" placeholder="Номер телефона">
             <input type="password" id="loginPassword" class="login-input" placeholder="Пароль">
             <button class="login-btn" onclick="login()">🚀 Войти</button>
-            <div style="margin-top: 15px;">
-                <span class="privacy-link" onclick="showRegister()">📝 Регистрация</span>
-                <span style="margin:0 10px;">|</span>
-                <span class="privacy-link" onclick="openPremiumModal()">👑 Премиум</span>
-                <span style="margin:0 10px;">|</span>
-                <span class="privacy-link" onclick="openPrivacyPolicyModal()">📜 Политика</span>
-            </div>
+            <div style="margin-top:15px;"><span class="privacy-link" onclick="showRegister()">📝 Регистрация</span><span style="margin:0 10px;">|</span><span class="privacy-link" onclick="openPremiumModal()">👑 Премиум</span><span style="margin:0 10px;">|</span><span class="privacy-link" onclick="openPrivacyPolicyModal()">📜 Политика</span></div>
         </div>
     </div>
-
-    <!-- СТРАНИЦА РЕГИСТРАЦИИ (@username + телефон + пароль) -->
-    <div id="registerPage" class="login-container" style="display: none;">
+    <div id="registerPage" class="login-container" style="display:none;">
         <div class="login-card">
             <h1>🧪 Регистрация</h1>
             <input type="text" id="regUsername" class="login-input" placeholder="@username">
@@ -140,24 +146,30 @@
             <input type="password" id="regPassword" class="login-input" placeholder="Пароль">
             <div class="checkbox"><input type="checkbox" id="regPrivacyAgree"><label>Я принимаю</label><span class="privacy-link" onclick="openPrivacyPolicyModal()">Политику</span></div>
             <button class="login-btn" onclick="register()">📝 Зарегистрироваться</button>
-            <div style="margin-top: 15px;"><span class="privacy-link" onclick="showLogin()">← Назад к входу</span></div>
+            <div style="margin-top:15px;"><span class="privacy-link" onclick="showLogin()">← Назад к входу</span></div>
         </div>
     </div>
 
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
-    <div id="appPage" class="app-container" style="display: none;">
+    <div id="appPage" class="app-container" style="display:none;">
         <div class="chats-panel" id="chatsPanel">
             <div class="panel-header"><h2>🧪 <span>Nexora</span></h2><div class="header-buttons"><button class="settings-btn" onclick="openSettingsModal()"><i class="fas fa-cog"></i></button><button class="icon-btn" onclick="openCreateMenu()"><i class="fas fa-plus"></i></button></div></div>
             <div class="connection-status" id="connectionStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Подключение...</span><span id="latency" style="margin-left:auto;">0ms</span></div>
             <div class="profile-section" onclick="openProfileMenu()"><div class="profile-header"><div class="avatar" id="headerAvatar">👤<span class="avatar-status online" id="avatarStatus"></span></div><div class="profile-info"><div class="profile-name" id="headerName"><span id="headerNameText"></span><span id="premiumIcon" style="display:none;"><i class="fas fa-crown"></i></span><span id="creatorIcon" style="display:none;"><i class="fas fa-star"></i></span><span id="betaIcon" style="display:none;" title="Я в бета-тестировании"><i class="fas fa-cog"></i></span></div><div class="profile-status" id="headerStatus"><span class="status-icon online" id="headerStatusDot"></span><span id="headerStatusText">Онлайн</span></div></div></div></div>
             <button class="premium-btn" onclick="openPremiumModal()"><i class="fas fa-crown"></i> Премиум</button>
             <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Поиск..."></div>
-            <div class="tabs"><button class="tab active" onclick="switchTab('chats')"><i class="fas fa-user"></i> Чаты</button><button class="tab" onclick="switchTab('contacts')"><i class="fas fa-address-book"></i> Контакты</button><button class="tab" onclick="switchTab('all')"><i class="fas fa-globe"></i> Все</button><button class="tab" onclick="switchTab('groups')"><i class="fas fa-users"></i> Группы</button></div>
+            <div class="tabs"><button class="tab active" onclick="switchTab('chats')"><i class="fas fa-user"></i> Чаты</button><button class="tab" onclick="switchTab('contacts')"><i class="fas fa-address-book"></i> Контакты</button><button class="tab" onclick="switchTab('all')"><i class="fas fa-globe"></i> Все</button><button class="tab" onclick="switchTab('groups')"><i class="fas fa-users"></i> Группы</button><button class="tab" onclick="switchTab('channels')"><i class="fas fa-bullhorn"></i> Каналы</button></div>
             <div class="chats-list" id="chatsList"></div>
-            <button class="tab" onclick="openJoinModal()" style="margin:16px;"><i class="fas fa-link"></i> Присоединиться</button>
+            <button class="tab" onclick="openCreateChannelModal()" style="margin:16px;"><i class="fas fa-plus-circle"></i> Создать канал</button>
         </div>
         <div class="chat-panel hidden" id="chatPanel">
-            <div class="chat-header"><button class="mobile-back-btn" onclick="hideChatPanel()"><i class="fas fa-arrow-left"></i></button><div class="chat-header-avatar" id="chatHeaderAvatar">👤</div><div class="chat-header-info"><h3 id="currentChatName">Выберите чат</h3><p id="currentChatInfo"></p><div id="typingIndicator" class="typing-indicator"></div></div><button id="addContactBtn" class="icon-btn" style="display:none;" onclick="addContact()"><i class="fas fa-user-plus"></i></button></div>
+            <div class="chat-header">
+                <button class="mobile-back-btn" onclick="hideChatPanel()"><i class="fas fa-arrow-left"></i></button>
+                <div class="chat-header-avatar" id="chatHeaderAvatar">👤</div>
+                <div class="chat-header-info"><h3 id="currentChatName">Выберите чат</h3><p id="currentChatInfo"></p><div id="typingIndicator" class="typing-indicator"></div></div>
+                <button id="videoCallBtn" class="icon-btn" style="display:none;" onclick="startVideoCall()"><i class="fas fa-video"></i></button>
+                <button id="addContactBtn" class="icon-btn" style="display:none;" onclick="addContact()"><i class="fas fa-user-plus"></i></button>
+            </div>
             <div class="messages-container" id="messagesContainer"></div>
             <div class="message-input-area"><button class="attach-btn" onclick="openAttachMenu()"><i class="fas fa-paperclip"></i></button><input type="text" id="messageInput" placeholder="Сообщение..." disabled><button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled><i class="fas fa-paper-plane"></i></button></div>
         </div>
@@ -165,7 +177,7 @@
       <script>
     // ========== КОНСТАНТЫ ==========
     const CREATOR_USERNAME = 'Dane4ka5';
-    const VERSION = 'v0.14.0';
+    const VERSION = 'v0.15.0';
     
     let socket = null;
     let currentUser = null;
@@ -173,6 +185,7 @@
     let currentChat = null;
     let currentChatType = null;
     let currentGroupId = null;
+    let currentChannelId = null;
     let users = [];
     let contacts = [];
     let groups = [];
@@ -194,6 +207,11 @@
     let notificationSound = null;
     
     let unreadCounts = JSON.parse(localStorage.getItem('unreadCounts') || '{}');
+    
+    // ========== WebRTC переменные ==========
+    let localStream = null;
+    let peerConnection = null;
+    const webrtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     
     function incrementUnread(chat) {
         unreadCounts[chat] = (unreadCounts[chat] || 0) + 1;
@@ -287,14 +305,8 @@
     function unblockUser(u) { socket.send(JSON.stringify({ type: 'unblock_user', username: currentUser, target: u })); }
     
     // ========== ВХОД / РЕГИСТРАЦИЯ ==========
-    function showLogin() {
-        document.getElementById('registerPage').style.display = 'none';
-        document.getElementById('loginPage').style.display = 'flex';
-    }
-    function showRegister() {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('registerPage').style.display = 'flex';
-    }
+    function showLogin() { document.getElementById('registerPage').style.display = 'none'; document.getElementById('loginPage').style.display = 'flex'; }
+    function showRegister() { document.getElementById('loginPage').style.display = 'none'; document.getElementById('registerPage').style.display = 'flex'; }
     
     function login() {
         const phone = document.getElementById('loginPhone').value.trim();
@@ -365,13 +377,15 @@
     }
     
     function retryConnection() { attemptConnection(pendingPassword, pendingAction); }
-        // ========== WEBSOCKET ОБРАБОТЧИКИ ==========
+    
+    // ========== WEBSOCKET ==========
     function setupWebSocketHandlers() {
         socket.onmessage = (e) => {
             const data = JSON.parse(e.data);
             if (data.type === 'pong') { document.getElementById('latency').textContent = (Date.now() - data.timestamp) + 'ms'; return; }
             console.log('📩 Получен тип:', data.type);
             
+            // Вход / регистрация
             if (data.type === 'login_success') {
                 currentUser = data.username;
                 document.getElementById('appPage').style.display = 'flex';
@@ -386,7 +400,6 @@
                 updateHeaderStatus();
                 updateChatsList('chats');
             }
-            
             if (data.type === 'register_success') {
                 currentUser = data.username;
                 document.getElementById('appPage').style.display = 'flex';
@@ -397,49 +410,47 @@
                 updateChatsList('chats');
             }
             
+            // Списки
             if (data.type === 'contacts_list') { contacts = data.contacts; if (document.querySelector('.tab.active')?.innerText.includes('Контакты')) updateChatsList('contacts'); }
             if (data.type === 'users_list') { users = data.users; if (document.querySelector('.tab.active')?.innerText.includes('Все')) updateChatsList('all'); }
             if (data.type === 'groups_list') { groups = data.groups || []; if (document.querySelector('.tab.active')?.innerText.includes('Группы')) updateChatsList('groups'); }
-            if (data.type === 'channels_list') { channels = data.channels || []; }
-            if (data.type === 'rooms_list') { rooms = data.rooms || []; }
+            if (data.type === 'channels_list') { channels = data.channels || []; if (document.querySelector('.tab.active')?.innerText.includes('Каналы')) updateChatsList('channels'); }
             
+            // История
             if (data.type === 'chat_history' && data.chatId === currentChat) {
                 document.getElementById('messagesContainer').innerHTML = '';
                 data.messages.forEach(msg => displayMessage(msg));
             }
             
+            // Обычные сообщения
             if (data.type === 'message') {
                 if (data.from !== currentUser && data.from !== currentChat) incrementUnread(data.from);
                 if (data.from === currentChat) { displayMessage(data); if (data.from !== currentUser) playNotification(); }
             }
-            
             if (data.type === 'group_message' && data.groupId === currentGroupId) {
                 displayMessage(data);
                 if (data.from !== currentUser) playNotification();
             }
+            if (data.type === 'channel_post' && data.channelId === currentChannelId) {
+                displayMessage(data);
+                playNotification();
+            }
             
+            // Реакции
             if (data.type === 'message_reaction') {
                 const msgElement = document.querySelector(`.message[data-id="${data.messageId}"]`);
                 if (msgElement) {
-                    const reactionsDiv = msgElement.querySelector('.reactions');
-                    if (reactionsDiv) {
-                        reactionsDiv.innerHTML = data.reactions.map(r => `<span class="reaction" data-reaction="${r.reaction}" data-user="${r.user}" onclick="toggleReaction('${data.messageId}', '${r.reaction}')">${r.reaction}</span>`).join('');
+                    let reactionsDiv = msgElement.querySelector('.reactions');
+                    if (!reactionsDiv) {
+                        reactionsDiv = document.createElement('div');
+                        reactionsDiv.className = 'reactions';
+                        msgElement.appendChild(reactionsDiv);
                     }
-                } else if (data.chatId === currentChat) {
-                    const messagesContainer = document.getElementById('messagesContainer');
-                    const existingMsg = Array.from(messagesContainer.children).find(el => el.dataset?.id === data.messageId);
-                    if (existingMsg) {
-                        let reactionsDiv = existingMsg.querySelector('.reactions');
-                        if (!reactionsDiv) {
-                            reactionsDiv = document.createElement('div');
-                            reactionsDiv.className = 'reactions';
-                            existingMsg.appendChild(reactionsDiv);
-                        }
-                        reactionsDiv.innerHTML = data.reactions.map(r => `<span class="reaction" data-reaction="${r.reaction}" data-user="${r.user}" onclick="toggleReaction('${data.messageId}', '${r.reaction}')">${r.reaction}</span>`).join('');
-                    }
+                    reactionsDiv.innerHTML = data.reactions.map(r => `<span class="reaction" data-reaction="${r.reaction}" data-user="${r.user}" onclick="toggleReaction('${data.messageId}', '${r.reaction}')">${r.reaction}</span>`).join('');
                 }
             }
             
+            // Офлайн
             if (data.type === 'offline_messages') {
                 data.messages.forEach(msg => {
                     if (msg.chatId === currentChat) displayMessage(msg);
@@ -447,6 +458,7 @@
                 });
             }
             
+            // Печать
             if (data.type === 'typing' && data.from === currentChat) {
                 document.getElementById('typingIndicator').style.display = 'block';
                 document.getElementById('typingIndicator').textContent = `${data.from} печатает...`;
@@ -454,6 +466,23 @@
                 typingTimeout = setTimeout(() => document.getElementById('typingIndicator').style.display = 'none', 2000);
             }
             
+            // WebRTC сигналы
+            if (data.type === 'call_offer') {
+                if (confirm(`📞 Входящий звонок от ${data.from}`)) acceptCall(data.offer, data.from);
+                else socket.send(JSON.stringify({ type: 'call_reject', to: data.from, from: currentUser }));
+            }
+            if (data.type === 'call_answer') {
+                if (peerConnection) peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+            if (data.type === 'call_reject') {
+                alert(`❌ ${data.from} отклонил звонок`);
+                hangUp();
+            }
+            if (data.type === 'ice_candidate' && peerConnection) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+            
+            // Статистика
             if (data.type === 'stats') updateStatsModal(data.stats);
             if (data.type === 'suspicious_list') updateSuspiciousList(data.messages);
             if (data.type === 'blocked_list') { blockedUsers = data.blocked; updateBlockedList(); }
@@ -464,22 +493,80 @@
                 else if (activeTab.innerText.includes('Контакты')) updateChatsList('contacts');
                 else if (activeTab.innerText.includes('Все')) updateChatsList('all');
                 else if (activeTab.innerText.includes('Группы')) updateChatsList('groups');
+                else if (activeTab.innerText.includes('Каналы')) updateChatsList('channels');
             }
         };
     }
     
     function startPingInterval() { pingInterval = setInterval(() => { if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() })); }, 5000); }
     
-    // ========== КОНТАКТЫ ==========
+    // ========== КОНТАКТЫ, РЕАКЦИИ ==========
     function addContact() {
         if (!currentChat || currentChatType !== 'user') return;
         const contactName = currentChat.startsWith('@') ? currentChat : '@' + currentChat;
         socket.send(JSON.stringify({ type: 'add_contact', from: currentUser, to: contactName }));
     }
     
-    // ========== РЕАКЦИИ НА СООБЩЕНИЯ ==========
     function toggleReaction(messageId, reaction) {
         socket.send(JSON.stringify({ type: 'toggle_reaction', messageId, reaction, chatId: currentChat }));
+    }
+    
+    // ========== КАНАЛЫ ==========
+    function openCreateChannelModal() { openModal('createChannelModal'); }
+    function createChannel() {
+        const name = document.getElementById('channelName').value.trim();
+        if (!name) return alert('Введите название канала');
+        socket.send(JSON.stringify({ type: 'create_channel', name, creator: currentUser }));
+        closeAllModals();
+        document.getElementById('channelName').value = '';
+    }
+    function subscribeToChannel(channelId) {
+        socket.send(JSON.stringify({ type: 'subscribe_channel', channelId, username: currentUser }));
+    }
+    
+    // ========== ВИДЕОЗВОНКИ (WebRTC) ==========
+    async function startVideoCall() {
+        if (!currentChat || currentChatType !== 'user') return;
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
+            openModal('callModal');
+            peerConnection = new RTCPeerConnection(webrtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.onicecandidate = e => {
+                if (e.candidate) socket.send(JSON.stringify({ type: 'ice_candidate', to: currentChat, from: currentUser, candidate: e.candidate }));
+            };
+            peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.send(JSON.stringify({ type: 'call_offer', to: currentChat, from: currentUser, offer }));
+        } catch (err) { console.error('Ошибка доступа к камере/микрофону', err); alert('Не удалось получить доступ к камере/микрофону'); }
+    }
+    
+    async function acceptCall(offer, from) {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
+            openModal('callModal');
+            peerConnection = new RTCPeerConnection(webrtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.onicecandidate = e => {
+                if (e.candidate) socket.send(JSON.stringify({ type: 'ice_candidate', to: from, from: currentUser, candidate: e.candidate }));
+            };
+            peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.send(JSON.stringify({ type: 'call_answer', to: from, from: currentUser, answer }));
+        } catch (err) { console.error('Ошибка ответа на звонок', err); alert('Не удалось ответить на звонок'); }
+    }
+    
+    function hangUp() {
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        if (peerConnection) peerConnection.close();
+        localStream = null;
+        peerConnection = null;
+        closeAllModals();
     }
     
     // ========== ТАБЫ И СПИСКИ ==========
@@ -490,22 +577,24 @@
         else if (tab === 'contacts') updateChatsList('contacts');
         else if (tab === 'all') updateChatsList('all');
         else if (tab === 'groups') updateChatsList('groups');
+        else if (tab === 'channels') updateChatsList('channels');
     }
     
     function updateChatsList(type) {
         const list = document.getElementById('chatsList');
         if (!list) return;
         list.innerHTML = '';
-        let items = [];
-        if (type === 'chats') items = contacts.filter(c => c !== currentUser);
-        else if (type === 'contacts') items = contacts.filter(c => c !== currentUser);
-        else if (type === 'all') items = users.filter(u => u !== currentUser);
-        else if (type === 'groups') items = groups;
-        
-        items.forEach(item => {
-            if (type === 'groups') list.appendChild(createChatItem('group', item.name, '👥', item));
-            else list.appendChild(createChatItem('user', item, '👤'));
-        });
+        if (type === 'chats') {
+            contacts.filter(c => c !== currentUser).forEach(c => list.appendChild(createChatItem('user', c, '👤')));
+        } else if (type === 'contacts') {
+            contacts.filter(c => c !== currentUser).forEach(c => list.appendChild(createChatItem('user', c, '👤')));
+        } else if (type === 'all') {
+            users.filter(u => u !== currentUser).forEach(u => list.appendChild(createChatItem('user', u, '👤')));
+        } else if (type === 'groups') {
+            groups.forEach(g => list.appendChild(createChatItem('group', g.name, '👥', g)));
+        } else if (type === 'channels') {
+            channels.forEach(c => list.appendChild(createChatItem('channel', c.name, '📢', c)));
+        }
     }
     
     function createChatItem(type, name, icon, data = null) {
@@ -521,15 +610,21 @@
     function selectChat(type, name, data = null) {
         currentChat = name;
         currentChatType = type;
+        currentGroupId = null;
+        currentChannelId = null;
         if (type === 'group') currentGroupId = data?.id;
+        if (type === 'channel') currentChannelId = data?.id;
         document.getElementById('currentChatName').textContent = name;
+        document.getElementById('videoCallBtn').style.display = (type === 'user') ? 'inline-flex' : 'none';
         document.getElementById('addContactBtn').style.display = (type === 'user' && !contacts.includes(name)) ? 'inline-flex' : 'none';
         clearUnread(name);
         document.getElementById('messageInput').disabled = false;
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('messagesContainer').innerHTML = '';
         if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'request_history', chatId: name, username: currentUser }));
+            let reqType = 'request_history';
+            if (type === 'channel') reqType = 'request_channel_history';
+            socket.send(JSON.stringify({ type: reqType, chatId: name, username: currentUser }));
         }
         if (window.innerWidth <= 768) showChatPanel();
     }
@@ -537,18 +632,22 @@
     function showChatPanel() { document.getElementById('chatsPanel').classList.add('hidden'); document.getElementById('chatPanel').classList.remove('hidden'); }
     function hideChatPanel() { document.getElementById('chatPanel').classList.add('hidden'); document.getElementById('chatsPanel').classList.remove('hidden'); }
     
-    // ========== ОТПРАВКА СООБЩЕНИЙ ==========
+    // ========== СООБЩЕНИЯ ==========
     function sendMessage() {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
         if (!text || !currentChat) return;
         const time = new Date().toLocaleTimeString(), messageId = generateId();
-        const tempMsg = { id: messageId, text, from: currentUser, time, type: 'sent', temporary: true };
+        let tempMsg = { id: messageId, text, from: currentUser, time, type: 'sent', temporary: true };
+        if (currentChatType === 'channel') tempMsg.isChannelPost = true;
         displayMessage(tempMsg);
         const lastMsg = document.querySelector('.message.sent:last-child');
         if (lastMsg) { lastMsg.style.opacity = '0'; lastMsg.style.transform = 'scale(0.8)'; lastMsg.style.transition = 'opacity 0.3s ease, transform 0.3s ease'; }
         if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'message', id: messageId, to: currentChat, from: currentUser, text, time }));
+            let msgType = 'message';
+            if (currentChatType === 'group') msgType = 'group_message';
+            else if (currentChatType === 'channel') msgType = 'channel_post';
+            socket.send(JSON.stringify({ type: msgType, id: messageId, to: currentChat, from: currentUser, text, time }));
         }
         const btn = document.getElementById('sendBtn'), rect = btn.getBoundingClientRect();
         const flask = document.createElement('div'); flask.className = 'flying-flask'; flask.innerHTML = '🧪';
@@ -586,15 +685,11 @@
         container.scrollTop = container.scrollHeight;
     }
     
-    // ========== ГРУППЫ ==========
+    // ========== ГРУППЫ, ФАЙЛЫ, АДМИНКА ==========
     function createGroup() { const name = document.getElementById('groupName').value.trim(); if (!name) return alert('Введите название'); socket.send(JSON.stringify({ type: 'create_group', name, creator: currentUser })); closeAllModals(); }
-    
-    // ========== ФАЙЛЫ, YOUTUBE ==========
     document.getElementById('fileInput')?.addEventListener('change', function(e) { const f = e.target.files[0]; if (!f) return; document.getElementById('filePreview').innerHTML = `<i class="fas fa-file"></i><p><strong>${f.name}</strong></p><p>${(f.size/1024).toFixed(2)} KB</p>`; document.getElementById('sendFileBtn').disabled = false; });
     function sendFile() { const f = document.getElementById('fileInput').files[0]; if (!f || !currentChat) return; const r = new FileReader(); r.onload = e => { socket.send(JSON.stringify({ type: 'send_file', from: currentUser, to: currentChat, fileName: f.name, fileData: e.target.result.split(',')[1], time: new Date().toLocaleTimeString() })); closeAllModals(); }; r.readAsDataURL(f); }
     function shareYoutube() { const link = document.getElementById('youtubeLink').value.trim(); if (!link || !currentChat) return; const id = link.match(/(?:youtu\.be\/|v=)([^&]+)/)?.[1]; if (!id) return alert('Неверная ссылка'); socket.send(JSON.stringify({ type: 'share_youtube', from: currentUser, to: currentChat, videoId: id, time: new Date().toLocaleTimeString() })); closeAllModals(); }
-    
-    // ========== АДМИН-ФУНКЦИИ ==========
     function openSuspiciousModal() { if (currentUser !== CREATOR_USERNAME) return alert('❌ Только для создателя'); openModal('suspiciousModal'); }
     function loadSuspicious() { if (socket) socket.send(JSON.stringify({ type: 'get_suspicious', username: currentUser })); }
     function clearSuspicious() { if (socket && currentUser === CREATOR_USERNAME) socket.send(JSON.stringify({ type: 'clear_suspicious', username: currentUser })); }
@@ -603,7 +698,7 @@
     function updateSuspiciousList(msgs) { const list = document.getElementById('suspiciousList'); if (list) list.innerHTML = msgs.map(m => `<div class="suspicious-item"><strong>${m.from}</strong> → ${m.to}<br>${m.message}<br><small>${new Date(m.timestamp).toLocaleString()}</small></div>`).join(''); }
     
     // ========== ВСПОМОГАТЕЛЬНЫЕ ==========
-    function openCreateMenu() { if (confirm('Создать группу?')) openModal('createGroupModal'); }
+    function openCreateMenu() { if (confirm('Создать группу?')) openModal('createGroupModal'); else if (confirm('Создать канал?')) openModal('createChannelModal'); }
     function openAttachMenu() { if (confirm('Файл или YouTube?')) openModal('fileModal'); else openModal('youtubeModal'); }
     function openJoinModal() { alert('Присоединение по ссылке в разработке'); }
     function openPremiumModal() { alert('👑 Премиум\n\nСкоро здесь появится информация о покупке премиум-доступа.'); }
