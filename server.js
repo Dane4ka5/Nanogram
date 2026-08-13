@@ -1,376 +1,575 @@
+// ==============================================
+// SERVER.JS — NEXORA v0.16.0 (ПОЛНОСТЬЮ РАБОЧАЯ)
+// ==============================================
+
 const WebSocket = require('ws');
-const http = require('http');
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
+const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
+// ==============================================
+// КОНСТАНТЫ
+// ==============================================
 const PORT = process.env.PORT || 3000;
-const VERSION = 'v0.15.0';
+const VERSION = 'v0.16.0';
 const CREATOR_USERNAME = 'Dane4ka5';
-const CONSOLE_PASSWORD = '14883482GG';
-const SAVE_INTERVAL = 60 * 1000;
-const MAX_MESSAGES_PER_CHAT = 10000;
-const MAX_BACKUPS = 50;
+const SALT_ROUNDS = 10;
+const SAVE_INTERVAL = 30000; // 30 секунд
+const MAX_MESSAGES_PER_CHAT = 500;
 
-const users = new Map();
-const activeUsers = new Map();
-let offlineMessages = {};
-
+// ==============================================
+// ХРАНИЛИЩА ДАННЫХ
+// ==============================================
 let userDatabase = {};
 let messages = {};
 let groups = {};
 let channels = {};
 let privateRooms = {};
 let userProfiles = {};
-let userSettings = {};
 let premiumUsers = {};
-let blockedUsers = {};
 let privacySettings = {};
+let blockedUsers = {};
 let suspiciousMessages = [];
+let userSessions = {};
+let ipBanList = [];
+let whitelist = [];
 
-const SUSPICIOUS_WORDS = ['терракт', 'бомба', 'взрыв', 'оружие', 'наркотики', 'убить', 'война', 'attack', 'bomb', 'kill', 'terror'];
-
+// ==============================================
+// ЗАГРУЗКА ДАННЫХ
+// ==============================================
 function loadAllData() {
-    console.log('\n' + '='.repeat(60));
-    console.log('📂 ЗАГРУЗКА ДАННЫХ...');
-    console.log('='.repeat(60));
     try {
         if (fs.existsSync('./data.json')) {
             const data = JSON.parse(fs.readFileSync('./data.json', 'utf8'));
             userDatabase = data.users || {};
             groups = data.groups || {};
             channels = data.channels || {};
-            privateRooms = data.privateRooms || {};
-            userProfiles = data.userProfiles || {};
-            userSettings = data.userSettings || {};
-            premiumUsers = data.premiumUsers || {};
-            blockedUsers = data.blockedUsers || {};
-            privacySettings = data.privacySettings || {};
-            console.log(`✅ data.json загружен: ${Object.keys(userDatabase).length} пользователей, ${Object.keys(channels).length} каналов`);
+            privateRooms = data.rooms || {};
+            userProfiles = data.profiles || {};
+            premiumUsers = data.premium || {};
+            privacySettings = data.privacy || {};
+            blockedUsers = data.blocked || {};
+            ipBanList = data.ipBanList || [];
+            whitelist = data.whitelist || [];
+            console.log('✅ Данные пользователей загружены');
         }
-    } catch (e) { console.error('Ошибка загрузки data.json:', e.message); }
+    } catch (e) {
+        console.log('⚠️ Ошибка загрузки data.json:', e.message);
+    }
+
     try {
         if (fs.existsSync('./messages.json')) {
             messages = JSON.parse(fs.readFileSync('./messages.json', 'utf8'));
-            console.log(`✅ messages.json загружен: ${Object.keys(messages).length} чатов`);
+            console.log('✅ Сообщения загружены');
         }
-    } catch (e) { messages = {}; }
-    if (fs.existsSync('./offline.json')) {
-        try { offlineMessages = JSON.parse(fs.readFileSync('./offline.json', 'utf8')); } catch(e) { offlineMessages = {}; }
-    } else { offlineMessages = {}; }
-    console.log('='.repeat(60) + '\n');
+    } catch (e) {
+        console.log('⚠️ Ошибка загрузки messages.json:', e.message);
+    }
 }
 
 function saveData() {
-    try {
-        const data = { users: userDatabase, groups, channels, privateRooms, userProfiles, userSettings, premiumUsers, blockedUsers, privacySettings, lastSaved: new Date().toISOString() };
-        fs.writeFileSync('./data.json', JSON.stringify(data, null, 2), 'utf8');
-        console.log(`💾 Данные сохранены в ${new Date().toLocaleTimeString()}`);
-        return true;
-    } catch (e) { console.error('❌ Ошибка сохранения:', e); return false; }
-}
-function saveMessages() { try { fs.writeFileSync('./messages.json', JSON.stringify(messages, null, 2), 'utf8'); return true; } catch(e) { return false; } }
-function saveOffline() { try { fs.writeFileSync('./offline.json', JSON.stringify(offlineMessages, null, 2), 'utf8'); return true; } catch(e) { return false; } }
-function logAction(action, username, details) { fs.appendFile('./users.log', `[${new Date().toISOString()}] ${action} | ${username || 'SYSTEM'} | ${details}\n`, () => {}); }
-function checkSuspicious(text, from, to, ip) {
-    const lower = text.toLowerCase();
-    for (const w of SUSPICIOUS_WORDS) if (lower.includes(w)) {
-        suspiciousMessages.push({ from, to, message: text, ip, timestamp: new Date().toISOString(), word: w });
-        fs.appendFile('./suspicious.log', JSON.stringify({ from, to, message: text, ip, timestamp: new Date().toISOString(), word: w }) + '\n', () => {});
-        console.log(`🚨 ПОДОЗРИТЕЛЬНО: ${from} → ${to}: "${text.substring(0,50)}..."`);
-        return true;
-    }
-    return false;
-}
-function generateId() { return crypto.randomBytes(8).toString('hex'); }
-function sendOfflineMessages(username, ws) {
-    if (offlineMessages[username]?.length) {
-        ws.send(JSON.stringify({ type: 'offline_messages', messages: offlineMessages[username] }));
-        delete offlineMessages[username];
-        saveOffline();
-    }
+    const data = {
+        users: userDatabase,
+        groups: groups,
+        channels: channels,
+        rooms: privateRooms,
+        profiles: userProfiles,
+        premium: premiumUsers,
+        privacy: privacySettings,
+        blocked: blockedUsers,
+        ipBanList: ipBanList,
+        whitelist: whitelist,
+        lastSave: new Date().toISOString()
+    };
+    fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
 }
 
+function saveMessages() {
+    fs.writeFileSync('./messages.json', JSON.stringify(messages, null, 2));
+}
+
+function logAction(type, username, details) {
+    const log = `[${new Date().toISOString()}] ${type} | ${username} | ${details}\n`;
+    fs.appendFileSync('./users.log', log);
+    console.log(`📝 ${log.trim()}`);
+}
+
+function generateId() {
+    return Date.now() + '-' + crypto.randomBytes(8).toString('hex');
+}
+// ==============================================
+// HTTP СЕРВЕР
+// ==============================================
 const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    
+    // ===== ДИАГНОСТИКА =====
     if (req.url === '/diagnostic') {
-        res.end(JSON.stringify({ server: 'ONLINE', version: VERSION, creator: CREATOR_USERNAME, stats: { users: Object.keys(userDatabase).length, online: users.size, messages: Object.values(messages).reduce((a,c)=>a+c.length,0), channels: Object.keys(channels).length } }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const diagnostic = {
+            server: 'ONLINE',
+            version: VERSION,
+            creator: CREATOR_USERNAME,
+            timestamp: new Date().toISOString(),
+            stats: {
+                users: Object.keys(userDatabase).length,
+                online: Object.keys(userSessions).length,
+                groups: Object.keys(groups).length,
+                messages: Object.keys(messages).length,
+                suspicious: suspiciousMessages.length
+            }
+        };
+        res.end(JSON.stringify(diagnostic, null, 2));
         return;
     }
+    
+    // ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ =====
     if (req.url === '/privacy') {
-        res.end(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Политика Nexora</title><style>body{background:#0a0c10;color:#fff;font-family:sans-serif;padding:20px;}.container{max-width:800px;margin:0 auto;background:#161b22;padding:40px;border-radius:20px;}h1{color:#9f8be5;}h2{color:#ffd700;}</style></head><body><div class="container"><h1>📜 Политика конфиденциальности Nexora</h1><h2>1. Какие данные мы собираем</h2><p>• Имя пользователя</p><p>• Номер телефона</p><p>• Сообщения (в зашифрованном виде)</p><h2>2. Контакты поддержки</h2><p>📧 support@nexora.ru</p><div class="footer"><p>Версия ${VERSION}</p><a href="/">← На главную</a></div></div></body></html>`);
+        res.end(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Политика Nexora</title>
+<style>body{background:#0a0c10;color:#fff;font-family:sans-serif;padding:20px;}.container{max-width:800px;margin:0 auto;background:#161b22;padding:40px;border-radius:20px;}h1{color:#9f8be5;}a{color:#9f8be5;}</style></head>
+<body><div class="container"><h1>📜 Политика конфиденциальности Nexora</h1>
+<p>Мы собираем только имя, телефон и сообщения (в зашифрованном виде).</p>
+<p>Данные не передаются третьим лицам.</p>
+<p>Вы можете запросить удаление данных в любое время.</p>
+<p>Версия ${VERSION}</p>
+<p><a href="/">← Вернуться</a></p></div></body></html>`);
         return;
     }
-    if (req.url === '/console') {
-        res.end(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nexora Console</title><style>body{background:#0a0c10;color:#0f0;font-family:monospace;padding:20px;}#login,#console{max-width:600px;margin:50px auto;}input,button{background:#111;color:#0f0;border:1px solid #0f0;padding:10px;margin:5px;width:100%;}#output{height:400px;overflow:auto;background:#000;padding:10px;margin-bottom:10px;}</style></head><body><div id="login"><h2>🔐 Вход в консоль</h2><input type="password" id="pwd" placeholder="Пароль"><button onclick="checkPassword()">Войти</button><div id="loginError" style="color:#f00;"></div></div><div id="console" style="display:none;"><h1>🔧 NEXORA CONSOLE</h1><div id="output"></div><input type="text" id="cmd" placeholder="> введите команду..."></div><script>function checkPassword(){const pwd=document.getElementById('pwd').value;fetch('/console-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})}).then(res=>res.json()).then(data=>{if(data.ok){document.getElementById('login').style.display='none';document.getElementById('console').style.display='block';initConsole();}else{document.getElementById('loginError').innerText='❌ Неверный пароль';}});}function initConsole(){const output=document.getElementById('output');const input=document.getElementById('cmd');function addLog(msg){output.innerHTML+='<div>> '+msg+'</div>';output.scrollTop=output.scrollHeight;}async function sendCmd(){const cmd=input.value.trim();if(!cmd)return;addLog(cmd);const res=await fetch('/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})});const ans=await res.json();addLog(ans.result);input.value='';}input.addEventListener('keypress',(e)=>{if(e.key==='Enter')sendCmd();});addLog('✅ Консоль готова. Команды: /stats, /premium user months, /broadcast текст, /online, /msg user текст');}</script></body></html>`);
+    
+    // ===== АДМИН-ПАНЕЛЬ =====
+    if (req.url.includes('/admin')) {
+        let data = {};
+        try { if (fs.existsSync('./data.json')) data = JSON.parse(fs.readFileSync('./data.json', 'utf8')); } catch(e) {}
+        
+        if (req.url.includes('action=')) {
+            const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+            const action = urlParams.get('action');
+            const username = urlParams.get('username');
+            
+            if (action === 'ban_user' && username && data.users && data.users[username]) {
+                data.users[username].banned = true;
+                fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
+                const targetWs = userSessions[username];
+                if (targetWs) { targetWs.send(JSON.stringify({ type: 'you_are_banned' })); targetWs.close(); }
+                logAction('admin_ban', CREATOR_USERNAME, username);
+            }
+            if (action === 'unban_user' && username && data.users && data.users[username]) {
+                data.users[username].banned = false;
+                fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
+                logAction('admin_unban', CREATOR_USERNAME, username);
+            }
+            res.writeHead(302, { Location: '/admin' });
+            res.end();
+            return;
+        }
+        
+        const usersCount = Object.keys(data.users || {}).length;
+        const onlineCount = Object.keys(userSessions).length;
+        let totalMessages = 0;
+        Object.values(messages).forEach(chat => totalMessages += chat.length);
+        
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Админ-панель</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#0a0c10;color:#fff;font-family:sans-serif;padding:20px;}
+h1{color:#9f8be5;}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:20px 0;}
+.card{background:#161b22;padding:20px;border-radius:10px;border-left:4px solid #9f8be5;}
+.val{font-size:28px;font-weight:bold;color:#ffd700;}
+table{width:100%;border-collapse:collapse;background:#161b22;border-radius:10px;}
+th{background:#21262d;padding:12px;text-align:left;color:#9f8be5;}
+td{padding:12px;border-bottom:1px solid #30363d;}
+button{padding:8px 15px;border-radius:8px;border:none;background:#9f8be5;color:#fff;cursor:pointer;}
+.danger{background:#da3633;}</style></head>
+<body><h1>🔐 Админ-панель Nexora</h1>
+<div class="stats">
+<div class="card"><div class="val">${usersCount}</div>Пользователей</div>
+<div class="card"><div class="val">${onlineCount}</div>Онлайн</div>
+<div class="card"><div class="val">${totalMessages}</div>Сообщений</div>
+<div class="card"><div class="val">${suspiciousMessages.length}</div>Подозрительных</div>
+</div>
+<h2>👥 Пользователи</h2><table><tr><th>Имя</th><th>Телефон</th><th>Статус</th><th>Действия</th></tr>
+${Object.entries(data.users || {}).map(([name, info]) => `
+<tr${info.banned ? ' style="background:rgba(218,54,51,0.2)"' : ''}>
+<td><strong>${name}${name === CREATOR_USERNAME ? ' ⭐' : ''}</strong></td>
+<td>${info.phone || '—'}</td>
+<td>${info.banned ? '🔴 Заблокирован' : '🟢 Активен'}</td>
+<td>
+    ${info.banned ? 
+        `<form method="get" style="display:inline;"><input type="hidden" name="action" value="unban_user"><input type="hidden" name="username" value="${name}"><button style="background:#2ea043;">Разбанить</button></form>` :
+        `<form method="get" style="display:inline;"><input type="hidden" name="action" value="ban_user"><input type="hidden" name="username" value="${name}"><button class="danger">Забанить</button></form>`
+    }
+</td></tr>`).join('')}</table></body></html>`);
         return;
     }
-    if (req.url === '/console-auth' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => { const { password } = JSON.parse(body); res.end(JSON.stringify({ ok: password === CONSOLE_PASSWORD })); });
-        return;
-    }
-    if (req.url === '/exec' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => {
-            const { cmd } = JSON.parse(body); let result = '';
-            if (cmd.startsWith('/stats')) result = `👥 Пользователей: ${Object.keys(userDatabase).length}, 🟢 Онлайн: ${users.size}, 💬 Сообщений: ${Object.values(messages).reduce((a,c)=>a+c.length,0)}, 👑 Премиум: ${Object.keys(premiumUsers).length}, 📢 Каналов: ${Object.keys(channels).length}`;
-            else if (cmd.startsWith('/premium')) { const parts = cmd.split(' '); if (parts.length>=3) { premiumUsers[parts[1]] = { active: true, granted: new Date().toISOString(), expires: new Date(Date.now() + parseInt(parts[2])*30*24*60*60*1000).toISOString(), grantedBy: 'console' }; saveData(); result = `✅ Премиум выдан ${parts[1]} на ${parts[2]} мес.`; } else result = '❌ /premium user months'; }
-            else if (cmd.startsWith('/broadcast')) { const text = cmd.slice(10); wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(JSON.stringify({ type: 'broadcast', message: text })); }); result = `📢 Рассылка: "${text}" отправлена всем онлайн.`; }
-            else if (cmd.startsWith('/online')) result = `🟢 Онлайн: ${Array.from(users.keys()).join(', ') || 'никого'}`;
-            else if (cmd.startsWith('/msg')) { const parts = cmd.split(' '); if (parts.length>=3) { const target = users.get(parts[1]); if (target) target.send(JSON.stringify({ type: 'message', from: 'Console', text: parts.slice(2).join(' '), time: new Date().toLocaleTimeString() })); result = `📨 Сообщение отправлено ${parts[1]}`; } else result = '❌ /msg user текст'; }
-            else result = '❌ Неизвестная команда';
-            res.end(JSON.stringify({ result }));
-        });
-        return;
-    }
-    let filePath = '.' + req.url; if (filePath === './') filePath = './index.html';
-    const ext = path.extname(filePath);
-    const ct = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.webmanifest': 'application/manifest+json' };
-    const encoding = ['.html', '.css', '.js', '.json', '.webmanifest'].includes(ext) ? 'utf8' : null;
-    fs.readFile(filePath, encoding, (err, content) => { if (err) { if (err.code === 'ENOENT') fs.readFile('./index.html', 'utf8', (e, c) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(c); }); else { res.writeHead(500); res.end('500'); } } else { res.writeHead(200, { 'Content-Type': ct[ext] || 'text/plain' }); res.end(content); } });
+    
+    // ===== ОБЫЧНЫЕ ФАЙЛЫ =====
+    let filePath = '.' + req.url;
+    if (filePath === './') filePath = './index.html';
+    
+    fs.readFile(filePath, 'utf8', (err, content) => {
+        if (err) {
+            res.writeHead(404);
+            res.end('<h1>404 - Файл не найден</h1>');
+        } else {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        }
+    });
 });
-
+// ==============================================
+// WEB-SOCKET СЕРВЕР
+// ==============================================
 const wss = new WebSocket.Server({ server });
+
 wss.on('connection', (ws, req) => {
-    const clientIp = req.socket.remoteAddress?.replace('::ffff:', '') || 'unknown';
+    const clientIp = req.socket.remoteAddress;
     console.log(`🔌 Новое подключение: ${clientIp}`);
     let currentUser = null;
-    ws.send(JSON.stringify({ type: 'connection_established', version: VERSION, timestamp: Date.now() }));
+
+    ws.send(JSON.stringify({
+        type: 'connection_established',
+        version: VERSION,
+        timestamp: Date.now()
+    }));
 
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message.toString('utf8'));
-            if (data.type === 'ping') { ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now(), latency: Date.now() - data.timestamp })); return; }
-            console.log(`📩 ${data.type} от ${data.username || data.from || 'unknown'}`);
+            
+            if (data.type === 'ping') {
+                ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+                return;
+            }
+            
+            console.log(`📩 ${data.type} от ${data.username || 'unknown'}`);
 
-            if (data.type === 'login') {
-                let username = null;
-                for (const [u, info] of Object.entries(userDatabase)) if (info.phone === data.phone && info.password === data.password) { username = u; break; }
-                if (!username) { ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный телефон или пароль' })); return; }
-                currentUser = username;
-                userDatabase[username].lastSeen = new Date().toISOString();
-                users.set(username, ws);
-                activeUsers.set(ws, { username, ip: clientIp, status: 'online', joinedAt: Date.now() });
-                saveData();
-                ws.send(JSON.stringify({ type: 'login_success', username, profile: userProfiles[username] || {}, premium: premiumUsers[username]?.active || false, privacy: privacySettings[username] || {}, blocked: blockedUsers[username] || [], contacts: userDatabase[username]?.contacts || [] }));
-                sendOfflineMessages(username, ws);
-                ws.send(JSON.stringify({ type: 'users_list', users: Object.keys(userDatabase) }));
-                ws.send(JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }));
-                broadcastUserList();
-                broadcastStatusUpdate(username, 'online');
-            }
-            else if (data.type === 'register') {
-                let { username, phone, password, privacyAccepted } = data;
-                if (!username || !phone || !password) { ws.send(JSON.stringify({ type: 'error', message: '❌ Заполните все поля' })); return; }
-                if (!privacyAccepted) { ws.send(JSON.stringify({ type: 'error', message: '❌ Примите политику' })); return; }
-                username = username.trim();
-                const cleanPhone = phone.trim().replace(/\s+/g, '');
-                if (!username.startsWith('@')) { ws.send(JSON.stringify({ type: 'error', message: '❌ Username должен начинаться с @' })); return; }
-                const cleanUsername = username.slice(1);
-                if (userDatabase[cleanUsername]) { ws.send(JSON.stringify({ type: 'error', message: '❌ Такой @username уже занят' })); return; }
-                let phoneExists = false;
-                for (const u of Object.values(userDatabase)) if (u.phone === cleanPhone) { phoneExists = true; break; }
-                if (phoneExists) { ws.send(JSON.stringify({ type: 'error', message: '❌ Этот номер уже используется' })); return; }
-                currentUser = cleanUsername;
-                userDatabase[cleanUsername] = { username: cleanUsername, password, phone: cleanPhone, registered: new Date().toISOString(), lastSeen: new Date().toISOString(), contacts: [] };
-                userProfiles[cleanUsername] = { avatar: '👤', bio: '' };
-                premiumUsers[cleanUsername] = { active: false };
-                privacySettings[cleanUsername] = { showOnline: 'all', showPhone: 'all' };
-                blockedUsers[cleanUsername] = [];
-                users.set(cleanUsername, ws);
-                activeUsers.set(ws, { username: cleanUsername, ip: clientIp, status: 'online', joinedAt: Date.now() });
-                saveData();
-                ws.send(JSON.stringify({ type: 'register_success', username: cleanUsername, profile: userProfiles[cleanUsername], premium: false, privacy: privacySettings[cleanUsername], blocked: [], contacts: [] }));
-                ws.send(JSON.stringify({ type: 'users_list', users: Object.keys(userDatabase) }));
-                ws.send(JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }));
-                broadcastUserList();
-                broadcastStatusUpdate(cleanUsername, 'online');
-            }
-            else if (data.type === 'request_history') {
-                const chatKey = data.chatId.includes('_') ? data.chatId : [data.username, data.chatId].sort().join('_');
-                ws.send(JSON.stringify({ type: 'chat_history', chatId: data.chatId, messages: (messages[chatKey] || []).slice(-500) }));
-            }
-            else if (data.type === 'request_channel_history') {
-                const channel = channels[data.chatId];
-                if (channel && (channel.creator === currentUser || channel.subscribers?.includes(currentUser))) {
-                    ws.send(JSON.stringify({ type: 'chat_history', chatId: data.chatId, messages: (channel.posts || []).slice(-500) }));
+            // ==============================================
+            // РЕГИСТРАЦИЯ / ВХОД (С bcrypt)
+            // ==============================================
+            if (data.type === 'register') {
+                const { username, password, phone, privacyAccepted } = data;
+                
+                if (!username || !password || !phone) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Все поля обязательны' }));
+                    return;
                 }
+                
+                if (!privacyAccepted) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Примите политику' }));
+                    return;
+                }
+                
+                const cleanUsername = username.trim();
+                const cleanPhone = phone.trim().replace(/\s+/g, '');
+                
+                if (userDatabase[cleanUsername]?.banned) {
+                    ws.send(JSON.stringify({ type: 'redirect_to_ban', reason: 'Аккаунт заблокирован' }));
+                    return;
+                }
+                
+                // СУЩЕСТВУЮЩИЙ ПОЛЬЗОВАТЕЛЬ
+                if (userDatabase[cleanUsername]) {
+                    const isPasswordValid = await bcrypt.compare(password, userDatabase[cleanUsername].password);
+                    if (!isPasswordValid) {
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный пароль' }));
+                        return;
+                    }
+                    if (userDatabase[cleanUsername].phone !== cleanPhone) {
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Неверный номер' }));
+                        return;
+                    }
+                    
+                    console.log(`👋 Вход: ${cleanUsername}`);
+                    currentUser = cleanUsername;
+                    userDatabase[cleanUsername].lastSeen = new Date().toISOString();
+                    userSessions[cleanUsername] = ws;
+                    saveData();
+                    logAction('login', cleanUsername, clientIp);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'login_success',
+                        username: cleanUsername,
+                        profile: userProfiles[cleanUsername] || { avatar: '👤', bio: '' },
+                        premium: premiumUsers[cleanUsername]?.active || false,
+                        privacy: privacySettings[cleanUsername] || { showOnline: 'all', showPhone: 'all' },
+                        blocked: blockedUsers[cleanUsername] || []
+                    }));
+                    
+                // НОВЫЙ ПОЛЬЗОВАТЕЛЬ
+                } else {
+                    let phoneExists = false;
+                    for (const u of Object.values(userDatabase)) {
+                        if (u.phone === cleanPhone) { phoneExists = true; break; }
+                    }
+                    if (phoneExists) {
+                        ws.send(JSON.stringify({ type: 'error', message: '❌ Этот номер уже используется' }));
+                        return;
+                    }
+                    
+                    console.log(`👤 Новый: ${cleanUsername}`);
+                    currentUser = cleanUsername;
+                    
+                    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+                    userDatabase[cleanUsername] = {
+                        username: cleanUsername,
+                        password: hashedPassword,
+                        phone: cleanPhone,
+                        registered: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        banned: false
+                    };
+                    userProfiles[cleanUsername] = { avatar: '👤', bio: '' };
+                    premiumUsers[cleanUsername] = { active: false };
+                    privacySettings[cleanUsername] = { showOnline: 'all', showPhone: 'all' };
+                    blockedUsers[cleanUsername] = [];
+                    userSessions[cleanUsername] = ws;
+                    saveData();
+                    logAction('register', cleanUsername, clientIp);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'register_success',
+                        username: cleanUsername,
+                        profile: userProfiles[cleanUsername],
+                        premium: false,
+                        privacy: privacySettings[cleanUsername],
+                        blocked: []
+                    }));
+                }
+                
+                // Отправляем списки
+                ws.send(JSON.stringify({ type: 'user_list', users: Object.keys(userSessions) }));
+                ws.send(JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }));
+                ws.send(JSON.stringify({ 
+                    type: 'groups_list', 
+                    groups: Object.values(groups).filter(g => g.members?.includes(cleanUsername))
+                }));
+                ws.send(JSON.stringify({ 
+                    type: 'rooms_list', 
+                    rooms: Object.values(privateRooms).filter(r => r.members?.includes(cleanUsername))
+                }));
+                
+                broadcastUserList();
             }
-            else if (data.type === 'message') {
+
+            // ==============================================
+            // ЗАПРОС ИСТОРИИ
+            // ==============================================
+            if (data.type === 'request_history') {
+                const { chatId, username } = data;
+                if (!chatId || !username) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Не указан чат' }));
+                    return;
+                }
+                const chatKey = chatId.includes('_') ? chatId : [username, chatId].sort().join('_');
+                const history = messages[chatKey] || [];
+                ws.send(JSON.stringify({ type: 'chat_history', chatId, messages: history.slice(-500) }));
+                logAction('request_history', username, `${chatId} (${history.length} сообщений)`);
+            }
+
+            // ==============================================
+            // ОТПРАВКА СООБЩЕНИЯ
+            // ==============================================
+            if (data.type === 'message') {
                 const { from, to, text, time, id } = data;
-                if (!from || !to || !text) return;
-                const isSusp = checkSuspicious(text, from, to, clientIp);
+                if (!from || !to || !text) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Неполные данные' }));
+                    return;
+                }
+                if (userDatabase[from]?.banned) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Вы заблокированы' }));
+                    return;
+                }
+                
                 const chatKey = [from, to].sort().join('_');
                 if (!messages[chatKey]) messages[chatKey] = [];
-                const msg = { id: id || generateId(), from, to, text, time, timestamp: Date.now(), ip: clientIp, suspicious: isSusp, delivered: false };
-                messages[chatKey].push(msg);
-                if (messages[chatKey].length > MAX_MESSAGES_PER_CHAT) messages[chatKey] = messages[chatKey].slice(-MAX_MESSAGES_PER_CHAT);
+                const messageObj = { id: id || generateId(), from, to, text, time, timestamp: Date.now(), delivered: false };
+                messages[chatKey].push(messageObj);
+                if (messages[chatKey].length > MAX_MESSAGES_PER_CHAT) {
+                    messages[chatKey] = messages[chatKey].slice(-MAX_MESSAGES_PER_CHAT);
+                }
                 saveMessages();
-                const target = users.get(to);
-                if (target) {
-                    target.send(JSON.stringify({ type: 'message', id: msg.id, from, text, time, serverTime: Date.now() }));
-                    msg.delivered = true;
-                } else {
-                    if (!offlineMessages[to]) offlineMessages[to] = [];
-                    offlineMessages[to].push({ from, to, text, time, timestamp: msg.timestamp, chatId: from });
-                    saveOffline();
+                
+                const targetWs = userSessions[to];
+                let delivered = false;
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({ type: 'message', id: messageObj.id, from, text, time }));
+                    delivered = true;
                 }
-                ws.send(JSON.stringify({ type: 'message_delivered', messageId: msg.id, to, time, delivered: !!target, suspicious: isSusp }));
+                ws.send(JSON.stringify({ type: 'message_delivered', messageId: messageObj.id, delivered }));
+                logAction('message', from, `→ ${to}`);
             }
-            else if (data.type === 'channel_post') {
-                const { from, to, text, time, id } = data;
-                const channel = channels[to];
-                if (!channel || (channel.creator !== from && !channel.admins?.includes(from))) { ws.send(JSON.stringify({ type: 'error', message: 'Нет прав на публикацию' })); return; }
-                const post = { id: id || generateId(), from, text, time, timestamp: Date.now() };
-                if (!channel.posts) channel.posts = [];
-                channel.posts.push(post);
-                if (!messages[`channel_${to}`]) messages[`channel_${to}`] = [];
-                messages[`channel_${to}`].push(post);
-                saveData(); saveMessages();
-                (channel.subscribers || []).forEach(sub => { const subWs = users.get(sub); if (subWs) subWs.send(JSON.stringify({ type: 'channel_post', channelId: to, id: post.id, from, text, time, serverTime: Date.now() })); });
-            }
-            else if (data.type === 'create_channel') {
+                        // ==============================================
+            // ГРУППЫ
+            // ==============================================
+            if (data.type === 'create_group') {
                 const { name, creator } = data;
-                if (!name) { ws.send(JSON.stringify({ type: 'error', message: 'Название канала обязательно' })); return; }
-                const id = 'channel_' + generateId();
-                channels[id] = { id, name, creator, admins: [creator], subscribers: [], avatar: '📢', createdAt: new Date().toISOString(), posts: [] };
-                saveData();
-                ws.send(JSON.stringify({ type: 'channel_created', channel: channels[id] }));
-                broadcastChannelsList();
-            }
-            else if (data.type === 'subscribe_channel') {
-                const { channelId, username } = data;
-                if (channels[channelId] && !channels[channelId].subscribers.includes(username)) {
-                    channels[channelId].subscribers.push(username);
-                    saveData();
-                    ws.send(JSON.stringify({ type: 'subscribed', channelId }));
+                if (!name || !creator) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Название обязательно' }));
+                    return;
                 }
-            }
-            else if (data.type === 'create_group') {
-                const { name, creator } = data;
-                if (!name) return;
                 const groupId = 'group_' + generateId();
-                groups[groupId] = { id: groupId, name, creator, admins: [creator], members: [creator], avatar: '👥', createdAt: new Date().toISOString(), messages: [] };
+                groups[groupId] = {
+                    id: groupId, name, creator, admins: [creator],
+                    members: [creator], avatar: '👥', createdAt: new Date().toISOString(), messages: []
+                };
                 saveData();
                 ws.send(JSON.stringify({ type: 'group_created', group: groups[groupId] }));
+                ws.send(JSON.stringify({
+                    type: 'groups_list',
+                    groups: Object.values(groups).filter(g => g.members?.includes(creator))
+                }));
+                logAction('create_group', creator, name);
             }
-            else if (data.type === 'add_to_group') {
-                const { groupId, username, adder } = data;
-                if (!groups[groupId] || !groups[groupId].admins.includes(adder)) { ws.send(JSON.stringify({ type: 'error', message: 'Нет прав' })); return; }
-                if (!groups[groupId].members.includes(username)) {
-                    groups[groupId].members.push(username);
-                    saveData();
-                    groups[groupId].members.forEach(m => { const mws = users.get(m); if (mws) mws.send(JSON.stringify({ type: 'group_updated', group: groups[groupId] })); });
-                }
-            }
-            else if (data.type === 'group_message') {
+
+            if (data.type === 'group_message') {
                 const { groupId, from, text, time } = data;
-                if (!groups[groupId] || !groups[groupId].members.includes(from)) { ws.send(JSON.stringify({ type: 'error', message: 'Нет доступа' })); return; }
-                const msg = { id: generateId(), from, text, time, timestamp: Date.now(), groupId };
+                if (!groups[groupId] || !groups[groupId].members.includes(from)) {
+                    ws.send(JSON.stringify({ type: 'error', message: '❌ Нет доступа' }));
+                    return;
+                }
+                const messageObj = { id: generateId(), from, text, time, timestamp: Date.now(), groupId };
                 if (!groups[groupId].messages) groups[groupId].messages = [];
-                groups[groupId].messages.push(msg);
+                groups[groupId].messages.push(messageObj);
                 const chatKey = `group_${groupId}`;
                 if (!messages[chatKey]) messages[chatKey] = [];
-                messages[chatKey].push(msg);
+                messages[chatKey].push(messageObj);
                 saveData(); saveMessages();
-                groups[groupId].members.forEach(m => { const mws = users.get(m); if (mws) mws.send(JSON.stringify({ type: 'group_message', id: msg.id, groupId, from, text, time, serverTime: Date.now() })); });
-            }
-            else if (data.type === 'add_contact') {
-                const { from, to } = data;
-                const cleanTo = to.startsWith('@') ? to.slice(1) : to;
-                if (!userDatabase[cleanTo]) { ws.send(JSON.stringify({ type: 'error', message: 'Пользователь не найден' })); return; }
-                if (!userDatabase[from].contacts) userDatabase[from].contacts = [];
-                if (!userDatabase[from].contacts.includes(cleanTo)) {
-                    userDatabase[from].contacts.push(cleanTo);
-                    saveData();
-                    ws.send(JSON.stringify({ type: 'contacts_list', contacts: userDatabase[from].contacts }));
-                }
-            }
-            else if (data.type === 'toggle_reaction') {
-                const { messageId, reaction } = data;
-                for (const [chatKey, chatMsgs] of Object.entries(messages)) {
-                    const idx = chatMsgs.findIndex(m => m.id === messageId);
-                    if (idx !== -1) {
-                        const msg = chatMsgs[idx];
-                        if (!msg.reactions) msg.reactions = [];
-                        const existingIdx = msg.reactions.findIndex(r => r.user === currentUser);
-                        if (existingIdx !== -1) {
-                            if (msg.reactions[existingIdx].reaction === reaction) msg.reactions.splice(existingIdx, 1);
-                            else msg.reactions[existingIdx].reaction = reaction;
-                        } else msg.reactions.push({ user: currentUser, reaction });
-                        messages[chatKey][idx] = msg;
-                        saveMessages();
-                        const participants = chatKey.split('_');
-                        participants.forEach(p => { const pws = users.get(p); if (pws) pws.send(JSON.stringify({ type: 'message_reaction', messageId, chatId: chatKey, reactions: msg.reactions })); });
-                        break;
+                groups[groupId].members.forEach(member => {
+                    const memberWs = userSessions[member];
+                    if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+                        memberWs.send(JSON.stringify({ type: 'group_message', groupId, from, text, time }));
                     }
-                }
+                });
+                logAction('group_message', from, `→ group:${groupId}`);
             }
-            else if (data.type === 'call_offer' || data.type === 'call_answer' || data.type === 'ice_candidate') {
-                const target = users.get(data.to);
-                if (target) target.send(JSON.stringify({ ...data, from: data.from }));
+
+            // ==============================================
+            // АДМИН-КОМАНДЫ (ТОЛЬКО ДЛЯ Dane4ka5)
+            // ==============================================
+            if (data.type === 'get_stats' && data.username === CREATOR_USERNAME) {
+                const stats = {
+                    users: Object.keys(userDatabase).length,
+                    online: Object.keys(userSessions).length,
+                    messages: Object.values(messages).reduce((a, c) => a + c.length, 0),
+                    groups: Object.keys(groups).length,
+                    channels: Object.keys(channels).length,
+                    premium: Object.keys(premiumUsers).length,
+                    suspicious: suspiciousMessages.length,
+                    version: VERSION
+                };
+                ws.send(JSON.stringify({ type: 'stats', stats }));
+                logAction('admin_stats', data.username, 'Статистика');
             }
-            else if (data.type === 'call_reject') {
-                const target = users.get(data.to);
-                if (target) target.send(JSON.stringify({ type: 'call_reject', from: data.from }));
-            }
-            else if (data.type === 'update_status') {
-                const ud = activeUsers.get(ws);
-                if (ud && ud.username === data.username) { ud.status = data.status; activeUsers.set(ws, ud); broadcastStatusUpdate(data.username, data.status); ws.send(JSON.stringify({ type: 'status_updated', status: data.status })); }
-            }
-            else if (data.type === 'block_user') {
-                if (!blockedUsers[data.username]) blockedUsers[data.username] = [];
-                if (!blockedUsers[data.username].includes(data.target)) { blockedUsers[data.username].push(data.target); saveData(); ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[data.username] })); }
-            }
-            else if (data.type === 'unblock_user') {
-                if (blockedUsers[data.username]) { blockedUsers[data.username] = blockedUsers[data.username].filter(b => b !== data.target); saveData(); ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[data.username] })); }
-            }
-            else if (data.type === 'typing') { const t = users.get(data.to); if (t) t.send(JSON.stringify({ type: 'typing', from: data.from })); }
-            else if (data.type === 'get_stats' && data.username === CREATOR_USERNAME) {
-                ws.send(JSON.stringify({ type: 'stats', stats: { users: Object.keys(userDatabase).length, online: users.size, messages: Object.values(messages).reduce((a,c)=>a+c.length,0), groups: Object.keys(groups).length, channels: Object.keys(channels).length, premium: Object.keys(premiumUsers).length, suspicious: suspiciousMessages.length } }));
-            }
-            else if (data.type === 'get_suspicious' && data.username === CREATOR_USERNAME) {
+
+            if (data.type === 'get_suspicious' && data.username === CREATOR_USERNAME) {
                 ws.send(JSON.stringify({ type: 'suspicious_list', messages: suspiciousMessages.slice(-100).reverse() }));
             }
-            else if (data.type === 'clear_suspicious' && data.username === CREATOR_USERNAME) {
+
+            if (data.type === 'clear_suspicious' && data.username === CREATOR_USERNAME) {
                 suspiciousMessages = [];
                 fs.writeFileSync('./suspicious.log', '');
                 ws.send(JSON.stringify({ type: 'suspicious_cleared' }));
             }
-        } catch (err) { console.error('Ошибка обработки сообщения:', err); try { ws.send(JSON.stringify({ type: 'error', message: 'Внутренняя ошибка' })); } catch(e) {} }
+
+            // ==============================================
+            // ДОПОЛНИТЕЛЬНО
+            // ==============================================
+            if (data.type === 'update_status') {
+                const { username, status } = data;
+                logAction('update_status', username, status);
+                ws.send(JSON.stringify({ type: 'status_updated', status }));
+            }
+
+            if (data.type === 'block_user') {
+                const { username, target } = data;
+                if (!blockedUsers[username]) blockedUsers[username] = [];
+                if (!blockedUsers[username].includes(target)) {
+                    blockedUsers[username].push(target);
+                    saveData();
+                    ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] }));
+                }
+            }
+
+            if (data.type === 'unblock_user') {
+                const { username, target } = data;
+                if (blockedUsers[username]) {
+                    blockedUsers[username] = blockedUsers[username].filter(b => b !== target);
+                    saveData();
+                    ws.send(JSON.stringify({ type: 'blocked_list', blocked: blockedUsers[username] }));
+                }
+            }
+
+            if (data.type === 'typing') {
+                const { from, to } = data;
+                const targetWs = userSessions[to];
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify({ type: 'typing', from }));
+                }
+            }
+
+        } catch (error) {
+            console.error('❌ Ошибка:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Внутренняя ошибка' }));
+        }
     });
+
     ws.on('close', () => {
-        const ud = activeUsers.get(ws);
-        if (ud) {
-            users.delete(ud.username);
-            activeUsers.delete(ws);
-            if (userDatabase[ud.username]) userDatabase[ud.username].lastSeen = new Date().toISOString();
-            saveData();
+        if (currentUser) {
+            console.log(`👋 ${currentUser} отключился`);
+            delete userSessions[currentUser];
+            if (userDatabase[currentUser]) {
+                userDatabase[currentUser].lastSeen = new Date().toISOString();
+                saveData();
+            }
             broadcastUserList();
-            broadcastStatusUpdate(ud.username, 'offline');
+            logAction('disconnect', currentUser, 'Отключение');
         }
     });
 });
 
-function broadcastUserList() { const msg = JSON.stringify({ type: 'user_list', users: Array.from(users.keys()), online: users.size, timestamp: Date.now() }); wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); }); }
-function broadcastStatusUpdate(username, status) { const msg = JSON.stringify({ type: 'status_update', username, status, timestamp: Date.now() }); wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); }); }
-function broadcastChannelsList() { const msg = JSON.stringify({ type: 'channels_list', channels: Object.values(channels) }); wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); }); }
+// ==============================================
+// РАССЫЛКА
+// ==============================================
+function broadcastUserList() {
+    const message = JSON.stringify({ type: 'user_list', users: Object.keys(userSessions), online: Object.keys(userSessions).length });
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) client.send(message);
+    });
+}
 
-setInterval(() => { saveData(); saveMessages(); saveOffline(); }, SAVE_INTERVAL);
+// ==============================================
+// АВТОСОХРАНЕНИЕ
+// ==============================================
 setInterval(() => {
-    if (!fs.existsSync('./backups')) fs.mkdirSync('./backups');
-    const ts = Date.now();
-    if (fs.existsSync('./data.json')) fs.copyFileSync('./data.json', `./backups/data_${ts}.json`);
-    if (fs.existsSync('./messages.json')) fs.copyFileSync('./messages.json', `./backups/messages_${ts}.json`);
-    if (fs.existsSync('./offline.json')) fs.copyFileSync('./offline.json', `./backups/offline_${ts}.json`);
-}, 60 * 60 * 1000);
-setInterval(() => { let c = 0; wss.clients.forEach(ws => { if (ws.readyState !== WebSocket.OPEN) c++; }); if (c > 0) console.log(`🧹 Очищено ${c} неактивных`); }, 5 * 60 * 1000);
+    saveData();
+    saveMessages();
+    console.log(`💾 Автосохранение в ${new Date().toLocaleTimeString()}`);
+}, SAVE_INTERVAL);
 
+// ==============================================
+// ЗАПУСК
+// ==============================================
 loadAllData();
+
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Nexora ${VERSION} (чистая версия)`);
+    console.log('\n' + '='.repeat(70));
+    console.log(`🚀 Nexora ${VERSION} - ПОЛНОСТЬЮ РАБОЧАЯ ВЕРСИЯ`);
+    console.log('='.repeat(70));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`👑 Создатель: ${CREATOR_USERNAME}`);
-    console.log(`📊 Статистика: ${Object.keys(userDatabase).length} пользователей, ${Object.keys(channels).length} каналов`);
-    console.log(`🔐 /console - командная строка (пароль: ${CONSOLE_PASSWORD})`);
+    console.log(`📊 Пользователей: ${Object.keys(userDatabase).length}`);
+    console.log(`🟢 Онлайн: ${Object.keys(userSessions).length}`);
+    console.log(`💬 Сообщений: ${Object.values(messages).reduce((a, c) => a + c.length, 0)}`);
+    console.log(`\n🌐 http://localhost:${PORT}`);
+    console.log(`🕵️ /admin - админ-панель`);
+    console.log('='.repeat(70) + '\n');
 });
-process.on('SIGINT', () => { console.log('\n📦 Сохранение...'); saveData(); saveMessages(); saveOffline(); process.exit(0); });
+
+process.on('SIGINT', () => {
+    saveData(); saveMessages();
+    console.log('✅ Сервер остановлен');
+    process.exit(0);
+});

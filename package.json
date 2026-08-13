@@ -1,12 +1,13 @@
 {
   "name": "nanogram",
-  "version": "0.9.0",        
+  "version": "0.9.0",
   "description": "Безопасный мессенджер с группами и файлами",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "bcrypt": "^6.0.0",
+    "ws": "^8.21.3"
   }
 }
