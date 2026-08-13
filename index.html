@@ -1398,12 +1398,16 @@
     localStorage.setItem('nexora_phone', phone);
     
     connectWebSocket(password);
-}
+
         
         // ==============================================
         // WEBSOCKET
         // ==============================================
         function connectWebSocket(password) {
+            // Закрываем старый сокет, если он есть
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
             socket = new WebSocket('wss://nexora-messenger.onrender.com');
             
             socket.onopen = function() {

@@ -62,30 +62,12 @@
       ]
     }
   },
-  "privateRooms": {},
-  "userProfiles": {
-    "Dane4ka5": {
-      "avatar": "👑",
-      "bio": "Создатель Nanogram",
-      "status": "online"
-    },
-    "TestUser": {
-      "avatar": "👤",
-      "bio": "",
-      "status": "online"
-    }
-  },
-  "userSettings": {},
-  "premiumUsers": {
-    "Dane4ka5": {
-      "active": true,
-      "granted": "2026-03-22T12:00:00.000Z",
-      "expires": "never",
-      "months": 999,
-      "grantedBy": "system"
-    }
-  },
-  "blockedUsers": {},
-  "privacySettings": {},
-  "lastSaved": "2026-08-13T07:01:53.569Z"
+  "rooms": {},
+  "profiles": {},
+  "premium": {},
+  "privacy": {},
+  "blocked": {},
+  "ipBanList": [],
+  "whitelist": [],
+  "lastSave": "2026-08-13T14:06:32.802Z"
 }
